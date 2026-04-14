@@ -16,13 +16,13 @@
 
 **目的**: 项目初始化和基本结构
 
-- [ ] T001 使用 Next.js App Router + TypeScript + Tailwind CSS + pnpm 初始化项目，配置 `tsconfig.json` 严格模式
-- [ ] T002 [P] 配置 ESLint + Prettier，创建 `.eslintrc.js` 和 `.prettierrc`
-- [ ] T003 [P] 配置 Vitest，创建 `vitest.config.ts`
-- [ ] T004 [P] 配置 Playwright，创建 `playwright.config.ts`
-- [ ] T005 [P] 初始化 shadcn/ui，运行 `npx shadcn@latest init` 并添加基础组件（Button, Input, Card, Dialog, Tabs, Accordion）
-- [ ] T006 创建 `.env.example` 和 `.env.local`，包含 Supabase 和 Anthropic 环境变量
-- [ ] T007 创建全局类型定义 `src/types/index.ts`，定义所有实体的 TypeScript 接口（User, QuestionType, ChatSession, ChatMessage, InterviewQuestion, QuestionAnalysis, MockInterview, InterviewAnswer, InterviewMethodology, TrendingQuestion, TypeSkillMapping）
+- [x] T001 使用 Next.js App Router + TypeScript + Tailwind CSS + pnpm 初始化项目，配置 `tsconfig.json` 严格模式
+- [x] T002 [P] 配置 ESLint + Prettier，创建 `.eslintrc.js` 和 `.prettierrc`
+- [x] T003 [P] 配置 Vitest，创建 `vitest.config.ts`
+- [x] T004 [P] 配置 Playwright，创建 `playwright.config.ts`
+- [x] T005 [P] 初始化 shadcn/ui，运行 `npx shadcn@latest init` 并添加基础组件（Button, Input, Card, Dialog, Tabs, Accordion）
+- [x] T006 创建 `.env.example` 和 `.env.local`，包含 Supabase 和 Anthropic 环境变量
+- [x] T007 创建全局类型定义 `src/types/index.ts`，定义所有实体的 TypeScript 接口（User, QuestionType, ChatSession, ChatMessage, InterviewQuestion, QuestionAnalysis, MockInterview, InterviewAnswer, InterviewMethodology, TrendingQuestion, TypeSkillMapping）
 
 ---
 
@@ -32,15 +32,15 @@
 
 **⚠️ 关键**: 在此阶段完成之前，无法开始任何用户故事工作
 
-- [ ] T008 在 Supabase 中创建数据库迁移文件 `supabase/migrations/001_initial_schema.sql`，包含所有 11 个表的 DDL（question_types, chat_sessions, chat_messages, interview_questions, question_analyses, mock_interviews, interview_answers, interview_methodologies, trending_questions, type_skill_mappings）+ 索引 + RLS 策略
-- [ ] T009 在 Supabase 中预置 15 种种子问题类型数据 `supabase/seed.sql`（产品设计类、数据指标类、AI 工具使用类、对 AI 看法/趋势类、AI 效果评估类、场景分析类、竞品分析类、需求分析类、平衡/权衡类、开放性问题、行为面试类、系统设计类、商业化/ROI 类、AI 伦理与安全类、用户增长类）
-- [ ] T010 [P] 创建 Supabase 客户端封装 `src/lib/supabase/client.ts`（浏览器端）和 `src/lib/supabase/server.ts`（服务端），使用 `@supabase/ssr`
-- [ ] T011 [P] 创建 Supabase Auth 中间件 `src/middleware.ts`，处理会话刷新和路由保护
-- [ ] T012 [P] 创建 Claude API 封装 `src/lib/ai/claude.ts`，封装 `@anthropic-ai/sdk`，支持 Sonnet（核心生成）和 Haiku（辅助任务）两个模型
-- [ ] T013 [P] 创建 Token 计数工具 `src/lib/utils/tokens.ts`，估算消息的 token 数量
-- [ ] T014 实现认证页面 `src/app/(auth)/login/page.tsx` 和 `src/app/(auth)/register/page.tsx`，使用 Supabase Auth 邮箱+密码登录注册
-- [ ] T015 [P] 创建根布局 `src/app/layout.tsx`（全局样式、字体、Supabase Provider）和首页 `src/app/page.tsx`（导航到三大板块）
-- [ ] T016 [P] 创建面试助手布局 `src/app/interview/layout.tsx`（侧边导航：问答、Session、模拟面试、方法论、统计）和导航组件 `src/components/layout/Sidebar.tsx`
+- [x] T008 在 Supabase 中创建数据库迁移文件 `supabase/migrations/001_initial_schema.sql`，包含所有 11 个表的 DDL（question_types, chat_sessions, chat_messages, interview_questions, question_analyses, mock_interviews, interview_answers, interview_methodologies, trending_questions, type_skill_mappings）+ 索引 + RLS 策略
+- [x] T009 在 Supabase 中预置 15 种种子问题类型数据 `supabase/seed.sql`（产品设计类、数据指标类、AI 工具使用类、对 AI 看法/趋势类、AI 效果评估类、场景分析类、竞品分析类、需求分析类、平衡/权衡类、开放性问题、行为面试类、系统设计类、商业化/ROI 类、AI 伦理与安全类、用户增长类）
+- [x] T010 [P] 创建 Supabase 客户端封装 `src/lib/supabase/client.ts`（浏览器端）和 `src/lib/supabase/server.ts`（服务端），使用 `@supabase/ssr`
+- [x] T011 [P] 创建 Supabase Auth 中间件 `src/middleware.ts`，处理会话刷新和路由保护
+- [x] T012 [P] 创建 Claude API 封装 `src/lib/ai/claude.ts`，封装 `@anthropic-ai/sdk`，支持 Sonnet（核心生成）和 Haiku（辅助任务）两个模型
+- [x] T013 [P] 创建 Token 计数工具 `src/lib/utils/tokens.ts`，估算消息的 token 数量
+- [x] T014 实现认证页面 `src/app/(auth)/login/page.tsx` 和 `src/app/(auth)/register/page.tsx`，使用 Supabase Auth 邮箱+密码登录注册
+- [x] T015 `src/app/layout.tsx`（全局样式、字体、Supabase Provider）和首页 `src/app/page.tsx`（导航到三大板块）
+- [x] T016 [P] 创建面试助手布局 `src/app/interview/layout.tsx`（侧边导航：问答、Session、模拟面试、方法论、统计）和导航组件 `src/components/layout/Sidebar.tsx`
 
 **检查点**: 基础就绪 — 数据库、认证、AI 客户端、布局全部可用，可以开始用户故事
 
