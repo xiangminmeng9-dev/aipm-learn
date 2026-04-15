@@ -38,9 +38,7 @@ export default function LoginForm() {
       <Card className="w-full max-w-md border-neutral-800 bg-neutral-900">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl text-neutral-50">登录</CardTitle>
-          <CardDescription className="text-neutral-400">
-            登录 AI 产品经理学习平台
-          </CardDescription>
+          <CardDescription className="text-neutral-400">登录 AI 产品经理学习平台</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
