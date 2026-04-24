@@ -195,6 +195,7 @@ export interface WeakArea {
   type_name: string;
   average_score: number;
   recommended_questions: { id: string; text: string }[];
+  related_modules?: { id: string; name: string }[];
 }
 
 export interface UserStats {
@@ -246,3 +247,236 @@ export interface ApiError {
   error: string;
   code?: string;
 }
+
+// --- Resources Stats ---
+export interface ResourcesStatsResponse {
+  total_resources: number;
+  total_rss_articles: number;
+  total_daily_news: number;
+  total_rss_sources: number;
+  type_distribution: { type: string; count: number }[];
+  source_distribution: { source: string; count: number }[];
+  daily_activity: { date: string; count: number }[];
+  growth_timeline: { date: string; count: number }[];
+  folder_treemap: { name: string; value: number; children?: { name: string; value: number }[] }[];
+  rss_category_distribution: { category: string; count: number }[];
+  rss_read_stats: { total: number; read: number; translated: number };
+  daily_news_recent: { date: string; article_count: number }[];
+}
+
+// --- External Resource ---
+export interface ExternalResource {
+  id: string;
+  parent_id: string | null;
+  title: string;
+  url: string;
+  type: 'link' | 'video' | 'doc' | 'folder';
+  source: string;
+  notes: string | null;
+  related_module_name: string | null;
+  sort_order: number;
+  description?: string;
+  created_at: string;
+}
+
+// --- Skill Module ---
+export type UserResourceType = 'article' | 'video' | 'book' | 'note';
+export type UserTaskType = string;
+
+export interface SkillModule {
+  id: string;
+  name: string;
+  description: string;
+  level: number;
+  icon: string;
+  is_seed: boolean;
+  level_name: string;
+  prerequisites: string[];
+  created_at: string;
+}
+
+export interface LearningTask {
+  id: string;
+  module_id: string;
+  title: string;
+  description: string;
+  objective?: string;
+  task_type: string;
+  sort_order: number;
+  is_seed: boolean;
+  created_at: string;
+}
+
+export interface LearningTaskWithProgress extends LearningTask {
+  is_completed: boolean;
+  completed_at: string | null;
+  status: string;
+  estimated_days?: number;
+  content_summary?: string;
+  resources?: LearningResource[];
+  user_resources?: UserTaskResource[];
+}
+
+export interface SkillModuleWithProgress extends SkillModule {
+  tasks: LearningTaskWithProgress[];
+  completion_rate: number;
+  progress_percentage: number;
+  total_tasks?: number;
+  completed_tasks?: number;
+  task_count: number;
+  completed_count: number;
+  interview_weak_types?: string[];
+  interview_methodology_count?: number;
+  is_unlocked: boolean;
+}
+
+export interface LearningResource {
+  id: string;
+  title: string;
+  url: string;
+  type: string;
+  source?: string;
+  created_at: string;
+}
+
+export interface UserTaskResource {
+  id: string;
+  task_id: string;
+  title: string;
+  url: string;
+  type: string;
+  source?: string;
+  notes?: string;
+  created_at: string;
+}
+
+export interface ExtractedSkill {
+  skill: string;
+  skill_name: string;
+  category: string;
+  frequency: number;
+  importance: string;
+}
+
+export interface SkillModuleMatch {
+  skill: string;
+  module_id: string;
+  module_name: string;
+  match_score: number;
+}
+
+export interface SkillGap {
+  skill: string;
+  skill_name: string;
+  reason: string;
+  suggestion: string;
+}
+
+// --- Daily AI News ---
+export interface DailyAiNewsArticle {
+  id: string;
+  title: string;
+  description: string;
+  url: string;
+  source: string;
+  published_at: string;
+  category: string;
+  summary?: string;
+  fetched_at: string;
+}
+
+export interface DailyAiNewsDigest {
+  id: string;
+  date: string;
+  headline: string;
+  summary: string;
+  highlights: string[];
+  trend: string;
+  digest: string;
+  article_count: number;
+  articles: DailyAiNewsArticle[];
+  created_at: string;
+}
+
+// --- Coding Methodology ---
+export interface DevMode {
+  id: string;
+  name: string;
+  description: string;
+  created_at?: string;
+}
+
+export interface CodingMethodology {
+  id: string;
+  user_id: string;
+  mode_id: string;
+  high_freq_questions: string[];
+  common_breakdowns: string[];
+  cross_mode_steps: string[];
+  key_notes: string[];
+  source_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+// --- RSS Article Collection ---
+export type RssSourceCategory = 'ai_tech' | 'ai_pm';
+export type RssSourceLanguage = 'en' | 'zh';
+
+export interface RssSource {
+  id: string;
+  name: string;
+  url: string;
+  category: RssSourceCategory;
+  language: RssSourceLanguage;
+  is_active: boolean;
+  last_fetched_at: string | null;
+  created_at: string;
+}
+
+export interface RssArticle {
+  id: string;
+  source_id: string;
+  source?: RssSource;
+  title: string;
+  original_url: string;
+  author: string | null;
+  published_at: string | null;
+  content_raw: string | null;
+  content_summary: string | null;
+  plain_explanation: string | null;
+  category: RssSourceCategory;
+  tags: string[];
+  is_read: boolean;
+  is_translated: boolean;
+  fetched_at: string;
+  created_at: string;
+}
+
+export interface PlainTranslation {
+  summary: string;
+  explanation: string;
+  impact: string;
+  tags: string[];
+}
+
+// --- AI PM Simulator ---
+export interface SimulatorSession {
+  id: string;
+  user_id: string;
+  current_stage_id: string;
+  stage_scores: Record<string, { score: number; feedback: string; completed_at: string }>;
+  status: 'in_progress' | 'completed';
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SimulatorMessage {
+  id: string;
+  session_id: string;
+  stage_id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  created_at: string;
+}
+

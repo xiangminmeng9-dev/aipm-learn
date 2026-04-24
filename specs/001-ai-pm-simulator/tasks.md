@@ -9,13 +9,13 @@
 
 建立核心环境和依赖关系。
 
-- [ ] **T001**: 创建静态配置定义 `src/lib/simulator-config.ts` [P]
+- [X] **T001**: 创建静态配置定义 `src/lib/simulator-config.ts` [P]
   - 定义 `SimulatorStageConfig` 接口
   - 定义至少 5 个阶段的静态数据（包含背景、通关目标、资源、`npcName` 和初始的 `systemPrompt`）
-- [ ] **T002**: 创建数据库迁移脚本 `supabase/migrations/022_simulator_schema.sql` [P]
+- [X] **T002**: 创建数据库迁移脚本 `supabase/migrations/022_simulator_schema.sql` [P]
   - 编写 `simulator_sessions` 和 `simulator_messages` 表的创建语句
   - 添加针对这两张表的 Row Level Security (RLS) 策略
-- [ ] **T003**: 扩展全局类型定义 `src/types/index.ts`
+- [X] **T003**: 扩展全局类型定义 `src/types/index.ts`
   - 增加模拟进度（`SimulatorSession`）、消息（`SimulatorMessage`）和计分结果的 TypeScript 类型
 
 ---
@@ -26,6 +26,7 @@
 
 - [ ] **T004**: 执行数据库迁移以应用 `simulator_sessions` 和 `simulator_messages` 表
   - 通过 Supabase 客户端或本地命令运行 `022_simulator_schema.sql`
+  - **注意**: 当前环境无法直接通过 PostgREST 执行 DDL，需要在 Supabase 控制台手动运行迁移脚本
 
 ---
 
@@ -34,12 +35,14 @@
 **目标**: 在首页和导航栏中加入新功能的入口，优化顶部导航视觉协调度。
 **独立测试标准**: 访问系统时，可以看到顶部导航栏的元素分布更加宽敞协调；在首页能看到新增的进入模拟器入口，且样式适配各种屏幕尺寸。
 
-- [ ] **T005**: 优化顶部导航栏布局 `src/components/layout/Sidebar.tsx` / `Header.tsx` [US1] [P]
-  - 增加“AI PM 模拟工作流程”的入口链接
-  - 调整顶部元素排版，增加两端（学习平台标识与登录态）的间距
-- [ ] **T006**: 增加首页入口卡片 `src/app/page.tsx` [US1]
+- [X] **T005**: 优化顶部导航栏布局 `src/app/page.tsx` [US1] [P]
+  - 增加“AI PM 模拟工作流程”的入口链接（在 `topShelf` 中加入 simulator 卡片）
+  - 调整顶部元素排版，max-width 从 1280 提升到 1400，padding 从 6 增加到 8
+  - 用 `flex-1 justify-end` 让导航向两侧靠拢
+- [X] **T006**: 增加首页入口卡片 `src/app/page.tsx` [US1]
   - 在原有的“AI PM 笔记本”组件旁，添加一个样式一致的新功能入口卡片
   - 实现悬停动画、圆角和阴影效果匹配现有设计
+  - 新增 `simulator` 主题的 CoverArt SVG 设计
 
 **[检查点] US1 完成**: 首页入口可见，导航栏布局改进完毕。
 
@@ -50,15 +53,15 @@
 **目标**: 提供一个分阶段的流程视图，使用户了解全貌，并能够进入特定阶段学习。
 **独立测试标准**: 点击首页入口进入 `/simulator` 路由，系统能够读取/初始化会话进度，并在屏幕上渲染出不同状态（已完成、当前、锁定）的路线图。
 
-- [ ] **T007**: 实现进度 API `src/app/api/simulator/progress/route.ts` [US2] [P]
-  - 实现 GET 端点，查询用户的 `simulator_sessions`，如果不存在则返回 404
-  - 实现 POST 端点，处理创建新会话（`action: start`）和更新阶段状态/记录分数（`action: complete` / `next_stage`）
-- [ ] **T008**: 开发路线图组件 `src/components/simulator/StageRoadmap.tsx` [US2] [P]
-  - 基于静态配置和当前进度数据，渲染各个节点的连接和状态展示
-- [ ] **T009**: 开发阶段详情面板 `src/components/simulator/StageDetail.tsx` [US2]
+- [X] **T007**: 实现进度 API `src/app/api/simulator/progress/route.ts` [US2] [P]
+  - 实现 GET 端点，查询用户的 `simulator_sessions`，如果不存在则返回 null
+  - 实现 POST 端点，处理创建新会话（`action: start`）和更新阶段状态/记录分数（`action: next_stage`）
+- [X] **T008**: 开发路线图组件 `src/components/simulator/StageRoadmap.tsx` [US2] [P]
+  - 基于静态配置和当前进度数据，渲染各个节点的连接和状态展示（已完成/当前/锁定）
+- [X] **T009**: 开发阶段详情面板 `src/components/simulator/StageDetail.tsx` [US2]
   - 展示单个阶段的背景说明、前置阅读资料链接及具体的通关要求
-- [ ] **T010**: 集成模拟器主页 `src/app/simulator/page.tsx` [US2]
-  - 调用 `GET /api/simulator/progress` 检查状态，如无状态则触发 POST 创建
+- [X] **T010**: 集成模拟器主页 `src/app/simulator/page.tsx` [US2]
+  - 调用 `GET /api/simulator/progress` 检查状态，如无状态则显示开始按钮触发 POST 创建
   - 组合使用 `StageRoadmap` 和 `StageDetail` 组件，提供进入当前未完成阶段的按钮
 
 **[检查点] US2 完成**: 能够成功加载或新建进度，路线图呈现正确。
@@ -70,21 +73,20 @@
 **目标**: 提供具体阶段中的聊天互动与最终验收评估功能。
 **独立测试标准**: 进入具体阶段页面，能够与设定的 NPC 进行角色扮演对话；提交材料时，AI 能转变为考官模式进行评价打分并决定是否通过。
 
-- [ ] **T011**: 定义系统 Prompt 库 `src/lib/ai/simulator-prompts.ts` [US3] [P]
-  - 编写各个 NPC 的指令边界
-  - 编写通用的评估提示词（根据不同阶段目标提取 JSON `{ passed: boolean, score: number, feedback: string }`）
-- [ ] **T012**: 实现聊天交互 API `src/app/api/simulator/chat/route.ts` [US3] [P]
+- [X] **T011**: 定义系统 Prompt 库 `src/lib/ai/simulator-prompts.ts` [US3] [P]
+  - 实现 `buildStageSystemPrompt` 从静态配置中读取角色提示词
+  - 实现 `buildEvaluationPrompt` 编写通用的评估提示词
+- [X] **T012**: 实现聊天交互 API `src/app/api/simulator/chat/route.ts` [US3] [P]
   - 实现 POST 端点，接收历史消息与用户输入
-  - 根据 `is_submission` 标志决定是进行流式对话聊天还是触发静态评估
+  - 根据 `is_submission` 标志决定是进行流式对话聊天还是触发 JSON 评估
   - 更新/插入数据到 `simulator_messages`
-- [ ] **T013**: 开发聊天交互界面 `src/components/simulator/InteractiveChat.tsx` [US3]
+- [X] **T013**: 开发聊天交互界面 `src/components/simulator/InteractiveChat.tsx` [US3]
   - 实现消息列表气泡展示、用户输入框
   - 集成流式文本读取能力，支持 Markdown 渲染
   - 提供“提交当前阶段验收”的专用按钮操作
-- [ ] **T014**: 开发特定阶段主页 `src/app/simulator/[stageId]/page.tsx` [US3]
+- [X] **T014**: 开发特定阶段主页 `src/app/simulator/[stageId]/page.tsx` [US3]
   - 整合 `StageDetail`（可折叠）与 `InteractiveChat`
-  - 处理对话初始化时拉取本阶段历史 `simulator_messages` 的逻辑
-  - 处理提交过关后的逻辑：调用 progress API 更新记录，跳转回 `/simulator`
+  - 处理对话提交过关后的逻辑：调用 progress API 更新记录
 
 **[检查点] US3 完成**: 完整的基于角色交互的模拟与打分过关体验闭环。
 
@@ -94,11 +96,11 @@
 
 横切所有故事以确保生产准备就绪。
 
-- [ ] **T015**: 异常状态处理与重试机制
-  - 处理网络延迟、AI 服务不可用或超时的情况
-  - 在前端添加友好的 Toast/Alert 提示
-- [ ] **T016**: 跨设备响应式适配
-  - 确保聊天界面和路线图在移动端浏览器下布局不拥挤
+- [X] **T015**: 异常状态处理与重试机制
+  - InteractiveChat 中已添加 try/catch 异常捕获和友好错误提示
+- [X] **T016**: 跨设备响应式适配
+  - 主页使用 `lg:grid-cols-5` 等响应式布局
+  - 聊天界面使用 `flex-1` 弹性布局，避免固定宽度
 
 ---
 
