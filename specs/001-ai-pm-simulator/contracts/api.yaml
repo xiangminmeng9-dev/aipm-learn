@@ -1,0 +1,85 @@
+openapi: 3.0.0
+info:
+  title: AI PM Simulator API
+  version: 1.0.0
+  description: 提供了用于控制和交互大厂 AI PM 模拟工作流程的后端路由
+
+paths:
+  /api/simulator/progress:
+    get:
+      summary: 获取用户当前的模拟进度
+      description: 返回用户活跃的会话及其对应的各阶段得分和当前停留阶段。
+      responses:
+        '200':
+          description: 返回进度数据
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  session:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      current_stage_id:
+                        type: string
+                      status:
+                        type: string
+                      stage_scores:
+                        type: object
+        '404':
+          description: 尚未开始任何模拟（前端可以发起创建）
+
+    post:
+      summary: 创建新模拟或更新进度
+      description: 初始化一个新的工作流，或者在完成某个阶段后更新当前状态进入下一个阶段。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                action:
+                  type: string
+                  enum: [start, next_stage, complete]
+                stage_id:
+                  type: string
+                  description: 当前完成的阶段
+                score_data:
+                  type: object
+                  description: 该阶段的评分详情
+      responses:
+        '200':
+          description: 成功更新或创建
+
+  /api/simulator/chat:
+    post:
+      summary: 在模拟流程中与 NPC 进行对话
+      description: 接受用户的文字输入，使用当前阶段设定的 system prompt 和过去的聊天上下文来生成回复，可支持流式返回。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                session_id:
+                  type: string
+                  format: uuid
+                stage_id:
+                  type: string
+                message:
+                  type: string
+                is_submission:
+                  type: boolean
+                  description: 是否为最终通关提交。如果是，AI将返回评估通过与否及评分。
+      responses:
+        '200':
+          description: 流式或纯文本 JSON 响应
+          content:
+            text/event-stream:
+              schema:
+                type: string
