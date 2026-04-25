@@ -20,39 +20,24 @@ export async function POST(request: NextRequest) {
   const body = await request.json();
   const { question, category, evaluate, record_id, user_answer } = body;
 
-  // --- Evaluate mode: 4-dimension scoring ---
+  // --- Evaluate mode ---
   if (evaluate && record_id && user_answer) {
-    const { data: analysis } = await supabase
-      .from('question_analyses')
-      .select('id, question_id')
+    // Find the assistant_qa_record
+    const { data: record } = await supabase
+      .from('assistant_qa_records')
+      .select('id, question, category')
       .eq('id', record_id)
       .eq('user_id', user.id)
       .single();
 
-    if (!analysis) {
+    if (!record) {
       return NextResponse.json({ error: '记录不存在' }, { status: 404 });
     }
 
-    const { data: iq } = await supabase
-      .from('interview_questions')
-      .select('text, type_id')
-      .eq('id', analysis.question_id)
-      .single();
-
-    let questionCategory = category || 'AI产品思维';
-    if (iq?.type_id) {
-      const { data: typeData } = await supabase
-        .from('question_types')
-        .select('name')
-        .eq('id', iq.type_id)
-        .single();
-      if (typeData) questionCategory = typeData.name;
-    }
-
     const scoringPrompt = buildAssistantScoringPrompt({
-      question: iq?.text || question,
+      question: record.question,
       answer: user_answer,
-      category: questionCategory,
+      category: record.category || 'AI产品思维',
     });
 
     const evaluationResult = await generateText(scoringPrompt, {
@@ -81,19 +66,17 @@ export async function POST(request: NextRequest) {
       };
     }
 
-    // Store evaluation
+    // Update the record with evaluation
     await supabase
-      .from('question_analyses')
-      .update({
-        answer_approach: JSON.stringify({ user_answer, evaluation }),
-      })
+      .from('assistant_qa_records')
+      .update({ evaluation })
       .eq('id', record_id)
       .eq('user_id', user.id);
 
     return NextResponse.json({ evaluation });
   }
 
-  // --- Q&A mode: structured analysis with streaming ---
+  // --- Q&A mode ---
   if (!question) {
     return NextResponse.json({ error: '请输入问题' }, { status: 400 });
   }
@@ -107,77 +90,44 @@ export async function POST(request: NextRequest) {
   // 2. Real questions context
   const realQuestionsContext = getRealQuestionsContext(category || '', 3);
 
-  // 3. Memory context
+  // 3. Memory context from assistant_qa_records
   let memoryContext = '';
   {
-    const { data: recentAnalyses } = await supabase
-      .from('question_analyses')
-      .select('question_id, analysis, created_at')
+    const { data: recentRecords } = await supabase
+      .from('assistant_qa_records')
+      .select('question, answer, created_at')
       .eq('user_id', user.id)
-      .eq('source', 'assistant')
       .order('created_at', { ascending: false })
       .limit(5);
 
-    if (recentAnalyses && recentAnalyses.length > 0) {
-      const qIds = recentAnalyses.map(a => a.question_id);
-      const { data: recentQs } = await supabase
-        .from('interview_questions')
-        .select('id, text')
-        .in('id', qIds);
-
-      const qMap = new Map((recentQs || []).map(q => [q.id, q.text]));
+    if (recentRecords && recentRecords.length > 0) {
       memoryContext = '\n\n【对话记忆】\n' +
-        recentAnalyses.map((a, i) => {
-          const qText = qMap.get(a.question_id) || '';
-          return `${i + 1}. 问：${qText}\n答：${(a.analysis || '').substring(0, 200)}...`;
+        recentRecords.map((r, i) => {
+          return `${i + 1}. 问：${r.question}\n答：${(r.answer || '').substring(0, 200)}...`;
         }).join('\n\n');
     }
   }
 
-  // Build system prompt
   const systemPrompt = ASSISTANT_SYSTEM_PROMPT + knowledgeContext + realQuestionsContext + memoryContext;
 
-  // Find or create interview_question
-  let questionId: string;
-  let typeId: string | null = null;
-
-  if (category) {
-    const { data: typeData } = await supabase
-      .from('question_types')
-      .select('id')
-      .eq('name', category)
-      .single();
-    typeId = typeData?.id || null;
-  }
-
-  const { data: existingQ } = await supabase
-    .from('interview_questions')
-    .select('id')
-    .eq('user_id', user.id)
-    .eq('text', question)
-    .limit(1);
-
-  if (existingQ && existingQ.length > 0) {
-    questionId = existingQ[0].id;
-  } else {
-    const insertData: Record<string, unknown> = { user_id: user.id, text: question, source: 'assistant' };
-    if (typeId) insertData.type_id = typeId;
-    const { data: newQ } = await supabase.from('interview_questions').insert(insertData).select('id').single();
-    questionId = newQ?.id || '';
-  }
-
-  // Create analysis record — mark source as 'assistant' to distinguish from QA
-  const { data: newAnalysis } = await supabase
-    .from('question_analyses')
-    .insert({ user_id: user.id, question_id: questionId, analysis: '' })
+  // Create assistant_qa_record FIRST (before streaming)
+  const { data: newRecord, error: insertError } = await supabase
+    .from('assistant_qa_records')
+    .insert({
+      user_id: user.id,
+      question: question.trim(),
+      category: category || null,
+      answer: '', // will be updated after streaming
+    })
     .select('id')
     .single();
 
-  const newRecordId = newAnalysis?.id;
-
-  if (!newRecordId) {
+  if (insertError || !newRecord) {
+    console.error('Create assistant record error:', insertError);
     return NextResponse.json({ error: '创建记录失败' }, { status: 500 });
   }
+
+  const recordId = newRecord.id;
 
   // Stream response
   const encoder = new TextEncoder();
@@ -185,8 +135,8 @@ export async function POST(request: NextRequest) {
     async start(controller) {
       let fullAnswer = '';
       try {
-        // Send record_id first — this is critical for evaluation
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'record_id', record_id: newRecordId })}\n\n`));
+        // Send record_id first
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'record_id', record_id: recordId })}\n\n`));
 
         for await (const chunk of streamChatResponse(
           [{ role: 'user', content: question }],
@@ -196,16 +146,54 @@ export async function POST(request: NextRequest) {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'chunk', content: chunk })}\n\n`));
         }
 
-        // Update analysis record
-        await supabase.from('question_analyses').update({ analysis: fullAnswer }).eq('id', newRecordId);
+        // Update the record with full answer
+        await supabase
+          .from('assistant_qa_records')
+          .update({ answer: fullAnswer })
+          .eq('id', recordId);
 
-        // Trigger methodology update
-        if (typeId) {
-          try {
-            const { generateOrUpdateMethodology } = await import('@/app/api/interview/methodology/route');
-            await generateOrUpdateMethodology(supabase, user.id, typeId);
-          } catch { /* non-blocking */ }
-        }
+        // Also save to question_analyses for methodology/stats integration
+        try {
+          // Find or create interview_question
+          let questionId: string | null = null;
+          if (category) {
+            const { data: typeData } = await supabase
+              .from('question_types')
+              .select('id')
+              .eq('name', category)
+              .single();
+            if (typeData) {
+              const { data: existingQ } = await supabase
+                .from('interview_questions')
+                .select('id')
+                .eq('user_id', user.id)
+                .eq('text', question.trim())
+                .limit(1);
+              if (existingQ && existingQ.length > 0) {
+                questionId = existingQ[0].id;
+              } else {
+                const { data: newQ } = await supabase
+                  .from('interview_questions')
+                  .insert({ user_id: user.id, text: question.trim(), source: 'user_input', type_id: typeData.id })
+                  .select('id')
+                  .single();
+                questionId = newQ?.id;
+              }
+
+              if (questionId) {
+                await supabase.from('question_analyses').insert({
+                  user_id: user.id,
+                  question_id: questionId,
+                  analysis: fullAnswer,
+                });
+
+                // Trigger methodology update
+                const { generateOrUpdateMethodology } = await import('@/app/api/interview/methodology/route');
+                await generateOrUpdateMethodology(supabase, user.id, typeData.id);
+              }
+            }
+          }
+        } catch { /* non-blocking */ }
 
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'done' })}\n\n`));
       } catch (err) {

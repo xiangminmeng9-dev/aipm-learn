@@ -30,15 +30,10 @@ export default function QAPage() {
 
   const fetchHistory = useCallback(async () => {
     try {
-      const res = await fetch('/api/interview/assistant/history');
+      const res = await fetch('/api/interview/analyze/history');
       if (res.ok) {
         const data = await res.json();
-        setHistory((data.records || []).map((r: { id: string; question: string; category: string | null; created_at: string }) => ({
-          id: r.id,
-          question: r.question,
-          type_name: r.category,
-          created_at: r.created_at,
-        })));
+        setHistory(data.records || []);
       }
     } catch { /* ignore */ }
   }, []);
