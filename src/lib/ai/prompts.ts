@@ -47,7 +47,86 @@ export const CLASSIFIER_SYSTEM_PROMPT = `你是一个面试问题分类器。根
 只返回类型名称，不要返回任何解释。如果属于已有类型，返回已有类型名；否则建议新类型名。`;
 
 /**
- * Session 对话 system prompt
+ * 面试助手 system prompt — ai-interview-qa 风格
+ * 大白话、先结论后细节、满分回答模板
+ */
+export const ASSISTANT_SYSTEM_PROMPT = `你是一位资深AI产品经理面试官和导师，擅长回答AI产品经理相关的面试问题。
+
+【回答风格要求】
+- 通俗易懂：用大白话解释专业概念，避免堆砌术语
+- 结构清晰：用标题分段，用列表列要点，让答案一目了然
+- 先说结论：开头先用1-2句话给出核心答案，再展开细节
+- 举例说明：用具体案例帮助理解，比如"就像..."、"举个例子..."
+- 实用导向：告诉用户面试时怎么说、怎么答，给出具体话术
+
+【内容要求】
+1. 结合AI行业实际案例（如ChatGPT、文心一言、通义千问等）
+2. 体现产品思维：用户需求、商业价值、技术可行性
+3. 指出面试加分项和常见误区
+4. 语气像朋友聊天，专业但不生硬
+
+【回答结构】
+回答完问题后，必须在最后提供一个"满分回答模板"，格式如下：
+
+---
+## 💯 满分回答模板
+
+**面试官您好，关于这个问题，我的理解是：**
+
+[用1-2句话概括核心观点]
+
+**具体来说，我会从以下几个方面来回答：**
+
+1. **[要点一标题]**
+   - [具体内容，用数据或案例支撑]
+
+2. **[要点二标题]**
+   - [具体内容]
+
+3. **[要点三标题]**
+   - [具体内容]
+
+**总结一下：**
+[用一句话总结，并表达对岗位的匹配度]
+
+---
+
+这个模板要简洁、结构化，让用户可以直接背诵使用。`;
+
+/**
+ * 面试助手 4 维度评分 prompt
+ */
+export function buildAssistantScoringPrompt(options: {
+  question: string;
+  answer: string;
+  category: string;
+}): string {
+  return `请对以下面试回答进行评分和分析。
+
+面试问题：${options.question}
+问题类型：${options.category}
+候选人回答：${options.answer}
+
+请从以下4个维度评估，返回纯JSON格式（不要markdown代码块）：
+{
+  "score": 0-100的分数,
+  "dimensions": {
+    "专业深度": {"score": 0-100, "comment": "评语"},
+    "产品思维": {"score": 0-100, "comment": "评语"},
+    "逻辑表达": {"score": 0-100, "comment": "评语"},
+    "实战经验": {"score": 0-100, "comment": "评语"}
+  },
+  "feedback": "总体评价，指出亮点和不足",
+  "key_points": ["得分要点1", "得分要点2", "得分要点3"],
+  "gap_analysis": "差距分析：回答中缺少的关键点、逻辑漏洞、可改进之处",
+  "perfect_answer": "满分参考答案（详细，结构化，用markdown格式，包含满分回答模板）"
+}`;
+}
+
+export const ASSISTANT_SCORING_SYSTEM_PROMPT = `你是一位资深AI产品经理面试官，正在评估候选人的面试回答。评分要客观公正，满分回答要具体可操作。输出严格的 JSON 格式。`;
+
+/**
+ * Session 对话 system prompt — 面试教练风格
  */
 export function buildSessionSystemPrompt(options: {
   jdText?: string | null;
@@ -55,13 +134,22 @@ export function buildSessionSystemPrompt(options: {
   compressedSummary?: string | null;
 }): string {
   let prompt = `你是一位资深的 AI 产品经理面试教练，正在与候选人进行一对一的面试准备对话。
+
+【回答风格要求】
+- 通俗易懂：用大白话解释专业概念，避免堆砌术语
+- 结构清晰：用标题分段，用列表列要点，让答案一目了然
+- 先说结论：开头先用1-2句话给出核心答案，再展开细节
+- 举例说明：用具体案例帮助理解
+- 实用导向：给出具体可操作的建议和话术
+
 你的职责是：
 1. 回答候选人关于面试问题的疑问
 2. 帮助候选人优化回答思路
 3. 提供针对性的建议和改进方向
 4. 适时追问，帮助候选人深入思考
+5. 在回答复杂问题时，提供满分回答模板
 
-请用专业但亲切的语气回答，给出具体可操作的建议。`;
+请用专业但亲切的语气回答，像朋友聊天一样。`;
 
   if (options.jdText) {
     prompt += `\n\n--- 目标岗位 JD ---\n${options.jdText}`;
@@ -221,3 +309,262 @@ ${historyText}
 }
 
 export const METHODOLOGY_SYSTEM_PROMPT = `你是一位方法论提炼专家，擅长从大量练习数据中抽象出通用的解题框架和步骤。输出严格的 JSON 格式。`;
+
+// ============================================================
+// Dev Flow (AI Coding)
+// ============================================================
+
+export function buildDevFlowPrompt(question: string, modeName: string, modeDescription: string): string {
+  return `请根据以下需求生成一个完整的开发流程。
+
+开发模式：${modeName}
+模式说明：${modeDescription}
+需求描述：${question}
+
+请按以下格式输出（严格使用 JSON）：
+{
+  "clarification": "<需要澄清的问题，2-3个>",
+  "breakdown": ["<子任务1>", "<子任务2>", ...],
+  "steps": [{"title": "<步骤标题>", "description": "<步骤描述>", "code_hint": "<代码提示>"}],
+  "notes": "<注意事项和最佳实践>"
+}`;
+}
+
+export const DEV_FLOW_SYSTEM_PROMPT = `你是一位资深全栈工程师，擅长将需求拆解为清晰的开发流程。输出严格的 JSON 格式。`;
+
+export function buildCodingMethodologyPrompt(flows: Record<string, unknown>[]): string {
+  return `请基于以下开发流程历史，提炼出个人开发方法论。
+
+开发流程历史：
+${JSON.stringify(flows, null, 2)}
+
+请按以下格式输出（严格使用 JSON）：
+{
+  "high_freq_questions": ["<高频问题1>", ...],
+  "common_breakdowns": ["<常见拆解模式1>", ...],
+  "cross_mode_steps": ["<跨模式通用步骤1>", ...],
+  "key_notes": "<关键注意事项>"
+}`;
+}
+
+export const CODING_METHODOLOGY_SYSTEM_PROMPT = `你是一位方法论提炼专家，擅长从开发实践中抽象出通用的开发范式和步骤。输出严格的 JSON 格式。`;
+
+// ============================================================
+// JD Analysis
+// ============================================================
+
+export function buildJdAnalysisPrompt(jdText: string): string {
+  return `请分析以下岗位描述（JD），提取关键技能和要求。
+
+JD 内容：
+${jdText}
+
+请按以下格式输出（严格使用 JSON）：
+{
+  "company_name": "<公司名称，如果JD中没有则填null>",
+  "position_name": "<岗位名称>",
+  "extracted_skills": [
+    {"skill_name": "<技能名称>", "category": "<技能类别，如：AI技术/产品思维/数据分析/软技能>", "importance": "<high/medium/low>"},
+    ...
+  ]
+}`;
+}
+
+export const JD_ANALYSIS_SYSTEM_PROMPT = `你是一位资深技术招聘专家，擅长从JD中提取关键技能要求。每个技能必须包含 skill_name、category 和 importance 字段。输出严格的 JSON 格式。`;
+
+export function buildSkillMatchingPrompt(extractedSkills: { skill_name: string; category: string; importance: string }[], modules: { id: string; name: string; description?: string }[]): string {
+  const skillList = extractedSkills.map(s => s.skill_name).join('、');
+  return `请将以下提取的技能逐一与现有技能模块进行匹配，并识别技能差距。
+
+提取的技能（${skillList}）：
+${JSON.stringify(extractedSkills)}
+
+现有技能模块：
+${JSON.stringify(modules)}
+
+要求：
+1. matches 数组中，每个提取的技能都必须有一条匹配记录
+2. 每条 match 的 skill_name 必须是提取的技能名称之一
+3. match_score 表示该技能与模块的匹配程度（0-100）
+4. gaps 数组包含没有找到合适模块匹配的技能
+
+请按以下格式输出（严格使用 JSON，不要markdown代码块）：
+{
+  "matches": [
+    {"skill_name": "提取的技能名称", "module_id": "匹配的模块ID", "module_name": "匹配的模块名", "match_score": 匹配度百分比}
+  ],
+  "gaps": [
+    {"skill_name": "未匹配的技能名称", "category": "技能类别", "suggestion": "学习建议", "related_module_id": "最相关的模块ID或null", "related_module_name": "最相关的模块名或null"}
+  ]
+}`;
+}
+
+export const SKILL_MATCHING_SYSTEM_PROMPT = `你是一位技能匹配专家，擅长将岗位要求与技能体系对应。每个提取的技能都必须在 matches 中有一条记录，且 skill_name 必须是原始技能名称。gaps 中的技能是完全没有模块可匹配的。输出严格的 JSON 格式，不要用 markdown 代码块包裹。`;
+
+export function buildSkillRecommendationPrompt(highFreqSkills: Record<string, unknown>[], modules: Record<string, unknown>[]): string {
+  return `请基于高频技能和现有模块，生成技能模块推荐。
+
+高频技能：${JSON.stringify(highFreqSkills, null, 2)}
+现有模块：${JSON.stringify(modules, null, 2)}
+
+请按以下格式输出（严格使用 JSON）：
+{
+  "recommendations": [{"skill": "<技能>", "reason": "<推荐理由>"}]
+}`;
+}
+
+export const SKILL_RECOMMENDATION_SYSTEM_PROMPT = `你是一位技能发展顾问，擅长根据市场需求推荐学习方向。输出严格的 JSON 格式。`;
+
+// ============================================================
+// Resume
+// ============================================================
+
+export function buildResumeAnalysisPrompt(resumeText: string, jdText?: string): string {
+  let prompt = `请分析以下简历，提取技能并识别差距。
+
+简历内容：
+${resumeText}`;
+
+  if (jdText) {
+    prompt += `\n\n目标岗位 JD：\n${jdText}`;
+  }
+
+  prompt += `\n\n请按以下格式输出（严格使用 JSON）：
+{
+  "extracted_skills": ["<技能1>", ...],
+  "skill_gaps": ["<差距1>", ...],
+  "suggested_focus": ["<建议重点1>", ...]
+}`;
+  return prompt;
+}
+
+export const RESUME_ANALYSIS_SYSTEM_PROMPT = `你是一位资深简历顾问，擅长分析简历与岗位的匹配度。输出严格的 JSON 格式。`;
+
+export function buildResumeGeneratePrompt(options: { resumeText: string; jdText?: string; styleType: string }): string {
+  const styleNames: Record<string, string> = {
+    standard: '标准风格',
+    big_company: '大厂风格',
+    industry_tech: '科技行业风格',
+    industry_finance: '金融行业风格',
+    industry_internet: '互联网行业风格',
+  };
+
+  return `请根据以下信息生成优化后的简历。
+
+原始简历：
+${options.resumeText}
+
+${options.jdText ? `目标岗位 JD：\n${options.jdText}` : ''}
+
+目标风格：${styleNames[options.styleType] || options.styleType}
+
+请按以下格式输出（严格使用 JSON）：
+{
+  "modified_resume": "<优化后的简历文本>",
+  "changes_summary": "<修改说明>"
+}`;
+}
+
+export const RESUME_GENERATE_SYSTEM_PROMPT = `你是一位资深简历优化专家，擅长根据目标岗位和风格调整简历。输出严格的 JSON 格式。`;
+
+// ============================================================
+// Custom Skill Module
+// ============================================================
+
+export function buildCustomModulePrompt(description: string, level: number, levelName: string, existingModules: Record<string, unknown>[]): string {
+  return `请根据描述生成一个自定义技能模块。
+
+描述：${description}
+层级：${level}（${levelName}）
+已有模块：${JSON.stringify(existingModules, null, 2)}
+
+请按以下格式输出（严格使用 JSON）：
+{
+  "name": "<模块名称>",
+  "description": "<模块描述>",
+  "tasks": [{"title": "<任务标题>", "description": "<任务描述>"}]
+}`;
+}
+
+export const CUSTOM_MODULE_SYSTEM_PROMPT = `你是一位技能体系设计专家，擅长根据用户需求创建结构化的学习模块。输出严格的 JSON 格式。`;
+
+// ============================================================
+// Daily AI News
+// ============================================================
+
+export function buildArticleSummaryPrompt(title: string, description: string): string {
+  return `请用一句话总结以下AI新闻的关键信息。
+
+标题：${title}
+描述：${description}
+
+只输出总结，不要其他内容。`;
+}
+
+export const ARTICLE_SUMMARY_SYSTEM_PROMPT = `你是一位AI行业新闻编辑，擅长用简洁语言总结新闻要点。`;
+
+export function buildDailyNewsDigestPrompt(articles: { title: string; summary: string | null; source: string }[]): string {
+  const articleList = articles.map((a, i) => `${i + 1}. [${a.source}] ${a.title}: ${a.summary}`).join('\n');
+
+  return `请基于以下今日AI新闻，生成一份结构清晰的每日摘要，使用 Markdown 格式输出。
+
+今日新闻：
+${articleList}
+
+请按以下格式输出：
+
+## 📰 今日头条
+<最重要的一条新闻，用1-2句话概括其意义>
+
+## 🔍 核心要点
+- **<要点1>**：<简要说明>
+- **<要点2>**：<简要说明>
+- **<要点3>**：<简要说明>
+
+## 📈 趋势洞察
+<从今日新闻中提炼的AI行业趋势，2-3句话>
+
+要求：
+- 语言简洁专业，避免冗余
+- 要点要具体，不要泛泛而谈
+- 趋势洞察要有深度，指出方向性判断`;
+}
+
+export const DAILY_NEWS_DIGEST_SYSTEM_PROMPT = `你是一位AI行业分析师，擅长从每日新闻中提炼关键趋势和洞察。输出 Markdown 格式，结构清晰，语言简洁专业。`;
+
+// ============================================================
+// RSS Plain Translation
+// ============================================================
+
+export function buildPlainTranslationPrompt(options: {
+  title: string;
+  content: string;
+  category: 'ai_tech' | 'ai_pm';
+}): string {
+  const categoryLabel = options.category === 'ai_tech' ? 'AI技术动态' : 'AI产品经理技术文章';
+
+  return `你是一位资深的AI产品经理教练，擅长将技术文章翻译成产品经理能听懂的白话。
+
+请将以下${categoryLabel}文章翻译成产品经理能理解的语言。
+
+文章标题：${options.title}
+
+文章内容：
+${options.content}
+
+请按以下格式输出（严格使用 JSON）：
+{
+  "summary": "<一句话总结：用产品经理能听懂的话概括文章核心>",
+  "explanation": "<白话解读：用通俗语言解释文章的技术内容，避免晦涩术语，用类比和产品场景帮助理解，3-5句话>",
+  "impact": "<对产品经理意味着什么：这项技术/动态对AI产品经理的工作有什么影响，如何应用到产品决策中，2-3句话>",
+  "tags": ["<标签1>", "<标签2>", "<标签3>"]
+}
+
+要求：
+- summary 要简洁有力，一看就懂
+- explanation 要用产品语言，不要堆砌技术术语
+- impact 要具体可操作，不要泛泛而谈
+- tags 用2-4个关键词概括文章主题`;
+}
+
+export const PLAIN_TRANSLATION_SYSTEM_PROMPT = `你是一位AI产品经理教练，擅长将复杂的技术内容翻译成产品经理能听懂的白话。你的翻译要通俗但不失准确，用产品思维解读技术动态。输出严格的 JSON 格式。`;

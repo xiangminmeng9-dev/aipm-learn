@@ -23,23 +23,23 @@ export default function LineChart({ data }: LineChartProps) {
     xAxis: {
       type: 'category',
       data: data.map((d) => d.date),
-      axisLabel: { color: '#737373', fontSize: 10 },
-      axisLine: { lineStyle: { color: '#404040' } },
+      axisLabel: { color: '#6B7280', fontSize: 12 },
+      axisLine: { lineStyle: { color: '#D1D5DB' } },
     },
     yAxis: {
       type: 'value',
       min: 0,
       max: 10,
-      axisLabel: { color: '#737373', fontSize: 10 },
-      splitLine: { lineStyle: { color: '#262626' } },
+      axisLabel: { color: '#6B7280', fontSize: 12 },
+      splitLine: { lineStyle: { color: '#F3F4F6' } },
     },
     series: [
       {
         type: 'line',
         data: data.map((d) => d.score),
         smooth: true,
-        lineStyle: { color: '#d97706', width: 2 },
-        itemStyle: { color: '#d97706' },
+        lineStyle: { color: '#6366F1', width: 2 },
+        itemStyle: { color: '#6366F1' },
         areaStyle: {
           color: {
             type: 'linear',
@@ -48,8 +48,8 @@ export default function LineChart({ data }: LineChartProps) {
             x2: 0,
             y2: 1,
             colorStops: [
-              { offset: 0, color: 'rgba(217, 119, 6, 0.3)' },
-              { offset: 1, color: 'rgba(217, 119, 6, 0)' },
+              { offset: 0, color: 'rgba(99, 102, 241, 0.3)' },
+              { offset: 1, color: 'rgba(99, 102, 241, 0)' },
             ],
           },
         },

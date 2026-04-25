@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { STAGES_CONFIG } from '@/lib/simulator-config';
 import StageRoadmap from '@/components/simulator/StageRoadmap';
 import StageDetail from '@/components/simulator/StageDetail';
@@ -62,16 +63,40 @@ export default function SimulatorPage() {
 
   return (
     <div className="min-h-screen bg-[#F8F9FB]">
-      <div className="mx-auto max-w-4xl px-6 py-10">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">AI PM 模拟工作流程</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            沉浸式体验大厂 AI 产品经理的日常，从需求到验收全流程闯关
-          </p>
+      {/* Header with back button */}
+      <header className="sticky top-0 z-40 border-b border-gray-200 bg-white/80 backdrop-blur">
+        <div className="flex items-center justify-between px-8 py-4 md:px-12">
+          <div className="flex items-center gap-4">
+            <Link
+              href="/"
+              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+              </svg>
+              返回首页
+            </Link>
+            <span className="text-gray-300">|</span>
+            <div>
+              <h1 className="text-lg font-bold text-gray-900">AI PM 模拟工作流程</h1>
+              <p className="text-xs text-gray-500">沉浸式体验大厂 AI 产品经理的日常</p>
+            </div>
+          </div>
+          {session && (
+            <div className="flex items-center gap-2">
+              <span className="rounded-full bg-teal-50 px-3 py-1 text-xs font-medium text-teal-700">
+                进度 {Object.keys((session.stage_scores || {}) as Record<string, unknown>).length}/{STAGES_CONFIG.length}
+              </span>
+            </div>
+          )}
         </div>
+      </header>
+
+      {/* Content */}
+      <div className="px-8 py-8 md:px-12">
 
         {!session ? (
-          <div className="rounded-2xl border-2 border-dashed border-teal-300 bg-white p-12 text-center">
+          <div className="mx-auto max-w-2xl rounded-2xl border-2 border-dashed border-teal-300 bg-white p-12 text-center">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-teal-100 text-3xl">
               🚀
             </div>
@@ -96,7 +121,7 @@ export default function SimulatorPage() {
             </div>
             <div className="lg:col-span-2">
               {selectedStage ? (
-                <div className="sticky top-24 space-y-4">
+                <div className="sticky top-28 space-y-4">
                   <StageDetail stage={selectedStage} />
                   <button
                     onClick={() => handleEnterStage(selectedStage.id)}

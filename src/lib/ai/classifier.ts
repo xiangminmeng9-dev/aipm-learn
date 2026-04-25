@@ -20,7 +20,7 @@ export async function classifyQuestion(
   const result = await generateText(prompt, {
     model: 'haiku',
     system: CLASSIFIER_SYSTEM_PROMPT,
-    maxTokens: 100,
+    maxTokens: 50,
   });
 
   const typeName = result.trim();

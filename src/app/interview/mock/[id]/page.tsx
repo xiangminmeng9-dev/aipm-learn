@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import MockInterviewFlow from '@/components/interview/MockInterviewFlow';
+import MockInterviewFlow, { type MockInterviewResult } from '@/components/interview/MockInterviewFlow';
 import MockSummary from '@/components/interview/MockSummary';
 import { Button } from '@/components/ui/button';
 
@@ -10,78 +10,200 @@ interface MockDetailPageProps {
   params: Promise<{ id: string }>;
 }
 
+type PageState =
+  | { phase: 'loading' }
+  | { phase: 'interview'; mockId: string }
+  | { phase: 'summary'; summary: Record<string, unknown> };
+
 export default function MockDetailPage({ params }: MockDetailPageProps) {
-  const [mockId, setMockId] = useState('');
-  const [summary, setSummary] = useState<Record<string, unknown> | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [pageState, setPageState] = useState<PageState>({ phase: 'loading' });
 
   useEffect(() => {
     params.then(({ id }) => {
-      setMockId(id);
-      setIsLoading(false);
+      // 1. Check in-progress interview state (mock-interview-${id})
+      try {
+        const progressData = localStorage.getItem(`mock-interview-${id}`);
+        if (progressData) {
+          const parsed = JSON.parse(progressData);
+          if (parsed.questions && parsed.questions.length > 0) {
+            setPageState({ phase: 'interview', mockId: id });
+            return;
+          }
+        }
+      } catch {}
+
+      // 2. Check completed interview result (mock-${id})
+      try {
+        const completedData = localStorage.getItem(`mock-${id}`);
+        if (completedData) {
+          const parsed = JSON.parse(completedData);
+          if (parsed.completed) {
+            // Try server summary first, fallback to local data
+            fetch(`/api/interview/mock/${id}/summary`)
+              .then((r) => r.ok ? r.json() : null)
+              .then((serverSummary) => {
+                if (serverSummary) {
+                  setPageState({ phase: 'summary', summary: serverSummary });
+                } else if (parsed.answers && parsed.answers.length > 0) {
+                  setPageState({ phase: 'summary', summary: buildLocalSummary(id, parsed) });
+                } else {
+                  setPageState({ phase: 'summary', summary: emptySummary(id) });
+                }
+              })
+              .catch(() => {
+                if (parsed.answers && parsed.answers.length > 0) {
+                  setPageState({ phase: 'summary', summary: buildLocalSummary(id, parsed) });
+                } else {
+                  setPageState({ phase: 'summary', summary: emptySummary(id) });
+                }
+              });
+            return;
+          }
+          // Has initial question data but not completed — resume interview
+          if (parsed.question) {
+            setPageState({ phase: 'interview', mockId: id });
+            return;
+          }
+        }
+      } catch {}
+
+      // 3. Try server API (for authenticated users)
+      fetch(`/api/interview/mock/${id}/state`)
+        .then((r) => {
+          if (r.status === 401) throw new Error('unauth');
+          return r.json();
+        })
+        .then((data) => {
+          if (data.status === 'completed') {
+            fetch(`/api/interview/mock/${id}/summary`)
+              .then((r) => r.json())
+              .then((summaryData) => setPageState({ phase: 'summary', summary: summaryData }))
+              .catch(() => setPageState({ phase: 'summary', summary: emptySummary(id) }));
+          } else {
+            // in_progress or unknown — show interview UI (MockInterviewFlow will restore)
+            setPageState({ phase: 'interview', mockId: id });
+          }
+        })
+        .catch(() => {
+          // Unauthenticated or network error — try sessionStorage fallback
+          try {
+            const sessionData = sessionStorage.getItem(`mock-${id}`);
+            if (sessionData) {
+              setPageState({ phase: 'interview', mockId: id });
+              return;
+            }
+          } catch {}
+          // No data anywhere — show interview with loading question
+          setPageState({ phase: 'interview', mockId: id });
+        });
     });
   }, [params]);
 
-  // 当面试完成时，获取总结
-  const handleComplete = async () => {
+  const handleComplete = async (result: MockInterviewResult) => {
+    // Try to get server summary first
     try {
-      const res = await fetch(`/api/interview/mock/${mockId}/summary`);
+      const res = await fetch(`/api/interview/mock/${pageState.phase === 'interview' ? (pageState as { mockId: string }).mockId : ''}/summary`);
       if (res.ok) {
         const data = await res.json();
-        setSummary(data);
+        setPageState({ phase: 'summary', summary: data });
+        return;
       }
-    } catch {
-      // 静默失败
-    }
+    } catch {}
+
+    // Fallback: build summary from local result
+    const mockId = pageState.phase === 'interview' ? (pageState as { mockId: string }).mockId : '';
+    const answered = result.answers.filter((a) => a.answer && !a.is_skipped);
+    const skipped = result.answers.filter((a) => a.is_skipped);
+    setPageState({
+      phase: 'summary',
+      summary: {
+        id: mockId,
+        total_score: result.totalScore,
+        question_count: result.answers.length,
+        answered_count: answered.length,
+        skipped_count: skipped.length,
+        answers: result.answers.map((a) => ({
+          number: a.number,
+          question: a.question,
+          score: a.evaluation?.score ?? null,
+          gap_analysis: a.evaluation?.gap_analysis ?? '',
+          is_skipped: a.is_skipped,
+        })),
+        strengths: answered.length > 0 ? `完成了 ${answered.length} 道题目的作答，平均得分 ${result.totalScore}` : '面试已完成',
+        weaknesses: skipped.length > 0 ? `有 ${skipped.length} 道题目被跳过` : '',
+        suggestions: '建议登录后获取更详细的 AI 评价和改进建议',
+        weak_skill_modules: [],
+      },
+    });
   };
 
-  if (isLoading || !mockId) {
+  const handleCancel = () => {
+    window.location.href = '/interview/mock';
+  };
+
+  if (pageState.phase === 'loading') {
     return (
       <div className="flex justify-center py-12">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-amber-600 border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
       </div>
     );
   }
 
-  if (summary) {
+  if (pageState.phase === 'summary') {
     return (
-      <div className="mx-auto max-w-3xl p-6">
+      <div className="p-8">
         <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-neutral-50">面试总结</h1>
+          <h1 className="text-3xl font-bold text-[#1F2937]">面试总结</h1>
           <Link href="/interview/mock">
-            <Button variant="outline" className="border-neutral-600 text-neutral-300">
+            <Button variant="outline" className="app-btn-outline">
               再来一次
             </Button>
           </Link>
         </div>
-        <MockSummary summary={summary as Parameters<typeof MockSummary>[0]['summary']} />
+        <MockSummary summary={pageState.summary as Parameters<typeof MockSummary>[0]['summary']} />
       </div>
     );
   }
 
-  // 从 sessionStorage 获取初始问题数据
-  const storedData =
-    typeof window !== 'undefined' ? sessionStorage.getItem(`mock-${mockId}`) : null;
-
-  const initialQuestion = storedData
-    ? JSON.parse(storedData).question
-    : { number: 1, text: '加载中...' };
-
-  const totalQuestions = storedData ? JSON.parse(storedData).total_questions : 5;
-
   return (
-    <div className="mx-auto max-w-3xl p-6">
+    <div className="p-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-neutral-50">模拟面试</h1>
-        <p className="mt-1 text-sm text-neutral-400">认真作答，每题获得即时评价</p>
+        <h1 className="text-3xl font-bold text-[#1F2937]">模拟面试</h1>
+        <p className="mt-1 text-base text-[#6B7280]">认真作答，每题获得即时评价</p>
       </div>
 
       <MockInterviewFlow
-        mockId={mockId}
-        initialQuestion={initialQuestion}
-        totalQuestions={totalQuestions}
+        mockId={pageState.mockId}
         onComplete={handleComplete}
+        onCancel={handleCancel}
       />
     </div>
   );
+}
+
+function buildLocalSummary(id: string, parsed: { totalScore?: number; answers: { number: number; question: string; answer: string; evaluation: { score: number; gap_analysis?: string } | null; is_skipped: boolean }[]; totalQuestions?: number }) {
+  const answered = parsed.answers.filter((a) => a.answer && !a.is_skipped);
+  const skipped = parsed.answers.filter((a) => a.is_skipped);
+  return {
+    id,
+    total_score: parsed.totalScore ?? 0,
+    question_count: parsed.answers.length,
+    answered_count: answered.length,
+    skipped_count: skipped.length,
+    answers: parsed.answers.map((a) => ({
+      number: a.number,
+      question: a.question,
+      score: a.evaluation?.score ?? null,
+      gap_analysis: a.evaluation?.gap_analysis ?? '',
+      is_skipped: a.is_skipped,
+    })),
+    strengths: answered.length > 0 ? `完成了 ${answered.length} 道题目的作答，平均得分 ${parsed.totalScore ?? 0}` : '面试已完成',
+    weaknesses: skipped.length > 0 ? `有 ${skipped.length} 道题目被跳过` : '',
+    suggestions: '建议登录后获取更详细的 AI 评价和改进建议',
+    weak_skill_modules: [],
+  };
+}
+
+function emptySummary(id: string) {
+  return { id, total_score: 0, question_count: 0, answered_count: 0, skipped_count: 0, answers: [], strengths: '面试已完成', weaknesses: '', suggestions: '' };
 }

@@ -1,0 +1,335 @@
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import { createClient } from '@/lib/supabase/client';
+
+interface ExtractedSkill {
+  skill_name: string;
+  category: string;
+  importance: string;
+}
+
+interface SkillMatch {
+  skill_name: string;
+  module_id: string | null;
+  module_name: string;
+  match_score: number;
+}
+
+interface Gap {
+  skill_name: string;
+  category: string;
+  suggestion: string;
+  related_module_id: string | null;
+  related_module_name: string | null;
+}
+
+interface JdAnalysis {
+  id: string;
+  jd_text: string;
+  company_name: string | null;
+  position_name: string;
+  extracted_skills: ExtractedSkill[];
+  skill_module_matches?: SkillMatch[];
+  gaps?: Gap[];
+  created_at: string;
+}
+
+const importanceColors: Record<string, string> = {
+  high: 'bg-red-100 text-red-700',
+  medium: 'bg-amber-100 text-amber-700',
+  low: 'bg-green-100 text-green-700',
+};
+
+const importanceLabels: Record<string, string> = {
+  high: '高',
+  medium: '中',
+  low: '低',
+};
+
+export default function JdAnalysisPage() {
+  const [jdText, setJdText] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<JdAnalysis | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [history, setHistory] = useState<JdAnalysis[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [addingSkill, setAddingSkill] = useState<string | null>(null);
+  const [addedSkills, setAddedSkills] = useState<Set<string>>(new Set());
+
+  const supabase = createClient();
+
+  const fetchHistory = useCallback(async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const res = await fetch('/api/jd/analyze');
+      if (res.ok) {
+        const data = await res.json();
+        setHistory(data.analyses || []);
+      }
+    } catch {
+      // ignore
+    }
+  }, [supabase]);
+
+  useEffect(() => { fetchHistory(); }, [fetchHistory]);
+
+  const handleAnalyze = async () => {
+    if (!jdText.trim()) return;
+    setLoading(true);
+    setError(null);
+    setResult(null);
+
+    try {
+      const res = await fetch('/api/jd/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jdText: jdText.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || '分析失败');
+      } else {
+        setResult(data);
+        fetchHistory();
+      }
+    } catch {
+      setError('网络错误，请重试');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddToSkillTree = async (skill: Gap) => {
+    setAddingSkill(skill.skill_name);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      let moduleId = skill.related_module_id;
+      if (!moduleId) {
+        const { data: newModule } = await supabase
+          .from('skill_modules')
+          .insert({
+            user_id: session.user.id,
+            name: skill.category === '未分类' ? skill.skill_name : `${skill.category}：${skill.skill_name}`,
+            description: skill.suggestion || `从岗位分析中发现的技能差距：${skill.skill_name}`,
+            level: 1,
+          })
+          .select('id')
+          .single();
+        moduleId = newModule?.id;
+      }
+
+      if (moduleId) {
+        await supabase.from('skill_module_tasks').insert({
+          module_id: moduleId,
+          title: `学习 ${skill.skill_name}`,
+          description: skill.suggestion || `针对岗位要求，深入学习 ${skill.skill_name}`,
+          status: 'pending',
+        });
+      }
+
+      setAddedSkills(prev => new Set(prev).add(skill.skill_name));
+    } catch (err) {
+      console.error('Add to skill tree failed:', err);
+    } finally {
+      setAddingSkill(null);
+    }
+  };
+
+  const displayResult = result || (showHistory && history.length > 0 ? history[0] : null);
+
+  return (
+    <div className="flex h-full flex-col bg-[#F8F9FB]">
+      {/* Header */}
+      <div className="shrink-0 border-b border-[#E5E7EB] bg-white px-6 py-4">
+        <h1 className="text-lg font-semibold text-[#1F2937]">岗位分析</h1>
+        <p className="text-xs text-[#6B7280]">粘贴 JD 内容，AI 自动提取技能要求并匹配技能树</p>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-5">
+        {/* JD Input */}
+        <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm">
+          <label className="mb-2 block text-sm font-medium text-[#374151]">粘贴岗位描述（JD）</label>
+          <textarea
+            value={jdText}
+            onChange={(e) => setJdText(e.target.value)}
+            placeholder="请粘贴完整的岗位描述内容，包括职位要求、技能要求、工作职责等..."
+            className="w-full rounded-xl border-2 border-[#D1D5DB] bg-[#F9FAFB] px-4 py-3 text-sm text-[#1F2937] placeholder-[#9CA3AF] transition-colors focus:border-[#4F46E5] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#4F46E5]/20"
+            rows={8}
+          />
+          <div className="mt-4 flex items-center justify-between">
+            <span className="text-xs text-[#9CA3AF]">{jdText.length} 字</span>
+            <button
+              onClick={handleAnalyze}
+              disabled={loading || !jdText.trim()}
+              className="rounded-xl bg-[#4F46E5] px-6 py-2.5 text-sm font-medium text-white transition-all hover:bg-[#4338CA] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                  分析中...
+                </span>
+              ) : '开始分析'}
+            </button>
+          </div>
+        </div>
+
+        {error && (
+          <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
+        )}
+
+        {/* History Toggle */}
+        {history.length > 0 && (
+          <div className="mt-6">
+            <button
+              onClick={() => setShowHistory(!showHistory)}
+              className="flex items-center gap-2 text-sm font-medium text-[#4F46E5] hover:text-[#4338CA]"
+            >
+              <svg className={`h-4 w-4 transition-transform ${showHistory ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+              历史分析记录（{history.length}）
+            </button>
+            {showHistory && (
+              <div className="mt-3 space-y-2">
+                {history.map((h) => (
+                  <button
+                    key={h.id}
+                    onClick={() => { setResult(h); setJdText(h.jd_text || ''); }}
+                    className={`w-full rounded-xl border px-4 py-3 text-left text-sm transition-colors ${
+                      result?.id === h.id ? 'border-[#4F46E5] bg-indigo-50' : 'border-[#E5E7EB] bg-white hover:bg-[#F9FAFB]'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium text-[#1F2937]">{h.position_name}</span>
+                      <span className="text-xs text-[#9CA3AF]">{new Date(h.created_at).toLocaleDateString()}</span>
+                    </div>
+                    {h.company_name && <span className="text-xs text-[#6B7280]">{h.company_name}</span>}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Analysis Result */}
+        {displayResult && (
+          <div className="mt-8 space-y-6">
+            {/* Header Card */}
+            <div className="rounded-2xl border border-[#E5E7EB] bg-white p-6 shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#4F46E5]/10 text-lg">📋</div>
+                <div>
+                  <h2 className="text-lg font-semibold text-[#1F2937]">{displayResult.position_name}</h2>
+                  {displayResult.company_name && <p className="text-sm text-[#6B7280]">{displayResult.company_name}</p>}
+                </div>
+              </div>
+              {/* Show JD text if available */}
+              {displayResult.jd_text && (
+                <div className="mt-4 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-medium text-[#6B7280]">岗位描述</span>
+                    <button
+                      onClick={() => setJdText(displayResult.jd_text || '')}
+                      className="text-xs text-[#4F46E5] hover:text-[#4338CA]"
+                    >
+                      加载到输入框
+                    </button>
+                  </div>
+                  <p className="text-xs text-[#6B7280] line-clamp-4 whitespace-pre-wrap">{displayResult.jd_text}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Extracted Skills */}
+            <div className="rounded-2xl border border-[#E5E7EB] bg-white p-6 shadow-sm">
+              <h3 className="mb-4 text-base font-semibold text-[#1F2937]">提取的技能要求</h3>
+              <div className="flex flex-wrap gap-2">
+                {displayResult.extracted_skills?.map((skill, i) => (
+                  <div key={i} className="flex items-center gap-1.5 rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] px-3 py-1.5">
+                    <span className="text-sm text-[#1F2937]">{skill.skill_name}</span>
+                    <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${importanceColors[skill.importance] || importanceColors.medium}`}>
+                      {importanceLabels[skill.importance] || '中'}
+                    </span>
+                    <span className="text-[10px] text-[#9CA3AF]">{skill.category}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Skill Module Matches */}
+            {displayResult.skill_module_matches && displayResult.skill_module_matches.length > 0 && (
+              <div className="rounded-2xl border border-[#E5E7EB] bg-white p-6 shadow-sm">
+                <h3 className="mb-4 text-base font-semibold text-[#1F2937]">技能模块匹配</h3>
+                <div className="space-y-3">
+                  {displayResult.skill_module_matches.map((match, i) => (
+                    <div key={i} className="flex items-center justify-between rounded-xl border border-[#E5E7EB] px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-medium text-[#1F2937]">{match.skill_name || match.module_name}</span>
+                        {match.skill_name && match.module_name && match.skill_name !== match.module_name && (
+                          <>
+                            <span className="text-xs text-[#9CA3AF]">→</span>
+                            <span className="text-sm text-[#4F46E5]">{match.module_name}</span>
+                          </>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="h-2 w-20 overflow-hidden rounded-full bg-[#E5E7EB]">
+                          <div
+                            className={`h-full rounded-full ${match.match_score >= 70 ? 'bg-emerald-500' : match.match_score >= 40 ? 'bg-amber-500' : 'bg-red-500'}`}
+                            style={{ width: `${Math.min(100, Math.max(0, match.match_score))}%` }}
+                          />
+                        </div>
+                        <span className="text-xs font-medium text-[#6B7280]">{match.match_score}%</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Skill Gaps */}
+            {displayResult.gaps && displayResult.gaps.length > 0 && (
+              <div className="rounded-2xl border border-[#E5E7EB] bg-white p-6 shadow-sm">
+                <h3 className="mb-4 text-base font-semibold text-[#1F2937]">技能差距</h3>
+                <div className="space-y-3">
+                  {displayResult.gaps.map((gap, i) => (
+                    <div key={i} className="rounded-xl border border-amber-200 bg-amber-50/50 px-4 py-3">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-[#1F2937]">{gap.skill_name}</span>
+                            <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-700">{gap.category}</span>
+                          </div>
+                          {gap.suggestion && <p className="mt-1 text-xs text-[#6B7280]">{gap.suggestion}</p>}
+                          {gap.related_module_name && (
+                            <p className="mt-1 text-xs text-[#4F46E5]">相关模块：{gap.related_module_name}</p>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => handleAddToSkillTree(gap)}
+                          disabled={addingSkill === gap.skill_name || addedSkills.has(gap.skill_name)}
+                          className={`ml-3 shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                            addedSkills.has(gap.skill_name)
+                              ? 'bg-emerald-100 text-emerald-700'
+                              : 'bg-[#4F46E5] text-white hover:bg-[#4338CA] disabled:opacity-50'
+                          }`}
+                        >
+                          {addedSkills.has(gap.skill_name) ? '已添加' : addingSkill === gap.skill_name ? '添加中...' : '添加到技能树'}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

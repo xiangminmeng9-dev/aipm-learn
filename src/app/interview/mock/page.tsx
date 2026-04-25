@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -13,6 +14,12 @@ interface QuestionType {
   question_count: number;
 }
 
+interface InProgressInterview {
+  id: string;
+  currentQuestion: number;
+  totalQuestions: number;
+}
+
 export default function MockConfigPage() {
   const [types, setTypes] = useState<QuestionType[]>([]);
   const [selectedTypeId, setSelectedTypeId] = useState<string>('');
@@ -21,9 +28,11 @@ export default function MockConfigPage() {
   const [resumeText, setResumeText] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [inProgress, setInProgress] = useState<InProgressInterview | null>(null);
 
   useEffect(() => {
     fetchTypes();
+    checkInProgress();
   }, []);
 
   const fetchTypes = async () => {
@@ -37,6 +46,27 @@ export default function MockConfigPage() {
       // 静默失败
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const checkInProgress = () => {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key?.startsWith('mock-interview-')) {
+        try {
+          const data = JSON.parse(localStorage.getItem(key)!);
+          if (data.questions && data.questions.length > 0) {
+            const id = key.replace('mock-interview-', '');
+            const nextQ = data.questions.find((q: { answer: string; is_skipped: boolean }) => !q.answer && !q.is_skipped);
+            setInProgress({
+              id,
+              currentQuestion: nextQ ? nextQ.number : data.questions[data.questions.length - 1].number,
+              totalQuestions: data.totalQuestions || data.questions.length,
+            });
+            return;
+          }
+        } catch {}
+      }
     }
   };
 
@@ -61,14 +91,13 @@ export default function MockConfigPage() {
 
       if (res.ok) {
         const data = await res.json();
-        // 存储初始问题数据到 sessionStorage
-        sessionStorage.setItem(
-          `mock-${data.id}`,
-          JSON.stringify({
-            question: data.question,
-            total_questions: data.total_questions,
-          })
-        );
+        // 存储初始问题数据到 localStorage（持久化）和 sessionStorage（兼容）
+        const initData = JSON.stringify({
+          question: data.question,
+          total_questions: data.total_questions,
+        });
+        localStorage.setItem(`mock-${data.id}`, initData);
+        sessionStorage.setItem(`mock-${data.id}`, initData);
         window.location.href = `/interview/mock/${data.id}`;
       } else {
         const data = await res.json();
@@ -84,22 +113,41 @@ export default function MockConfigPage() {
   const questionCounts: (3 | 5 | 8 | 10)[] = [3, 5, 8, 10];
 
   return (
-    <div className="mx-auto max-w-2xl p-6">
+    <div className="p-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-neutral-50">模拟面试</h1>
-        <p className="mt-1 text-sm text-neutral-400">选择类型和题数，开始模拟面试</p>
+        <h1 className="text-3xl font-bold text-[#1F2937]">模拟面试</h1>
+        <p className="mt-1 text-base text-[#6B7280]">选择类型和题数，开始模拟面试</p>
       </div>
+
+      {/* In-progress interview banner */}
+      {inProgress && (
+        <div className="mb-6 rounded-xl border border-indigo-200 bg-indigo-50/50 p-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-indigo-900">你有一场进行中的面试</h3>
+              <p className="mt-1 text-sm text-indigo-700">
+                当前进度：第 {inProgress.currentQuestion} / {inProgress.totalQuestions} 题
+              </p>
+            </div>
+            <Link href={`/interview/mock/${inProgress.id}`}>
+              <Button className="app-btn-primary">
+                继续面试
+              </Button>
+            </Link>
+          </div>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="flex justify-center py-12">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-amber-600 border-t-transparent" />
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
         </div>
       ) : (
         <div className="space-y-6">
           {/* 问题类型选择 */}
-          <Card className="border-neutral-700 bg-neutral-800/50">
+          <Card className="border-[#E5E7EB] bg-white">
             <CardHeader>
-              <CardTitle className="text-base text-neutral-200">选择问题类型</CardTitle>
+              <CardTitle className="text-lg text-[#1F2937]">选择问题类型</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -107,15 +155,15 @@ export default function MockConfigPage() {
                   <button
                     key={t.id}
                     onClick={() => setSelectedTypeId(t.id)}
-                    className={`rounded-lg border px-3 py-2 text-left text-sm transition-colors ${
+                    className={`rounded-lg border px-3 py-2 text-left text-base transition-colors ${
                       selectedTypeId === t.id
-                        ? 'border-amber-600 bg-amber-600/10 text-amber-400'
-                        : 'border-neutral-700 bg-neutral-800 text-neutral-300 hover:border-neutral-600'
+                        ? 'border-indigo-200 bg-indigo-50 text-indigo-600'
+                        : 'border-[#E5E7EB] bg-white text-[#9CA3AF] hover:border-[#D1D5DB]'
                     }`}
                   >
                     <span className="font-medium">{t.name}</span>
                     {t.question_count > 0 && (
-                      <span className="ml-1 text-xs text-neutral-500">({t.question_count})</span>
+                      <span className="ml-1 text-sm text-[#6B7280]">({t.question_count})</span>
                     )}
                   </button>
                 ))}
@@ -124,9 +172,9 @@ export default function MockConfigPage() {
           </Card>
 
           {/* 题数选择 */}
-          <Card className="border-neutral-700 bg-neutral-800/50">
+          <Card className="border-[#E5E7EB] bg-white">
             <CardHeader>
-              <CardTitle className="text-base text-neutral-200">题目数量</CardTitle>
+              <CardTitle className="text-lg text-[#1F2937]">题目数量</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex gap-3">
@@ -134,10 +182,10 @@ export default function MockConfigPage() {
                   <button
                     key={count}
                     onClick={() => setTotalQuestions(count)}
-                    className={`flex h-12 w-12 items-center justify-center rounded-lg border text-sm font-medium transition-colors ${
+                    className={`flex h-12 w-12 items-center justify-center rounded-lg border text-base font-medium transition-colors ${
                       totalQuestions === count
-                        ? 'border-amber-600 bg-amber-600/10 text-amber-400'
-                        : 'border-neutral-700 bg-neutral-800 text-neutral-300 hover:border-neutral-600'
+                        ? 'border-indigo-200 bg-indigo-50 text-indigo-600'
+                        : 'border-[#E5E7EB] bg-white text-[#9CA3AF] hover:border-[#D1D5DB]'
                     }`}
                   >
                     {count}
@@ -148,27 +196,27 @@ export default function MockConfigPage() {
           </Card>
 
           {/* JD 和简历 */}
-          <Card className="border-neutral-700 bg-neutral-800/50">
+          <Card className="border-[#E5E7EB] bg-white">
             <CardHeader>
-              <CardTitle className="text-base text-neutral-200">背景信息（可选）</CardTitle>
+              <CardTitle className="text-lg text-[#1F2937]">背景信息（可选）</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div>
-                <label className="mb-1 block text-xs text-neutral-500">岗位 JD</label>
+                <label className="mb-1 block text-sm text-[#6B7280]">岗位 JD</label>
                 <Textarea
                   value={jdText}
                   onChange={(e) => setJdText(e.target.value)}
                   placeholder="粘贴目标岗位的 JD..."
-                  className="min-h-[80px] resize-none border-neutral-700 bg-neutral-900 text-sm text-neutral-200"
+                  className="min-h-[80px] resize-none border-[#E5E7EB] bg-white text-base text-[#1F2937]"
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs text-neutral-500">个人简历</label>
+                <label className="mb-1 block text-sm text-[#6B7280]">个人简历</label>
                 <Textarea
                   value={resumeText}
                   onChange={(e) => setResumeText(e.target.value)}
                   placeholder="粘贴你的简历要点..."
-                  className="min-h-[80px] resize-none border-neutral-700 bg-neutral-900 text-sm text-neutral-200"
+                  className="min-h-[80px] resize-none border-[#E5E7EB] bg-white text-base text-[#1F2937]"
                 />
               </div>
             </CardContent>
@@ -178,7 +226,7 @@ export default function MockConfigPage() {
           <Button
             onClick={handleStart}
             disabled={isCreating || !selectedTypeId}
-            className="w-full bg-amber-600 py-6 text-lg text-neutral-950 hover:bg-amber-500 disabled:opacity-50"
+            className="w-full app-btn-primary py-6 text-lg disabled:opacity-50"
           >
             {isCreating ? '创建中...' : '开始模拟面试'}
           </Button>

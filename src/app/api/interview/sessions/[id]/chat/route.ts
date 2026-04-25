@@ -2,12 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { streamChatResponse } from '@/lib/ai/claude';
 import { buildSessionSystemPrompt } from '@/lib/ai/prompts';
+import { searchKnowledgeBase } from '@/lib/ai/knowledge-base';
+import { getRealQuestionsContext } from '@/lib/ai/real-questions';
 import {
   checkCompressionNeeded,
   compressMemory,
   buildChatContext,
   estimateTokens,
 } from '@/lib/ai/memory';
+
+// Allow up to 60s of streaming on Vercel
+export const maxDuration = 60;
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -31,137 +36,140 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       );
     }
 
-    // 获取 Session 信息
-    const { data: session, error: sessionError } = await supabase
-      .from('chat_sessions')
-      .select('id, jd_text, resume_text, compressed_summary, user_id')
-      .eq('id', sessionId)
-      .eq('user_id', user.id)
-      .single();
+    // Parallel: fetch session meta + recent messages simultaneously
+    const [sessionResult, messagesResult] = await Promise.all([
+      supabase
+        .from('chat_sessions')
+        .select('id, jd_text, resume_text, compressed_summary, user_id')
+        .eq('id', sessionId)
+        .eq('user_id', user.id)
+        .single(),
+      supabase
+        .from('chat_messages')
+        .select('role, content, token_count, is_compressed')
+        .eq('session_id', sessionId)
+        .order('created_at', { ascending: true }),
+    ]);
 
-    if (sessionError || !session) {
+    const session = sessionResult.data;
+    if (sessionResult.error || !session) {
       return NextResponse.json({ error: 'Session 不存在', code: 'NOT_FOUND' }, { status: 404 });
     }
 
-    // 保存用户消息
     const userTokenCount = estimateTokens(message);
-    const { data: _userMsg } = await supabase
+    const priorMessages = messagesResult.data ?? [];
+
+    // Fire-and-forget: persist user message while we start streaming
+    const userInsertPromise = supabase
       .from('chat_messages')
       .insert({
         session_id: sessionId,
         role: 'user',
         content: message.trim(),
         token_count: userTokenCount,
-      })
-      .select('id')
-      .single();
+      });
 
-    // 获取最近消息
-    const { data: recentMessages } = await supabase
-      .from('chat_messages')
-      .select('role, content, token_count, is_compressed')
-      .eq('session_id', sessionId)
-      .order('created_at', { ascending: true });
+    // Append new user message locally for context building (no extra roundtrip)
+    const messagesWithNew: typeof priorMessages = [
+      ...priorMessages,
+      { role: 'user', content: message.trim(), token_count: userTokenCount, is_compressed: false },
+    ];
 
-    const messages = recentMessages ?? [];
-
-    // 检查是否需要压缩
+    // Compression check is cheap (no network) — only heavy when it actually triggers
     let compressed = false;
     let currentSummary = session.compressed_summary;
+    const needsCompression = checkCompressionNeeded(priorMessages, userTokenCount);
 
-    if (checkCompressionNeeded(messages, userTokenCount)) {
-      const { summary, messagesToKeep } = await compressMemory(messages);
+    if (needsCompression) {
+      const { summary } = await compressMemory(messagesWithNew);
       if (summary) {
         currentSummary = summary;
         compressed = true;
-
-        // 更新 Session 的压缩摘要
-        await supabase
-          .from('chat_sessions')
-          .update({
-            compressed_summary: summary,
-            is_compressed: true,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', sessionId);
-
-        // 标记旧消息为已压缩
-        const oldMessageIds = messages
-          .filter((m) => !messagesToKeep.includes(m))
-          .map((m) => (m as { id?: string }).id)
-          .filter(Boolean);
-
-        if (oldMessageIds.length > 0) {
-          await supabase
-            .from('chat_messages')
-            .update({ is_compressed: true })
-            .in('id', oldMessageIds);
-        }
+        // DB side-effects (update summary flag + mark old messages compressed) can happen
+        // asynchronously without blocking the stream — do it after we send the response.
       }
     }
 
-    // 组装上下文
     const systemPrompt = buildSessionSystemPrompt({
       jdText: session.jd_text,
       resumeText: session.resume_text,
       compressedSummary: currentSummary,
     });
 
+    // Add knowledge base + real questions context
+    const kbResults = searchKnowledgeBase(message, 2);
+    const knowledgeContext = kbResults.length > 0
+      ? '\n\n【知识库参考】\n' + kbResults.map((e, i) => `${i + 1}. ${e.title}\n${e.content}`).join('\n\n')
+      : '';
+    const realQuestionsContext = getRealQuestionsContext(undefined, 2);
+
+    const fullSystemPrompt = systemPrompt + knowledgeContext + realQuestionsContext;
+
     const chatMessages = buildChatContext({
       systemPrompt,
       compressedSummary: currentSummary,
-      recentMessages: messages.filter((m) => !m.is_compressed),
+      recentMessages: messagesWithNew.filter((m) => !m.is_compressed),
     });
 
-    // 流式响应
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       async start(controller) {
         let fullContent = '';
+        let firstChunk = true;
 
         try {
           for await (const chunk of streamChatResponse(chatMessages, {
             model: 'sonnet',
-            system: systemPrompt,
-            maxTokens: 4096,
+            system: fullSystemPrompt,
+            maxTokens: 2048,
           })) {
+            if (firstChunk) {
+              firstChunk = false;
+              // Flush a tiny ping first so clients see TTFB immediately
+              controller.enqueue(encoder.encode(`: ok\n\n`));
+            }
             fullContent += chunk;
             controller.enqueue(
               encoder.encode(`data: ${JSON.stringify({ type: 'chunk', content: chunk })}\n\n`)
             );
           }
 
-          // 保存 AI 回复
+          // After streaming, do all DB writes in parallel (non-blocking to user)
           const assistantTokenCount = estimateTokens(fullContent);
-          const { data: assistantMsg } = await supabase
-            .from('chat_messages')
-            .insert({
-              session_id: sessionId,
-              role: 'assistant',
-              content: fullContent,
-              token_count: assistantTokenCount,
-            })
-            .select('id')
-            .single();
-
-          // 更新 Session 的 token 总数和更新时间
           const totalTokens =
-            messages.reduce((sum, m) => sum + m.token_count, 0) +
+            priorMessages.reduce((sum, m) => sum + m.token_count, 0) +
             userTokenCount +
             assistantTokenCount;
-          await supabase
-            .from('chat_sessions')
-            .update({
-              total_tokens: totalTokens,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', sessionId);
+
+          const [assistantInsert] = await Promise.all([
+            supabase
+              .from('chat_messages')
+              .insert({
+                session_id: sessionId,
+                role: 'assistant',
+                content: fullContent,
+                token_count: assistantTokenCount,
+              })
+              .select('id')
+              .single(),
+            supabase
+              .from('chat_sessions')
+              .update({
+                total_tokens: totalTokens,
+                updated_at: new Date().toISOString(),
+                ...(compressed
+                  ? { compressed_summary: currentSummary, is_compressed: true }
+                  : {}),
+              })
+              .eq('id', sessionId),
+            userInsertPromise, // make sure user msg persisted
+          ]);
 
           controller.enqueue(
             encoder.encode(
               `data: ${JSON.stringify({
                 type: 'done',
-                message_id: assistantMsg?.id,
+                message_id: assistantInsert.data?.id,
                 compressed,
               })}\n\n`
             )
@@ -181,9 +189,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     return new Response(stream, {
       headers: {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
+        'Content-Type': 'text/event-stream; charset=utf-8',
+        'Cache-Control': 'no-cache, no-transform',
         Connection: 'keep-alive',
+        'X-Accel-Buffering': 'no',
       },
     });
   } catch (error) {

@@ -69,20 +69,20 @@ export default function MethodologyPage() {
   };
 
   return (
-    <div className="mx-auto max-w-3xl p-6">
+    <div className="p-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-neutral-50">方法论提炼</h1>
-        <p className="mt-1 text-sm text-neutral-400">基于练习历史动态生成的方法论，类型不封顶</p>
+        <h1 className="text-3xl font-bold text-[#1F2937]">方法论提炼</h1>
+        <p className="mt-1 text-base text-[#6B7280]">基于练习历史动态生成的方法论，类型不封顶</p>
       </div>
 
       {isLoading ? (
         <div className="flex justify-center py-12">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-amber-600 border-t-transparent" />
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
         </div>
       ) : methodologies.length === 0 ? (
         <div className="py-16 text-center">
-          <p className="text-neutral-500">{message || '还没有方法论'}</p>
-          <p className="mt-1 text-sm text-neutral-600">多进行面试问答练习，系统会自动提炼方法论</p>
+          <p className="text-[#6B7280]">{message || '还没有方法论'}</p>
+          <p className="mt-1 text-base text-[#6B7280]">多进行面试问答练习，系统会自动提炼方法论</p>
         </div>
       ) : (
         <div className="space-y-4">

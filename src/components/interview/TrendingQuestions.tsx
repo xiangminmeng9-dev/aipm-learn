@@ -1,8 +1,5 @@
 'use client';
 
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-
 interface TrendingQuestion {
   id: string;
   text: string;
@@ -16,29 +13,23 @@ interface TrendingQuestionsProps {
 }
 
 export default function TrendingQuestions({ questions, onSelect }: TrendingQuestionsProps) {
-  if (questions.length === 0) {
-    return null;
-  }
+  if (questions.length === 0) return null;
 
   return (
     <div className="space-y-3">
-      <h3 className="text-sm font-medium text-neutral-400">热门面试问题</h3>
-      <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin">
+      <h3 className="text-base font-medium text-[#6B7280]">热门面试问题</h3>
+      <div className="flex gap-3 overflow-x-auto pb-2">
         {questions.map((q) => (
-          <Card
+          <div
             key={q.id}
-            className="min-w-[240px] max-w-[280px] shrink-0 cursor-pointer border-neutral-700 bg-neutral-800/50 transition-colors hover:border-amber-600/50"
+            className="min-w-[240px] max-w-[280px] shrink-0 cursor-pointer rounded-2xl bg-white border border-[#E5E7EB] p-4 transition-all hover:bg-[#F3F4F6]"
             onClick={() => onSelect(q.text)}
           >
-            <CardContent className="p-4">
-              <p className="mb-2 line-clamp-2 text-sm text-neutral-200">{q.text}</p>
-              {q.type && (
-                <Badge variant="secondary" className="bg-neutral-700 text-neutral-400 text-xs">
-                  {q.type.name}
-                </Badge>
-              )}
-            </CardContent>
-          </Card>
+            <p className="mb-2 line-clamp-2 text-base text-[#1F2937]">{q.text}</p>
+            {q.type && (
+              <span className="rounded-full bg-[#E5E7EB] px-2 py-0.5 text-sm text-[#6B7280]">{q.type.name}</span>
+            )}
+          </div>
         ))}
       </div>
     </div>

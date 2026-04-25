@@ -22,12 +22,12 @@ export default function PieChart({ data }: PieChartProps) {
         avoidLabelOverlap: false,
         itemStyle: {
           borderRadius: 4,
-          borderColor: '#171717',
+          borderColor: '#FFFFFF',
           borderWidth: 2,
         },
         label: {
-          color: '#a3a3a3',
-          fontSize: 11,
+          color: '#6B7280',
+          fontSize: 13,
         },
         data: data.map((d) => ({
           name: d.type_name,
@@ -35,7 +35,7 @@ export default function PieChart({ data }: PieChartProps) {
         })),
       },
     ],
-    color: ['#d97706', '#f59e0b', '#fbbf24', '#fcd34d', '#fde68a', '#92400e', '#78350f'],
+    color: ['#6366F1', '#8B5CF6', '#06B6D4', '#10B981', '#F59E0B', '#EC4899', '#F97316'],
   };
 
   return <ReactECharts option={option} style={{ height: '250px' }} />;

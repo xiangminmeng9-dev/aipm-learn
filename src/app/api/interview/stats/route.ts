@@ -109,10 +109,21 @@ export async function GET() {
           .eq('type_id', area.type_id)
           .limit(3);
 
+        // 查询关联技能模块
+        const { data: moduleMappings } = await supabase
+          .from('type_skill_mappings')
+          .select('skill_modules(id, name, slug)')
+          .eq('type_id', area.type_id);
+
+        const relatedModules = (moduleMappings ?? [])
+          .map((m) => m.skill_modules as unknown as { id: string; name: string; slug: string })
+          .filter(Boolean);
+
         return {
           type_name: area.type_name,
           average_score: area.average_score,
           recommended_questions: recommendedQuestions ?? [],
+          related_modules: relatedModules,
         };
       })
     );

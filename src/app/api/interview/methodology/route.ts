@@ -5,6 +5,47 @@ import { buildMethodologyPrompt, METHODOLOGY_SYSTEM_PROMPT } from '@/lib/ai/prom
 
 const MIN_SOURCE_COUNT = 3; // 至少 3 次问答才能生成方法论
 
+/**
+ * Parse AI-generated Markdown into methodology fields.
+ * Splits by ## headings: 核心框架, 关键步骤, 典型案例
+ */
+function parseMarkdownMethodology(text: string): {
+  framework: string;
+  key_steps: string[];
+  typical_cases: string[];
+} {
+  const sections = text.split(/^## /m).filter(Boolean);
+
+  let framework = text;
+  const keySteps: string[] = [];
+  const typicalCases: string[] = [];
+
+  for (const section of sections) {
+    const lower = section.toLowerCase();
+    const content = section.replace(/^[^\n]*\n?/, '').trim();
+
+    if (lower.startsWith('核心框架')) {
+      framework = content;
+    } else if (lower.startsWith('关键步骤')) {
+      keySteps.push(
+        ...content
+          .split('\n')
+          .map((l) => l.replace(/^\s*(?:\d+\.|[-*])\s*/, '').trim())
+          .filter(Boolean)
+      );
+    } else if (lower.startsWith('典型案例')) {
+      typicalCases.push(
+        ...content
+          .split('\n')
+          .map((l) => l.replace(/^\s*(?:\d+\.|[-*])\s*/, '').trim())
+          .filter(Boolean)
+      );
+    }
+  }
+
+  return { framework, key_steps: keySteps, typical_cases: typicalCases };
+}
+
 export async function GET() {
   try {
     const supabase = await createClient();
@@ -112,15 +153,21 @@ export async function generateOrUpdateMethodology(
     maxTokens: 2048,
   });
 
+  // AI 现在直接输出 Markdown，解析各部分
+  const text = result.trim();
   let methodology;
+
+  // 尝试 JSON 解析（兼容旧格式）
   try {
-    methodology = JSON.parse(result.trim());
-  } catch {
+    const parsed = JSON.parse(text);
     methodology = {
-      framework: result.trim(),
-      key_steps: [],
-      typical_cases: [],
+      framework: parsed.framework ?? text,
+      key_steps: parsed.key_steps ?? [],
+      typical_cases: parsed.typical_cases ?? [],
     };
+  } catch {
+    // Markdown 格式：按标题拆分
+    methodology = parseMarkdownMethodology(text);
   }
 
   // 检查是否已有方法论
