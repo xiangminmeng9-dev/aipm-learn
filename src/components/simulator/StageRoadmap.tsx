@@ -21,7 +21,15 @@ export default function StageRoadmap({ stages, currentStageId, stageScores, onSe
         const score = stageScores[stage.id]?.score;
 
         return (
-          <button
+          <div key={stage.id}>
+            {stage.order === 11 && (
+              <div className="my-2 flex items-center gap-3 px-2">
+                <div className="h-px flex-1 bg-gradient-to-r from-transparent via-teal-300 to-transparent" />
+                <span className="shrink-0 rounded-full bg-teal-50 px-3 py-1 text-[11px] font-semibold text-teal-700">专项技能训练</span>
+                <div className="h-px flex-1 bg-gradient-to-r from-transparent via-teal-300 to-transparent" />
+              </div>
+            )}
+            <button
             key={stage.id}
             onClick={() => { if (!isLocked) onSelectStage(stage.id); }}
             disabled={isLocked}
@@ -74,6 +82,7 @@ export default function StageRoadmap({ stages, currentStageId, stageScores, onSe
               )}
             </div>
           </button>
+          </div>
         );
       })}
     </div>

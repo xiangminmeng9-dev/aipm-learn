@@ -53,6 +53,25 @@ export default function SimulatorPage() {
   const selectedStage = STAGES_CONFIG.find(s => s.id === selectedStageId);
   const stageScores = (session?.stage_scores || {}) as Record<string, { score: number; feedback: string; completed_at: string }>;
 
+  const hasNewStages = session?.status === 'completed' &&
+    STAGES_CONFIG.some(s => !stageScores[s.id]);
+
+  const handleContinueTraining = async () => {
+    if (!session) return;
+    setIsLoading(true);
+    try {
+      const res = await fetch('/api/simulator/progress', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'next_stage', session_id: session.id, stage_id: 'stage-11-report' }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSession(data.session);
+      }
+    } catch { /* ignore */ } finally { setIsLoading(false); }
+  };
+
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#F8F9FB]">
@@ -140,7 +159,45 @@ export default function SimulatorPage() {
           </div>
         )}
 
-        {session?.status === 'completed' && (
+        {hasNewStages && (
+          <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-amber-800">新阶段已解锁！</h3>
+                <p className="mt-1 text-xs text-amber-700">专项技能训练模块已上线：日报周报、1v1 沟通、PRD 沙盒、数据看板、跨部门协作</p>
+              </div>
+              <button
+                onClick={handleContinueTraining}
+                className="shrink-0 rounded-xl bg-amber-500 px-5 py-2 text-sm font-semibold text-white hover:bg-amber-600"
+              >
+                继续训练
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Project Sandbox Entry */}
+        <div className="mt-8 rounded-2xl border border-teal-200 bg-white p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-base font-semibold text-gray-900">🏗️ 项目实战沙盒</h2>
+              <p className="mt-1 text-sm text-gray-500">选择一个虚拟 AI 产品项目，从 0 到 1 完成完整产出，AI 评审团队逐项审查</p>
+            </div>
+            <Link
+              href="/simulator/project"
+              className="shrink-0 rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-teal-700"
+            >
+              进入沙盒
+            </Link>
+          </div>
+          <div className="mt-4 flex gap-3">
+            <div className="rounded-xl bg-gray-50 px-3 py-2 text-xs text-gray-600">🤖 智能客服系统</div>
+            <div className="rounded-xl bg-gray-50 px-3 py-2 text-xs text-gray-600">🛡️ AI 内容审核平台</div>
+            <div className="rounded-xl bg-gray-50 px-3 py-2 text-xs text-gray-600">🎯 个性化推荐引擎</div>
+          </div>
+        </div>
+
+        {session?.status === 'completed' && !hasNewStages && (
           <div className="mt-8 rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-center">
             <div className="text-3xl">🎉</div>
             <h2 className="mt-2 text-lg font-bold text-emerald-800">恭喜完成全部模拟！</h2>

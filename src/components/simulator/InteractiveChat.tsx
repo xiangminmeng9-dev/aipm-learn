@@ -126,7 +126,7 @@ export default function InteractiveChat({ npcName, npcAvatar, sessionId, stageId
             }`}>
               {msg.role === 'assistant' ? (
                 <div className="prose prose-sm max-w-none">
-                  <Markdown content={msg.content || '...'} />
+                  <Markdown content={msg.content || '...'} enableECharts={stageId === 'stage-14-dashboard'} />
                 </div>
               ) : (
                 <p className="text-sm whitespace-pre-wrap">{msg.content}</p>

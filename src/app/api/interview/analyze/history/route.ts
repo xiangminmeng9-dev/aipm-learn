@@ -13,7 +13,7 @@ export async function GET() {
       .select('id, question_id, analysis, created_at')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
-      .limit(20);
+      .limit(30);
 
     if (!analyses || analyses.length === 0) {
       return NextResponse.json({ records: [] });

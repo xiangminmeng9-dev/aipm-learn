@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 
 const navItems = [
   { label: '技能树总览', href: '/skills/tree', icon: '🌳' },
+  { label: '学习路径', href: '/skills/learning-path', icon: '🗺️' },
   { label: '岗位分析', href: '/skills/jd-analysis', icon: '🔍' },
   { label: '面试统计', href: '/interview/stats', icon: '📊' },
 ];

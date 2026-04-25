@@ -20,7 +20,7 @@ interface BookItem {
   description: string;
   detail: string;
   href: string;
-  theme: 'coding' | 'skills' | 'notebook' | 'interview' | 'resume' | 'resources' | 'simulator';
+  theme: 'coding' | 'skills' | 'notebook' | 'interview' | 'resume' | 'resources' | 'simulator' | 'daily-challenge';
   subFeatures: SubFeature[];
 }
 
@@ -78,9 +78,9 @@ const topShelf: BookItem[] = [
     title: 'Simulator',
     titleEn: 'AI PM Simulator',
     label: 'AI PM 模拟工作流',
-    description: '需求澄清 · 竞品分析 · 算法沟通 · 产品设计 · 评测验收',
+    description: '需求澄清 · 竞品分析 · 算法沟通 · 产品设计 · 评测验收 · 日报周报 · 1v1沟通 · 数据看板',
     detail:
-      'AI PM 模拟工作流程让你沉浸式体验大厂 AI 产品经理的日常。从接收业务需求、竞品分析、与算法团队沟通、产品设计到评测验收，每个阶段都有 AI 扮演的真实角色与你互动，帮你在实战中掌握核心工作方法。',
+      'AI PM 模拟工作流程让你沉浸式体验大厂 AI 产品经理的日常。15 个核心阶段覆盖项目全流程和专项技能训练：从需求澄清、竞品分析到评测验收，再到日报周报、1v1 沟通、PRD 沙盒、数据看板、跨部门协作，每个阶段都有 AI 扮演的真实角色与你互动。',
     href: '/simulator',
     theme: 'simulator',
     subFeatures: [
@@ -141,6 +141,22 @@ const bottomShelf: BookItem[] = [
       { label: '每日AI大事', href: '/resources/daily-ai-news' },
       { label: 'AI技术动态', href: '/resources/ai-tech' },
       { label: 'AI PM文章', href: '/resources/ai-pm-articles' },
+    ],
+  },
+  {
+    id: 'daily-challenge',
+    title: 'Challenge',
+    titleEn: 'Daily Challenge',
+    label: '每日挑战',
+    description: '每日场景题 · 知识闪卡 · 每日 AI 技术 · 打卡追踪',
+    detail:
+      '每日挑战帮你养成每天学习的好习惯。每天推送一道真实 AI PM 场景题，限时作答后 AI 评分并给出改进建议；知识闪卡用间隔重复算法帮你高效记忆 AI PM 核心知识；每日 AI 技术用白话解读一个 AI 技术知识点，让你跟上技术发展；连续打卡追踪激励你持续进步。',
+    href: '/daily-challenge',
+    theme: 'daily-challenge',
+    subFeatures: [
+      { label: '今日挑战', href: '/daily-challenge' },
+      { label: '知识闪卡', href: '/daily-challenge/flashcards' },
+      { label: '每日 AI 技术', href: '/daily-challenge/tech' },
     ],
   },
 ];
@@ -299,6 +315,25 @@ function CoverArt({ theme }: { theme: BookItem['theme'] }) {
           <div className="absolute bottom-4 left-4 right-4 font-mono text-[8px] leading-tight text-teal-100/60">
             <div>Stage 1 → 需求澄清</div>
             <div className="text-teal-100/40">Stage 2 → 竞品分析 ...</div>
+          </div>
+        </div>
+      );
+    case 'daily-challenge':
+      return (
+        <div className="absolute inset-0 overflow-hidden" style={{ background: 'linear-gradient(135deg, #92400e 0%, #f59e0b 50%, #fde68a 100%)' }}>
+          <svg className="absolute inset-0 h-full w-full opacity-30" viewBox="0 0 200 200" preserveAspectRatio="xMidYMid slice">
+            <circle cx="100" cy="100" r="60" fill="none" stroke="white" strokeWidth="1" strokeDasharray="4 3" />
+            <circle cx="100" cy="100" r="40" fill="none" stroke="white" strokeWidth="0.5" strokeDasharray="2 2" />
+            <line x1="100" y1="40" x2="100" y2="160" stroke="white" strokeWidth="0.5" />
+            <line x1="40" y1="100" x2="160" y2="100" stroke="white" strokeWidth="0.5" />
+          </svg>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="text-[56px]" style={{ filter: 'drop-shadow(0 0 12px rgba(255,255,255,0.4))' }}>🎯</div>
+          </div>
+          <div className="absolute left-4 top-4 rounded-md bg-amber-900/80 px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-amber-100">Daily</div>
+          <div className="absolute bottom-4 left-4 right-4 font-mono text-[8px] leading-tight text-amber-100/60">
+            <div>Day 1 → 场景挑战</div>
+            <div className="text-amber-100/40">🃏 闪卡复习 ...</div>
           </div>
         </div>
       );

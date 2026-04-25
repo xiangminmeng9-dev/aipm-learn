@@ -88,16 +88,22 @@ export async function generateText(
     return resp.choices[0]?.message?.content ?? '';
   }
 
-  // Anthropic
+  // Anthropic — use streaming to avoid timeout on slow responses
   const client = buildAnthropic(cfg);
-  const response = await client.messages.create({
+  const stream = client.messages.stream({
     model: cfg.model,
     max_tokens: maxTokens,
     system: system || undefined,
     messages: [{ role: 'user', content: prompt }],
   });
-  const block = response.content[0];
-  return block?.type === 'text' ? block.text : '';
+
+  let result = '';
+  for await (const event of stream) {
+    if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+      result += event.delta.text;
+    }
+  }
+  return result;
 }
 
 export async function generateChatResponse(
@@ -125,15 +131,22 @@ export async function generateChatResponse(
     return resp.choices[0]?.message?.content ?? '';
   }
 
+  // Anthropic — use streaming to avoid timeout
   const client = buildAnthropic(cfg);
-  const response = await client.messages.create({
+  const stream = client.messages.stream({
     model: cfg.model,
     max_tokens: maxTokens,
     system: system || undefined,
     messages,
   });
-  const block = response.content[0];
-  return block?.type === 'text' ? block.text : '';
+
+  let result = '';
+  for await (const event of stream) {
+    if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+      result += event.delta.text;
+    }
+  }
+  return result;
 }
 
 export async function* streamChatResponse(

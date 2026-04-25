@@ -129,7 +129,15 @@ export default function ChatSession({
                 {msg.role === 'user' ? (
                   <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                 ) : (
-                  <div className="prose prose-sm max-w-none">
+                  <div className="prose prose-sm max-w-none
+                    prose-headings:mt-5 prose-headings:mb-2 prose-headings:font-bold
+                    prose-h2:text-base prose-h2:text-indigo-700 prose-h2:border-b prose-h2:border-indigo-100 prose-h2:pb-1
+                    prose-h3:text-sm prose-h3:text-gray-800
+                    prose-p:my-2 prose-p:leading-relaxed
+                    prose-li:my-1 prose-ul:my-2 prose-ol:my-2
+                    prose-blockquote:my-3 prose-blockquote:border-l-indigo-400 prose-blockquote:bg-indigo-50 prose-blockquote:py-2 prose-blockquote:px-4 prose-blockquote:rounded-r-lg
+                    prose-strong:text-indigo-700
+                    prose-table:my-3 prose-th:bg-gray-50 prose-th:px-3 prose-th:py-1.5 prose-td:px-3 prose-td:py-1.5 prose-td:border-gray-200">
                     <Markdown content={msg.content} />
                   </div>
                 )}
