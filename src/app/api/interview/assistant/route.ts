@@ -22,7 +22,6 @@ export async function POST(request: NextRequest) {
 
   // --- Evaluate mode: 4-dimension scoring ---
   if (evaluate && record_id && user_answer) {
-    // record_id is a question_analyses id
     const { data: analysis } = await supabase
       .from('question_analyses')
       .select('id, question_id')
@@ -34,7 +33,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '记录不存在' }, { status: 404 });
     }
 
-    // Get the question text
     const { data: iq } = await supabase
       .from('interview_questions')
       .select('text, type_id')
@@ -83,8 +81,7 @@ export async function POST(request: NextRequest) {
       };
     }
 
-    // Store evaluation in the analysis record (using answer_approach field as evaluation storage)
-    // since question_analyses doesn't have an evaluation column
+    // Store evaluation
     await supabase
       .from('question_analyses')
       .update({
@@ -96,7 +93,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ evaluation });
   }
 
-  // --- Q&A mode ---
+  // --- Q&A mode: structured analysis with streaming ---
   if (!question) {
     return NextResponse.json({ error: '请输入问题' }, { status: 400 });
   }
@@ -104,22 +101,20 @@ export async function POST(request: NextRequest) {
   // 1. Knowledge base search
   const kbResults = searchKnowledgeBase(question, 3);
   const knowledgeContext = kbResults.length > 0
-    ? '\n\n【知识库参考】\n以下是相关知识条目，请参考这些内容来回答：\n' +
-      kbResults.map((entry, i) =>
-        `${i + 1}. ${entry.title}\n${entry.content}`
-      ).join('\n\n')
+    ? '\n\n【知识库参考】\n' + kbResults.map((entry, i) => `${i + 1}. ${entry.title}\n${entry.content}`).join('\n\n')
     : '';
 
   // 2. Real questions context
   const realQuestionsContext = getRealQuestionsContext(category || '', 3);
 
-  // 3. Memory context: recent analyses
+  // 3. Memory context
   let memoryContext = '';
   {
     const { data: recentAnalyses } = await supabase
       .from('question_analyses')
       .select('question_id, analysis, created_at')
       .eq('user_id', user.id)
+      .eq('source', 'assistant')
       .order('created_at', { ascending: false })
       .limit(5);
 
@@ -131,8 +126,7 @@ export async function POST(request: NextRequest) {
         .in('id', qIds);
 
       const qMap = new Map((recentQs || []).map(q => [q.id, q.text]));
-
-      memoryContext = '\n\n【对话记忆】\n以下是该用户最近的问答记录，请参考这些历史来保持对话连贯性：\n' +
+      memoryContext = '\n\n【对话记忆】\n' +
         recentAnalyses.map((a, i) => {
           const qText = qMap.get(a.question_id) || '';
           return `${i + 1}. 问：${qText}\n答：${(a.analysis || '').substring(0, 200)}...`;
@@ -140,37 +134,13 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // 4. Methodology context
-  let methodologyContext = '';
-  if (category) {
-    const { data: typeData } = await supabase
-      .from('question_types')
-      .select('id')
-      .eq('name', category)
-      .single();
-
-    if (typeData) {
-      const { data: methodology } = await supabase
-        .from('interview_methodologies')
-        .select('framework, key_steps, typical_cases')
-        .eq('type_id', typeData.id)
-        .eq('user_id', user.id)
-        .single();
-
-      if (methodology) {
-        methodologyContext = `\n\n【该类型的方法论】\n核心框架：${methodology.framework}\n关键步骤：${(methodology.key_steps as string[]).join('、')}\n典型案例：${(methodology.typical_cases as string[]).join('、')}\n请参考以上方法论指导候选人，帮助其运用框架和步骤组织回答。`;
-      }
-    }
-  }
-
   // Build system prompt
-  const systemPrompt = ASSISTANT_SYSTEM_PROMPT + knowledgeContext + realQuestionsContext + memoryContext + methodologyContext;
+  const systemPrompt = ASSISTANT_SYSTEM_PROMPT + knowledgeContext + realQuestionsContext + memoryContext;
 
-  // Find or create the interview_question
+  // Find or create interview_question
   let questionId: string;
   let typeId: string | null = null;
 
-  // Resolve category to type_id
   if (category) {
     const { data: typeData } = await supabase
       .from('question_types')
@@ -180,7 +150,6 @@ export async function POST(request: NextRequest) {
     typeId = typeData?.id || null;
   }
 
-  // Check if this question already exists for this user
   const { data: existingQ } = await supabase
     .from('interview_questions')
     .select('id')
@@ -191,41 +160,34 @@ export async function POST(request: NextRequest) {
   if (existingQ && existingQ.length > 0) {
     questionId = existingQ[0].id;
   } else {
-    const insertData: Record<string, unknown> = {
-      user_id: user.id,
-      text: question,
-      source: 'user_input',
-    };
+    const insertData: Record<string, unknown> = { user_id: user.id, text: question, source: 'assistant' };
     if (typeId) insertData.type_id = typeId;
-
-    const { data: newQ } = await supabase
-      .from('interview_questions')
-      .insert(insertData)
-      .select('id')
-      .single();
-
+    const { data: newQ } = await supabase.from('interview_questions').insert(insertData).select('id').single();
     questionId = newQ?.id || '';
   }
 
-  // Create a placeholder analysis record
+  // Create analysis record — mark source as 'assistant' to distinguish from QA
   const { data: newAnalysis } = await supabase
     .from('question_analyses')
-    .insert({
-      user_id: user.id,
-      question_id: questionId,
-      analysis: '',
-    })
+    .insert({ user_id: user.id, question_id: questionId, analysis: '' })
     .select('id')
     .single();
 
   const newRecordId = newAnalysis?.id;
 
-  // Stream the response
+  if (!newRecordId) {
+    return NextResponse.json({ error: '创建记录失败' }, { status: 500 });
+  }
+
+  // Stream response
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
       let fullAnswer = '';
       try {
+        // Send record_id first — this is critical for evaluation
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'record_id', record_id: newRecordId })}\n\n`));
+
         for await (const chunk of streamChatResponse(
           [{ role: 'user', content: question }],
           { system: systemPrompt },
@@ -234,16 +196,15 @@ export async function POST(request: NextRequest) {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'chunk', content: chunk })}\n\n`));
         }
 
-        if (newRecordId) {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'record_id', record_id: newRecordId })}\n\n`));
-        }
+        // Update analysis record
+        await supabase.from('question_analyses').update({ analysis: fullAnswer }).eq('id', newRecordId);
 
-        // Update analysis record with full answer
-        if (newRecordId) {
-          await supabase
-            .from('question_analyses')
-            .update({ analysis: fullAnswer })
-            .eq('id', newRecordId);
+        // Trigger methodology update
+        if (typeId) {
+          try {
+            const { generateOrUpdateMethodology } = await import('@/app/api/interview/methodology/route');
+            await generateOrUpdateMethodology(supabase, user.id, typeId);
+          } catch { /* non-blocking */ }
         }
 
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'done' })}\n\n`));
@@ -257,10 +218,6 @@ export async function POST(request: NextRequest) {
   });
 
   return new Response(stream, {
-    headers: {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      Connection: 'keep-alive',
-    },
+    headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' },
   });
 }
