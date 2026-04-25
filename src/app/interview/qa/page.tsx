@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import QuestionInput from '@/components/interview/QuestionInput';
 import AnalysisResult from '@/components/interview/AnalysisResult';
 import TrendingQuestions from '@/components/interview/TrendingQuestions';
+import Markdown from '@/components/ui/markdown';
 import type { AnalysisResult as AnalysisResultType } from '@/types';
 
 function frequencyStyle(freq: string) {
@@ -17,6 +18,7 @@ function frequencyStyle(freq: string) {
 export default function QAPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResultType | null>(null);
+  const [streamingText, setStreamingText] = useState('');
   const [lastQuestion, setLastQuestion] = useState('');
   const [trendingQuestions, setTrendingQuestions] = useState<
     { id: string; text: string; type: { id: string; name: string } | null; rank: number }[]
@@ -50,10 +52,7 @@ export default function QAPage() {
         if (data.result) {
           setResult(data.result);
           setLastQuestion(data.question_text ?? '');
-          // Fetch frequency for the type
-          if (data.result?.type?.id) {
-            fetchFrequency(data.result.type.id);
-          }
+          if (data.result?.type?.id) fetchFrequency(data.result.type.id);
         }
       })
       .catch(() => {});
@@ -77,18 +76,96 @@ export default function QAPage() {
   }, []);
 
   const handleAnalyze = useCallback(async (question: string) => {
-    setIsLoading(true); setError(''); setResult(null); setFrequency(null);
+    setIsLoading(true); setError(''); setResult(null); setStreamingText(''); setFrequency(null);
+    setLastQuestion(question);
+
     try {
-      const res = await fetch('/api/interview/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question }) });
-      const data = await res.json();
-      if (!res.ok) { setError(data.error ?? '分析失败'); return; }
-      setResult(data);
-      setLastQuestion(question);
-      // Fetch frequency for the result type
-      if (data?.type?.id) {
-        fetchFrequency(data.type.id);
+      const res = await fetch('/api/interview/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error ?? '分析失败');
+        setIsLoading(false);
+        return;
       }
-    } catch { setError('网络错误，请重试'); } finally { setIsLoading(false); fetchHistory(); }
+
+      const reader = res.body?.getReader();
+      if (!reader) { setIsLoading(false); return; }
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let metadata: { question_id: string; question_type: { id: string; name: string; is_new: boolean } } | null = null;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              if (data.type === 'metadata') {
+                metadata = { question_id: data.question_id, question_type: data.question_type };
+              } else if (data.type === 'chunk') {
+                setStreamingText(prev => prev + data.content);
+              } else if (data.type === 'sections') {
+                const sections = data.sections;
+                setResult({
+                  question_id: metadata?.question_id || '',
+                  type: metadata?.question_type || { id: '', name: '通用', is_new: false },
+                  analysis: sections.analysis,
+                  thinking_framework: sections.thinking_framework,
+                  answer_approach: sections.answer_approach,
+                  answer_template: sections.answer_template,
+                });
+                setStreamingText('');
+                if (metadata?.question_type?.id) fetchFrequency(metadata.question_type.id);
+              } else if (data.type === 'error') {
+                setError(data.error || 'AI 服务异常');
+              }
+            } catch { /* ignore */ }
+          }
+        }
+      }
+
+      // Flush remaining buffer
+      if (buffer.trim()) {
+        const remainingLines = buffer.split('\n');
+        for (const line of remainingLines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              if (data.type === 'sections') {
+                const sections = data.sections;
+                setResult({
+                  question_id: metadata?.question_id || '',
+                  type: metadata?.question_type || { id: '', name: '通用', is_new: false },
+                  analysis: sections.analysis,
+                  thinking_framework: sections.thinking_framework,
+                  answer_approach: sections.answer_approach,
+                  answer_template: sections.answer_template,
+                });
+                setStreamingText('');
+              }
+            } catch { /* ignore */ }
+          }
+        }
+      }
+
+      fetchHistory();
+    } catch {
+      setError('网络错误，请重试');
+    } finally {
+      setIsLoading(false);
+    }
   }, [fetchFrequency, fetchHistory]);
 
   const handleTrendingSelect = useCallback((question: string) => { handleAnalyze(question); }, [handleAnalyze]);
@@ -140,16 +217,38 @@ export default function QAPage() {
         <div className="rounded-2xl border border-[#ff3b30]/20 bg-[#ff3b30]/5 p-4 text-base text-[#ff3b30]">{error}</div>
       )}
 
-      {isLoading && (
+      {/* Streaming text display */}
+      {isLoading && streamingText && !result && (
+        <div className="rounded-2xl border border-[#E5E7EB] bg-white p-6 shadow-sm">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+            <span className="text-sm font-medium text-[#6B7280]">AI 正在分析...</span>
+          </div>
+          <div className="prose prose-sm max-w-none
+            prose-headings:mt-5 prose-headings:mb-2 prose-headings:font-bold
+            prose-h2:text-base prose-h2:text-indigo-700 prose-h2:border-b prose-h2:border-indigo-100 prose-h2:pb-1
+            prose-h3:text-sm prose-h3:text-gray-800
+            prose-p:my-2 prose-p:leading-relaxed
+            prose-li:my-1 prose-ul:my-2 prose-ol:my-2
+            prose-blockquote:my-3 prose-blockquote:border-l-indigo-400 prose-blockquote:bg-indigo-50 prose-blockquote:py-2 prose-blockquote:px-4 prose-blockquote:rounded-r-lg
+            prose-strong:text-indigo-700
+            prose-table:my-3 prose-th:bg-gray-50 prose-th:px-3 prose-th:py-1.5 prose-td:px-3 prose-td:py-1.5 prose-td:border-gray-200">
+            <Markdown content={streamingText} />
+          </div>
+        </div>
+      )}
+
+      {/* Loading spinner (before streaming starts) */}
+      {isLoading && !streamingText && !result && (
         <div className="flex items-center justify-center rounded-2xl bg-white border border-[#E5E7EB] py-12">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
           <span className="ml-3 text-[#6B7280]">AI 正在深度分析...</span>
         </div>
       )}
 
+      {/* Final parsed result */}
       {result && !isLoading && (
         <div className="space-y-4">
-          {/* Frequency tag */}
           {frequency && (
             <div className="flex items-center gap-2">
               <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${frequencyStyle(frequency)}`}>

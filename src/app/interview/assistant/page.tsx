@@ -1,93 +1,36 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import Markdown from '@/components/ui/markdown';
-import AnswerEvaluation from '@/components/interview/AnswerEvaluation';
 
 interface HistoryRecord {
   id: string;
   question: string;
-  category: string | null;
-  answer: string | null;
-  user_answer: string | null;
-  evaluation: {
-    score: number;
-    gap_analysis: string;
-    perfect_answer: string;
-    dimensions?: Record<string, { score: number; comment: string }>;
-    feedback?: string;
-    key_points?: string[];
-  } | null;
+  analysis: string;
   created_at: string;
-  frequency?: string;
+  category?: string;
 }
 
-interface MemoryRecord {
-  question: string;
-  answer: string;
-  category: string;
-  created_at: string;
+interface Evaluation {
+  score?: number;
+  dimensions?: Record<string, { score: number; comment: string }>;
+  feedback?: string;
+  gap_analysis?: string;
+  perfect_answer?: string;
 }
 
-const CATEGORIES = [
-  'AI产品思维', 'AI技术理解', '用户研究', '数据分析',
-  '项目管理', '沟通协作', '商业思维', '创新思维',
-  'AI伦理与合规', '大模型应用设计',
-];
-
-function frequencyStyle(freq?: string) {
-  if (freq === '高频') return 'bg-rose-50 text-rose-600';
-  if (freq === '中频') return 'bg-amber-50 text-amber-600';
-  return 'bg-gray-50 text-gray-500';
-}
-
-export default function AssistantPage() {
+export default function InterviewAssistantPage() {
   const [question, setQuestion] = useState('');
   const [category, setCategory] = useState('');
   const [answer, setAnswer] = useState('');
-  const [isStreaming, setIsStreaming] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [currentRecordId, setCurrentRecordId] = useState<string | null>(null);
-  const [userAnswer, setUserAnswer] = useState('');
-  const [evaluation, setEvaluation] = useState<HistoryRecord['evaluation']>(null);
-  const [isEvaluating, setIsEvaluating] = useState(false);
-  const [showHistory, setShowHistory] = useState(false);
   const [history, setHistory] = useState<HistoryRecord[]>([]);
-  const [frequency, setFrequency] = useState<string>('');
-  const [memory, setMemory] = useState<MemoryRecord[]>([]);
-  const abortRef = useRef<AbortController | null>(null);
-  const answerEndRef = useRef<HTMLDivElement>(null);
-
-  // Fetch memory for current category
-  const fetchMemory = useCallback(async (cat: string) => {
-    if (!cat) { setMemory([]); return; }
-    try {
-      const res = await fetch(`/api/interview/assistant/history?category=${encodeURIComponent(cat)}`);
-      if (res.ok) {
-        const data = await res.json();
-        const records = (data.records || []) as HistoryRecord[];
-        setMemory(records.filter((r: HistoryRecord) => r.answer).slice(0, 5).map((r: HistoryRecord) => ({
-          question: r.question,
-          answer: r.answer || '',
-          category: r.category || '',
-          created_at: r.created_at,
-        })));
-      }
-    } catch { /* ignore */ }
-  }, []);
-
-  const fetchFrequency = useCallback(async (cat: string) => {
-    if (!cat) { setFrequency(''); return; }
-    try {
-      const res = await fetch(`/api/interview/frequency?type_name=${encodeURIComponent(cat)}`);
-      if (res.ok) {
-        const data = await res.json();
-        setFrequency(data.frequency || '');
-      }
-    } catch { /* ignore */ }
-  }, []);
+  const [showHistory, setShowHistory] = useState(false);
+  const [userAnswer, setUserAnswer] = useState('');
+  const [isEvaluating, setIsEvaluating] = useState(false);
+  const [evaluation, setEvaluation] = useState<Evaluation | null>(null);
 
   const fetchHistory = useCallback(async () => {
     try {
@@ -99,85 +42,86 @@ export default function AssistantPage() {
     } catch { /* ignore */ }
   }, []);
 
-  // Load history on mount
-  useEffect(() => {
-    fetchHistory();
-  }, [fetchHistory]);
-
-  // Auto-scroll answer
-  useEffect(() => {
-    answerEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [answer]);
+  useEffect(() => { fetchHistory(); }, [fetchHistory]);
 
   const handleSubmit = async () => {
-    if (!question.trim() || isStreaming) return;
-
-    setIsStreaming(true);
+    if (!question.trim() || isLoading) return;
+    setIsLoading(true);
     setAnswer('');
     setEvaluation(null);
-    setCurrentRecordId(null);
     setUserAnswer('');
-
-    abortRef.current = new AbortController();
+    setCurrentRecordId(null);
 
     try {
       const res = await fetch('/api/interview/assistant', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question: question.trim(), category: category || undefined }),
-        signal: abortRef.current.signal,
       });
 
       if (!res.ok) {
         const data = await res.json();
-        alert(data.error || '请求失败');
-        setIsStreaming(false);
+        setAnswer(`❌ ${data.error || '请求失败'}`);
+        setIsLoading(false);
         return;
       }
 
       const reader = res.body?.getReader();
+      if (!reader) { setIsLoading(false); return; }
+
       const decoder = new TextDecoder();
+      let buffer = '';
 
-      if (reader) {
-        let buffer = '';
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
 
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
-          buffer = lines.pop() || '';
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
 
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              try {
-                const data = JSON.parse(line.slice(6));
-                if (data.type === 'chunk') {
-                  setAnswer(prev => prev + data.content);
-                } else if (data.type === 'record_id') {
-                  setCurrentRecordId(data.record_id);
-                } else if (data.type === 'error') {
-                  alert(data.error);
-                }
-              } catch { /* ignore parse errors */ }
-            }
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              if (data.type === 'chunk') {
+                setAnswer(prev => prev + data.content);
+              } else if (data.type === 'record_id') {
+                setCurrentRecordId(data.record_id);
+              } else if (data.type === 'error') {
+                setAnswer(prev => prev + `\n\n❌ ${data.error}`);
+              }
+            } catch { /* ignore */ }
           }
         }
       }
-    } catch (err) {
-      if (err instanceof Error && err.name !== 'AbortError') {
-        alert('网络错误');
+
+      if (buffer.trim()) {
+        const remainingLines = buffer.split('\n');
+        for (const line of remainingLines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              if (data.type === 'record_id') setCurrentRecordId(data.record_id);
+            } catch { /* ignore */ }
+          }
+        }
       }
-    } finally {
-      setIsStreaming(false);
-      // Refresh memory and history after answering
-      if (category) fetchMemory(category);
+
       fetchHistory();
+    } catch {
+      setAnswer('❌ 网络错误，请重试');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleEvaluate = async () => {
-    if (!userAnswer.trim() || !currentRecordId || isEvaluating) return;
+    if (!userAnswer.trim() || isEvaluating) return;
+    if (!currentRecordId) {
+      alert('记录ID缺失，请重新提问后再试');
+      return;
+    }
     setIsEvaluating(true);
 
     try {
@@ -198,238 +142,217 @@ export default function AssistantPage() {
         setEvaluation(data.evaluation);
       } else {
         const data = await res.json();
-        alert(data.error || '评估失败');
+        alert(data.error || '评分失败');
       }
     } catch {
-      alert('网络错误');
+      alert('评分请求失败');
     } finally {
       setIsEvaluating(false);
     }
   };
 
-  const handleCategoryChange = (cat: string) => {
-    setCategory(cat);
-    fetchFrequency(cat);
-    fetchMemory(cat);
-  };
-
-  const handleNewQuestion = () => {
-    setQuestion('');
-    setAnswer('');
-    setEvaluation(null);
-    setCurrentRecordId(null);
-    setUserAnswer('');
-  };
-
-  const loadHistoryRecord = (record: HistoryRecord) => {
-    setQuestion(record.question);
-    setCategory(record.category || '');
-    setAnswer(record.answer || '');
-    setCurrentRecordId(record.id);
-    setUserAnswer(record.user_answer || '');
-    setEvaluation(record.evaluation);
-    setShowHistory(false);
-  };
+  const categories = ['AI产品思维', '需求分析', '竞品分析', '算法沟通', '数据指标', '产品设计', '项目管理', '用户研究'];
 
   return (
-    <div className="flex h-full flex-col bg-[#F8F9FB]">
-      {/* Header */}
-      <div className="shrink-0 border-b border-[#E5E7EB] bg-white px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-lg font-semibold text-[#1F2937]">面试助手</h1>
-            <p className="text-xs text-[#6B7280]">AI 面试教练，随时提问，深度分析</p>
+    <div className="min-h-screen bg-[#F8F9FB]">
+      <header className="sticky top-0 z-40 border-b border-gray-200 bg-white/80 backdrop-blur">
+        <div className="flex items-center justify-between px-6 py-3">
+          <div className="flex items-center gap-3">
+            <Link href="/interview" className="text-sm text-gray-500 hover:text-gray-900">← 返回</Link>
+            <span className="text-gray-300">|</span>
+            <h1 className="text-base font-semibold text-gray-900">AI 面试助手</h1>
           </div>
-          <Button
-            variant="outline"
-            onClick={() => { setShowHistory(!showHistory); if (!showHistory) fetchHistory(); }}
-            className="border-[#E5E7EB] text-[#6B7280] text-xs"
+          <button
+            onClick={() => setShowHistory(!showHistory)}
+            className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+              showHistory ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
           >
-            {showHistory ? '关闭历史' : '历史记录'}
-          </Button>
+            {showHistory ? '隐藏记录' : `历史记录 (${history.length})`}
+          </button>
         </div>
-      </div>
+      </header>
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-5">
-
-      {/* History Panel */}
-      {showHistory && (
-        <Card className="border-[#E5E7EB] bg-white">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base text-[#1F2937]">问答历史</CardTitle>
-          </CardHeader>
-          <CardContent className="max-h-80 space-y-2 overflow-y-auto">
-            {history.length === 0 ? (
-              <p className="py-4 text-center text-sm text-[#9CA3AF]">暂无记录</p>
-            ) : (
-              history.map((record) => (
-                <button
-                  key={record.id}
-                  onClick={() => loadHistoryRecord(record)}
-                  className="w-full rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] p-3 text-left transition hover:border-indigo-200 hover:bg-indigo-50/30"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-[#1F2937] line-clamp-1">{record.question}</span>
-                    {record.category && (
-                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${frequencyStyle(record.frequency)}`}>
-                        {record.category}
-                      </span>
-                    )}
-                    {record.evaluation && (
-                      <span className="shrink-0 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-600">
-                        已评估
-                      </span>
-                    )}
-                  </div>
-                  <p className="mt-1 text-xs text-[#9CA3AF]">
-                    {new Date(record.created_at).toLocaleString('zh-CN')}
-                  </p>
-                </button>
-              ))
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Memory Context */}
-      {memory.length > 0 && (
-        <Card className="border-indigo-100 bg-indigo-50/30">
-          <CardHeader className="pb-2">
-            <div className="flex items-center gap-2">
-              <svg className="h-4 w-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-              </svg>
-              <CardTitle className="text-sm text-indigo-700">对话记忆 · {category}</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {memory.map((m, i) => (
-              <div key={i} className="rounded-lg border border-indigo-100 bg-white/60 px-3 py-2">
-                <p className="text-xs font-medium text-[#1F2937] line-clamp-1">Q: {m.question}</p>
-                <p className="mt-0.5 text-[11px] text-[#6B7280] line-clamp-2">A: {m.answer.substring(0, 100)}...</p>
-              </div>
-            ))}
-            <p className="text-[10px] text-indigo-400">AI 教练会参考这些历史记录保持对话连贯性</p>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Input Area */}
-      <Card className="border-[#E5E7EB] bg-white">
-        <CardContent className="space-y-4 pt-6">
-          {/* Category Select */}
-          <div className="flex flex-wrap gap-2">
-            {CATEGORIES.map((cat) => (
+      <div className="mx-auto max-w-4xl px-6 py-6">
+        {/* Question Input */}
+        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-wrap gap-2 mb-3">
+            {categories.map(c => (
               <button
-                key={cat}
-                onClick={() => handleCategoryChange(cat === category ? '' : cat)}
-                className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
-                  cat === category
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-[#F3F4F6] text-[#6B7280] hover:bg-indigo-50 hover:text-indigo-600'
+                key={c}
+                onClick={() => setCategory(c)}
+                className={`rounded-lg px-2.5 py-1 text-xs transition-colors ${
+                  category === c ? 'bg-indigo-100 text-indigo-700 font-medium' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
-                {cat}
-                {cat === category && frequency && (
-                  <span className={`ml-1.5 inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] ${frequencyStyle(frequency)}`}>
-                    {frequency}
-                  </span>
-                )}
+                {c}
               </button>
             ))}
           </div>
-
-          {/* Question Input */}
-          <div className="flex gap-3">
-            <Textarea
+          <div className="flex gap-2">
+            <input
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
               placeholder="输入面试问题，AI 教练帮你深度分析..."
-              className="min-h-[80px] flex-1 resize-none border-[#E5E7EB] bg-[#F9FAFB] text-[#1F2937] placeholder:text-[#9CA3AF]"
-              disabled={isStreaming}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleSubmit();
-              }}
+              className="flex-1 rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+              disabled={isLoading}
+              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmit(); } }}
             />
-            <Button
+            <button
               onClick={handleSubmit}
-              disabled={isStreaming || !question.trim()}
-              className="shrink-0 bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50"
+              disabled={isLoading || !question.trim()}
+              className="shrink-0 rounded-xl bg-indigo-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
             >
-              {isStreaming ? '分析中...' : '提问'}
-            </Button>
+              {isLoading ? '分析中...' : '分析'}
+            </button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
 
-      {/* AI Answer */}
-      {answer && (
-        <Card className="border-[#E5E7EB] bg-white">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base text-[#1F2937]">AI 教练分析</CardTitle>
-              {category && frequency && (
-                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${frequencyStyle(frequency)}`}>
-                  {category} · {frequency}
-                </span>
-              )}
+        {/* AI Analysis Result */}
+        {answer && (
+          <div className="mt-5 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-100">
+                <svg className="h-3.5 w-3.5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.636 50.636 0 0 0-2.658-.813A59.906 59.906 0 0 1 12 3.493a59.903 59.903 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0 1 12 13.489a50.702 50.702 0 0 1 7.74-3.342" />
+                </svg>
+              </div>
+              <span className="text-sm font-semibold text-gray-900">AI 教练分析</span>
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="prose prose-sm max-w-none">
+            <div className="prose prose-sm max-w-none
+              prose-headings:mt-5 prose-headings:mb-2 prose-headings:font-bold
+              prose-h2:text-base prose-h2:text-indigo-700 prose-h2:border-b prose-h2:border-indigo-100 prose-h2:pb-1
+              prose-h3:text-sm prose-h3:text-gray-800
+              prose-p:my-2 prose-p:leading-relaxed
+              prose-li:my-1 prose-ul:my-2 prose-ol:my-2
+              prose-blockquote:my-3 prose-blockquote:border-l-indigo-400 prose-blockquote:bg-indigo-50 prose-blockquote:py-2 prose-blockquote:px-4 prose-blockquote:rounded-r-lg
+              prose-strong:text-indigo-700
+              prose-table:my-3 prose-th:bg-gray-50 prose-th:px-3 prose-th:py-1.5 prose-td:px-3 prose-td:py-1.5 prose-td:border-gray-200">
               <Markdown content={answer} />
             </div>
-            <div ref={answerEndRef} />
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        )}
 
-      {/* User Answer + Evaluate */}
-      {answer && !isStreaming && (
-        <Card className="border-[#E5E7EB] bg-white">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base text-[#1F2937]">试试你的回答</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Textarea
+        {/* Try Your Answer */}
+        {answer && !isLoading && (
+          <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50/50 p-5">
+            <h3 className="text-sm font-semibold text-amber-800 mb-3">试试你的回答</h3>
+            <textarea
               value={userAnswer}
               onChange={(e) => setUserAnswer(e.target.value)}
               placeholder="输入你的回答，AI 教练帮你评分..."
-              className="min-h-[120px] resize-none border-[#E5E7EB] bg-[#F9FAFB] text-[#1F2937] placeholder:text-[#9CA3AF]"
+              className="w-full rounded-xl border border-amber-200 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+              rows={4}
               disabled={isEvaluating}
             />
-            <div className="flex gap-2">
-              <Button
-                onClick={handleEvaluate}
-                disabled={isEvaluating || !userAnswer.trim()}
-                className="bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50"
-              >
-                {isEvaluating ? '评分中...' : '提交评估'}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={handleNewQuestion}
-                className="border-[#E5E7EB] text-[#6B7280]"
-              >
-                新问题
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+            <button
+              onClick={handleEvaluate}
+              disabled={isEvaluating || !userAnswer.trim()}
+              className="mt-3 rounded-xl bg-amber-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-50"
+            >
+              {isEvaluating ? '评分中...' : '提交评估'}
+            </button>
 
-      {/* Evaluation Result */}
-      {evaluation && (
-        <AnswerEvaluation
-          score={evaluation.score}
-          gapAnalysis={evaluation.gap_analysis}
-          perfectAnswer={evaluation.perfect_answer}
-          dimensions={evaluation.dimensions}
-          feedback={evaluation.feedback}
-          keyPoints={evaluation.key_points}
-        />
-      )}
+            {/* Evaluation Result */}
+            {evaluation && (
+              <div className="mt-4 rounded-xl border border-gray-200 bg-white p-5">
+                <h4 className="text-sm font-semibold text-gray-900 mb-3">评估结果</h4>
+                {evaluation.score !== undefined && (
+                  <div className="mb-3 flex items-center gap-3">
+                    <div className={`flex h-14 w-14 items-center justify-center rounded-full text-lg font-bold ${
+                      evaluation.score >= 80 ? 'bg-emerald-100 text-emerald-700' :
+                      evaluation.score >= 60 ? 'bg-amber-100 text-amber-700' :
+                      'bg-rose-100 text-rose-700'
+                    }`}>
+                      {evaluation.score}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">综合评分</p>
+                      <p className="text-xs text-gray-500">
+                        {evaluation.score >= 80 ? '优秀' : evaluation.score >= 60 ? '良好' : '需加强'}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {evaluation.dimensions && (
+                  <div className="mb-3 space-y-2">
+                    {Object.entries(evaluation.dimensions).map(([key, val]) => (
+                      <div key={key} className="flex items-center gap-3">
+                        <span className="w-20 text-xs text-gray-600 shrink-0">{key}</span>
+                        <div className="flex-1 h-2 rounded-full bg-gray-100">
+                          <div
+                            className={`h-2 rounded-full ${
+                              val.score >= 80 ? 'bg-emerald-500' : val.score >= 60 ? 'bg-amber-500' : 'bg-rose-500'
+                            }`}
+                            style={{ width: `${val.score}%` }}
+                          />
+                        </div>
+                        <span className="text-xs font-medium text-gray-700 w-8">{val.score}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {evaluation.feedback && (
+                  <div className="mb-3 rounded-lg bg-gray-50 p-3">
+                    <p className="text-xs font-medium text-gray-700 mb-1">总评</p>
+                    <p className="text-sm text-gray-800">{evaluation.feedback}</p>
+                  </div>
+                )}
+
+                {evaluation.gap_analysis && (
+                  <div className="mb-3 rounded-lg bg-rose-50 p-3">
+                    <p className="text-xs font-medium text-rose-700 mb-1">差距分析</p>
+                    <p className="text-sm text-gray-800">{evaluation.gap_analysis}</p>
+                  </div>
+                )}
+
+                {evaluation.perfect_answer && (
+                  <div className="rounded-lg bg-indigo-50 p-3">
+                    <p className="text-xs font-medium text-indigo-700 mb-1">满分回答</p>
+                    <div className="prose prose-sm max-w-none
+                      prose-headings:mt-3 prose-headings:mb-1
+                      prose-p:my-1 prose-p:leading-relaxed
+                      prose-li:my-0.5
+                      prose-blockquote:border-l-indigo-400 prose-blockquote:bg-indigo-50">
+                      <Markdown content={evaluation.perfect_answer} />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* History */}
+        {showHistory && (
+          <div className="mt-5 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">历史记录</h3>
+            {history.length === 0 ? (
+              <p className="text-sm text-gray-500">暂无记录</p>
+            ) : (
+              <div className="space-y-3">
+                {history.map(record => (
+                  <button
+                    key={record.id}
+                    onClick={() => {
+                      setQuestion(record.question);
+                      setAnswer(record.analysis || '');
+                      setCurrentRecordId(record.id);
+                      setEvaluation(null);
+                      setUserAnswer('');
+                    }}
+                    className="w-full rounded-xl border border-gray-100 bg-gray-50 p-3 text-left transition-colors hover:bg-gray-100"
+                  >
+                    <p className="text-sm font-medium text-gray-900">{record.question}</p>
+                    <p className="mt-1 text-xs text-gray-500">{new Date(record.created_at).toLocaleString('zh-CN')}</p>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
