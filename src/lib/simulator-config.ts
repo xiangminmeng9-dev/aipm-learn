@@ -30,7 +30,7 @@ function buildStages(scenarioId: string, scenarioTitle: string, domain: string):
   // 通用对话规则：确保NPC不会自问自答
   const chatRules = `\n\n【重要对话规则】\n1. 你是NPC，每次只说1-3句话，提出1个具体问题，然后停下来等用户回答。\n2. 绝对不要自问自答——不要自己提出问题然后自己给出答案或示范。\n3. 用户回答后，先给出简短反馈（肯定/纠正/追问），再提出下一个问题。\n4. 如果用户回答模糊，追问具体细节，不要替用户补充答案。\n5. 只有当用户回答合理且充分时，才推进到下一个话题。`;
 
-  return [
+  const stages: SimulatorStageConfig[] = [
     {
       id: `${scenarioId}-1-req`,
       order: 1,
@@ -299,7 +299,8 @@ function buildStages(scenarioId: string, scenarioTitle: string, domain: string):
   ];
 
   // Append chat rules to each stage's systemPrompt
-  return stages.map(stage => ({ ...stage, systemPrompt: stage.systemPrompt + chatRules }));
+  const result: SimulatorStageConfig[] = stages.map(stage => ({ ...stage, systemPrompt: stage.systemPrompt + chatRules }));
+  return result;
 }
 
 export const SIMULATOR_SCENARIOS: SimulatorScenario[] = [
