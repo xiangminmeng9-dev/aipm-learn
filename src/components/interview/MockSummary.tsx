@@ -30,11 +30,13 @@ interface MockSummaryProps {
 
 export default function MockSummary({ summary }: MockSummaryProps) {
   const scoreColor =
-    summary.total_score >= 8
+    summary.total_score >= 90
       ? 'text-green-600'
-      : summary.total_score >= 6
+      : summary.total_score >= 70
         ? 'text-indigo-600'
-        : 'text-[#ff3b30]';
+        : summary.total_score >= 50
+          ? 'text-amber-600'
+          : 'text-[#ff3b30]';
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">

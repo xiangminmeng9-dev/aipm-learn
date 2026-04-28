@@ -50,7 +50,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     // 获取所有答案
     const { data: answers } = await serviceClient
       .from('interview_answers')
-      .select('question_number, question_text, user_answer, score, gap_analysis, is_skipped')
+      .select('question_number, question_text, user_answer, score, gap_analysis, perfect_answer, thinking_framework, dimensions, is_skipped')
       .eq('mock_interview_id', mockId)
       .order('question_number', { ascending: true });
 
@@ -80,7 +80,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       });
     }
 
-    // 生成总结
+    // Generate summary
     const { data: typeData } = await serviceClient
       .from('question_types')
       .select('name')

@@ -123,6 +123,8 @@ export default function MockInterviewFlow({
               score: currentAnswered.score as number,
               gap_analysis: (currentAnswered.gap_analysis as string) || '',
               perfect_answer: (currentAnswered.perfect_answer as string) || '',
+              thinking_framework: (currentAnswered.thinking_framework as string) || undefined,
+              dimensions: (currentAnswered.dimensions as { name: string; score: number; comment: string }[]) || undefined,
             };
             setEvaluation(currentEval);
           }

@@ -72,10 +72,15 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     // 评分（非跳过时）
-    let evaluation = { score: 0, gap_analysis: '已跳过', perfect_answer: '已跳过' };
+    let evaluation: {
+      score: number;
+      gap_analysis: string;
+      perfect_answer: string;
+      thinking_framework?: string;
+      dimensions?: { name: string; score: number; comment: string }[];
+    } = { score: 0, gap_analysis: '已跳过', perfect_answer: '已跳过' };
 
     if (!isSkipped) {
-      // 获取类型名称
       const { data: typeData } = await supabase
         .from('question_types')
         .select('name')
@@ -98,14 +103,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         evaluation = JSON.parse(scoringResult.trim());
       } catch {
         evaluation = {
-          score: 5,
+          score: 0,
           gap_analysis: scoringResult.trim(),
           perfect_answer: '',
         };
       }
     }
 
-    // 更新当前答案
+    // Update current answer
     await serviceClient
       .from('interview_answers')
       .update({
@@ -113,6 +118,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         score: isSkipped ? null : evaluation.score,
         gap_analysis: evaluation.gap_analysis,
         perfect_answer: evaluation.perfect_answer,
+        thinking_framework: evaluation.thinking_framework ?? null,
+        dimensions: evaluation.dimensions ?? null,
         is_skipped: isSkipped,
         answered_at: new Date().toISOString(),
       })

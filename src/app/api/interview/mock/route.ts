@@ -3,11 +3,33 @@ import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { generateText } from '@/lib/ai/claude';
 import { buildMockQuestionPrompt, MOCK_QUESTION_SYSTEM_PROMPT } from '@/lib/ai/prompts';
 
-// GET /api/interview/mock — 获取用户的模拟面试列表
+const DEFAULT_TYPES = [
+  { name: 'AI产品思维', description: '大模型应用、AI原生产品设计、Prompt Engineering' },
+  { name: '数据分析', description: '数据驱动决策、指标体系、A/B测试' },
+  { name: '用户研究', description: '用户画像、需求分析、用户体验优化' },
+  { name: '项目管理', description: '敏捷开发、跨团队协作、资源管理' },
+  { name: '商业思维', description: '商业模式、竞品分析、增长策略' },
+  { name: '技术理解', description: '系统架构、API设计、技术选型评估' },
+];
+
+async function ensureQuestionTypes(serviceClient: ReturnType<typeof createServiceClient>) {
+  const { data: existing } = await serviceClient
+    .from('question_types')
+    .select('id')
+    .limit(1);
+
+  if (existing && existing.length > 0) return;
+
+  await serviceClient
+    .from('question_types')
+    .insert(DEFAULT_TYPES.map((t) => ({ name: t.name, description: t.description })));
+}
+
+// GET /api/interview/mock
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
 
     let authenticatedUser = user;
     if (!authenticatedUser) {
@@ -58,9 +80,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: '未登录', code: 'UNAUTHORIZED' }, { status: 401 });
@@ -68,44 +88,56 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const { type_id, total_questions, jd_text, resume_text } = body as {
-      type_id: string;
-      total_questions: 3 | 5 | 8 | 10;
+      type_id?: string;
+      total_questions: number;
       jd_text?: string;
       resume_text?: string;
     };
 
-    if (!type_id) {
-      return NextResponse.json(
-        { error: '请选择问题类型', code: 'VALIDATION_ERROR' },
-        { status: 400 }
-      );
+    const tq = [3, 5, 8, 10].includes(total_questions) ? total_questions : 5;
+
+    const serviceClient = createServiceClient();
+
+    // Ensure question types exist
+    await ensureQuestionTypes(serviceClient);
+
+    // Resolve type_id and name
+    let typeId = type_id;
+    let typeName = '综合';
+
+    if (typeId) {
+      const { data: typeData } = await serviceClient
+        .from('question_types')
+        .select('id, name')
+        .eq('id', typeId)
+        .single();
+      if (typeData) {
+        typeName = typeData.name;
+      } else {
+        typeId = null;
+      }
     }
 
-    if (![3, 5, 8, 10].includes(total_questions)) {
-      return NextResponse.json(
-        { error: '题目数量必须为 3/5/8/10', code: 'VALIDATION_ERROR' },
-        { status: 400 }
-      );
+    // If no valid type_id, pick the first available
+    if (!typeId) {
+      const { data: firstType } = await serviceClient
+        .from('question_types')
+        .select('id, name')
+        .limit(1)
+        .single();
+      if (firstType) {
+        typeId = firstType.id;
+        typeName = firstType.name;
+      }
     }
 
-    // 获取类型名称
-    const { data: typeData } = await supabase
-      .from('question_types')
-      .select('id, name')
-      .eq('id', type_id)
-      .single();
-
-    if (!typeData) {
-      return NextResponse.json({ error: '问题类型不存在', code: 'NOT_FOUND' }, { status: 404 });
-    }
-
-    // 创建模拟面试记录
-    const { data: mockInterview, error: mockError } = await supabase
+    // Create mock interview
+    const { data: mockInterview, error: mockError } = await serviceClient
       .from('mock_interviews')
       .insert({
         user_id: user.id,
-        type_id,
-        total_questions,
+        type_id: typeId,
+        total_questions: tq,
         current_question: 1,
         jd_text: jd_text?.trim() || null,
         resume_text: resume_text?.trim() || null,
@@ -115,49 +147,50 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (mockError || !mockInterview) {
-      return NextResponse.json(
-        { error: '创建模拟面试失败', code: 'INTERNAL_ERROR' },
-        { status: 500 }
-      );
+      console.error('Create mock interview error:', mockError);
+      return NextResponse.json({ error: '创建模拟面试失败', code: 'INTERNAL_ERROR' }, { status: 500 });
     }
 
-    // 生成第一题
+    // Generate first question
     const questionPrompt = buildMockQuestionPrompt({
-      typeName: typeData.name,
+      typeName,
       jdText: jd_text,
       resumeText: resume_text,
       questionNumber: 1,
-      totalQuestions: total_questions,
+      totalQuestions: tq,
     });
 
-    const questionText = await generateText(questionPrompt, {
-      model: 'sonnet',
-      system: MOCK_QUESTION_SYSTEM_PROMPT,
-      maxTokens: 512,
-    });
+    let questionText = '';
+    try {
+      questionText = await generateText(questionPrompt, {
+        model: 'sonnet',
+        system: MOCK_QUESTION_SYSTEM_PROMPT,
+        maxTokens: 512,
+      });
+    } catch (aiError) {
+      console.error('AI question generation error:', aiError);
+      questionText = '请描述一个你参与过的AI产品项目，重点说明你在产品定义和需求分析中的角色和贡献。';
+    }
 
-    // 保存第一题
-    await supabase.from('interview_answers').insert({
+    // Save first question
+    await serviceClient.from('interview_answers').insert({
       mock_interview_id: mockInterview.id,
       question_number: 1,
       question_text: questionText.trim(),
-      question_type_id: type_id,
+      question_type_id: typeId,
       is_skipped: false,
     });
 
-    return NextResponse.json(
-      {
-        id: mockInterview.id,
-        status: 'in_progress',
-        current_question: 1,
-        total_questions,
-        question: {
-          number: 1,
-          text: questionText.trim(),
-        },
+    return NextResponse.json({
+      id: mockInterview.id,
+      status: 'in_progress',
+      current_question: 1,
+      total_questions: tq,
+      question: {
+        number: 1,
+        text: questionText.trim(),
       },
-      { status: 201 }
-    );
+    }, { status: 201 });
   } catch (error) {
     console.error('Create mock interview API error:', error);
     return NextResponse.json({ error: '服务器内部错误', code: 'INTERNAL_ERROR' }, { status: 500 });

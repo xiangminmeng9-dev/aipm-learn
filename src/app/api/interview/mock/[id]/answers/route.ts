@@ -42,7 +42,7 @@ export async function GET(
     // Get all answers for this mock interview
     const { data: answers, error } = await serviceClient
       .from('interview_answers')
-      .select('id, question_number, question_text, user_answer, score, gap_analysis, perfect_answer, is_skipped, answered_at')
+      .select('id, question_number, question_text, user_answer, score, gap_analysis, perfect_answer, thinking_framework, dimensions, is_skipped, answered_at')
       .eq('mock_interview_id', mockId)
       .order('question_number', { ascending: true });
 
