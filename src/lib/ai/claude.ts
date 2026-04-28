@@ -12,10 +12,15 @@ interface AIConfig {
   model: string;
 }
 
+function cleanEnv(val: string | undefined): string | undefined {
+  if (!val) return undefined;
+  return val.replace(/^["']|["']$/g, '').trim() || undefined;
+}
+
 const DEFAULT_CONFIG: AIConfig = {
   protocol: 'anthropic',
-  baseURL: process.env.ANTHROPIC_BASE_URL || undefined,
-  apiKey: process.env.ANTHROPIC_API_KEY!,
+  baseURL: cleanEnv(process.env.ANTHROPIC_BASE_URL),
+  apiKey: cleanEnv(process.env.ANTHROPIC_API_KEY) || '',
   model: 'astron-code-latest',
 };
 
