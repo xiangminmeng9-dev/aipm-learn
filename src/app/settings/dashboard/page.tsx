@@ -111,13 +111,13 @@ export default function LearningDashboardPage() {
       type: 'radar',
       data: [{
         value: MODULES.map((m) => {
-          const d = details[m.id as keyof typeof details];
+          const d = details[m.id as keyof typeof details] as Record<string, number>;
           if (!d) return 0;
           if (m.id === 'skills') return d.coverage;
           if (m.id === 'interview') return Math.min(100, d.avgScore);
           if (m.id === 'resume') return d.matchScore;
           if (m.id === 'dailyChallenge') return Math.min(100, d.submissions * 10);
-          return Math.min(100, Object.values(d).reduce((s: number, v: number) => s + v, 0) * 5);
+          return Math.min(100, Object.values(d).reduce((s, v) => s + (typeof v === 'number' ? v : 0), 0) * 5);
         }),
         name: '学习进度',
         areaStyle: { color: 'rgba(99,102,241,0.2)' },
