@@ -7,14 +7,14 @@ import dynamic from 'next/dynamic';
 const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false });
 
 interface ModuleDetails {
-  coding: { flows: number; recentActivity: number };
-  skills: { coverage: number; modules: number; tasks: number; completedTasks: number };
-  notebook: { notes: number; tasks: number; aiAnalysis: number };
+  coding: { flows: number; recentActivity: number; dailyActivity: { date: string; count: number }[] };
+  skills: { coverage: number; modules: number; tasks: number; completedTasks: number; moduleBreakdown: { id: string; name: string; total: number; completed: number }[] };
+  notebook: { notes: number; tasks: number; aiAnalysis: number; dailyCreation: { date: string; notes: number; tasks: number }[] };
   simulator: { sessions: number; stagesCompleted: number; avgScore: number };
-  interview: { qaCount: number; mockCount: number; avgScore: number; sessions: number };
+  interview: { qaCount: number; mockCount: number; avgScore: number; sessions: number; scoreHistory: { date: string; score: number }[] };
   resume: { versions: number; matchScore: number };
   resources: { count: number; articlesRead: number };
-  dailyChallenge: { submissions: number; streak: number; avgScore: number };
+  dailyChallenge: { submissions: number; streak: number; avgScore: number; scoreHistory: { date: string; score: number }[] };
 }
 
 interface DashboardData {
@@ -39,20 +39,11 @@ function formatMinutes(min: number): string {
   return m > 0 ? `${h} 小时 ${m} 分钟` : `${h} 小时`;
 }
 
-function MiniBar({ value, max, color }: { value: number; max: number; color: string }) {
-  const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
+function StatItem({ label, value, color }: { label: string; value: string | number; color?: string }) {
   return (
-    <div className="h-2 w-full rounded-full bg-secondary">
-      <div className="h-2 rounded-full transition-all" style={{ width: `${pct}%`, background: color }} />
-    </div>
-  );
-}
-
-function MetricRow({ label, value, color }: { label: string; value: string | number; color?: string }) {
-  return (
-    <div className="flex items-center justify-between py-1">
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <span className={`text-sm font-bold ${color ?? 'text-foreground'}`}>{value}</span>
+    <div className="flex items-center justify-between py-1.5">
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <span className={`text-base font-bold ${color ?? 'text-foreground'}`}>{value}</span>
     </div>
   );
 }
@@ -77,7 +68,7 @@ export default function LearningDashboardPage() {
     );
   }
 
-  if (!data) {
+  if (!data || !data.moduleDetails) {
     return (
       <div className="min-h-screen p-8">
         <Link href="/settings" className="text-sm text-muted-foreground hover:text-foreground">← 返回设置</Link>
@@ -86,7 +77,7 @@ export default function LearningDashboardPage() {
     );
   }
 
-  const d = data.moduleDetails!;
+  const d = data.moduleDetails;
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -103,226 +94,315 @@ export default function LearningDashboardPage() {
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto p-4">
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 h-full">
-          {/* ── 1. AI Coding ── */}
-          <div className="rounded-xl border border-border bg-card p-4 flex flex-col">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-lg font-bold text-indigo-600">&lt;/&gt;</span>
-              <Link href="/coding/practice" className="text-sm font-semibold text-foreground hover:text-indigo-600">AI Coding</Link>
-            </div>
-            <div className="space-y-1 flex-1">
-              <MetricRow label="开发流程" value={d.coding.flows} color="text-indigo-600" />
-              <MetricRow label="近7天活跃" value={d.coding.recentActivity} color="text-indigo-600" />
-              <MiniBar value={d.coding.recentActivity} max={Math.max(d.coding.flows, 1)} color="#818CF8" />
-            </div>
-            <div className="mt-3">
-              <ReactECharts option={{
-                tooltip: { trigger: 'item' as const },
-                series: [{ type: 'pie', radius: ['35%', '65%'], data: [
-                  { name: '开发流程', value: d.coding.flows, itemStyle: { color: '#818CF8' } },
-                  { name: '近期活跃', value: d.coding.recentActivity, itemStyle: { color: '#C7D2FE' } },
-                ], label: { show: false }, emphasis: { itemStyle: { shadowBlur: 6 } } }],
-              }} style={{ height: 120 }} />
+      <div className="flex-1 overflow-y-auto p-6 space-y-5">
+        {/* ── 1. AI Coding ── */}
+        <div className="rounded-xl border border-border bg-card p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <span className="text-xl font-bold text-indigo-600">&lt;/&gt;</span>
+              <Link href="/coding/practice" className="text-lg font-semibold text-foreground hover:text-indigo-600">AI Coding</Link>
             </div>
           </div>
-
-          {/* ── 2. 技能树 ── */}
-          <div className="rounded-xl border border-border bg-card p-4 flex flex-col">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-lg">🌳</span>
-              <Link href="/skills/tree" className="text-sm font-semibold text-foreground hover:text-emerald-600">技能树</Link>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="space-y-1">
+              <StatItem label="开发流程总数" value={d.coding.flows} color="text-indigo-600" />
+              <StatItem label="近7天活跃" value={d.coding.recentActivity} color="text-indigo-600" />
+              <StatItem label="活跃率" value={`${d.coding.flows > 0 ? Math.round((d.coding.recentActivity / d.coding.flows) * 100) : 0}%`} color="text-indigo-600" />
             </div>
-            <div className="space-y-1 flex-1">
-              <MetricRow label="覆盖度" value={`${d.skills.coverage}%`} color="text-emerald-600" />
-              <MetricRow label="模块" value={`${d.skills.modules}`} color="text-emerald-600" />
-              <MetricRow label="任务完成" value={`${d.skills.completedTasks}/${d.skills.tasks}`} color="text-emerald-600" />
-              <MiniBar value={d.skills.coverage} max={100} color="#16a34a" />
-            </div>
-            <div className="mt-3">
-              <ReactECharts option={{
-                tooltip: { trigger: 'item' as const },
-                series: [{ type: 'pie', radius: ['35%', '65%'], data: [
-                  { name: '已完成', value: d.skills.completedTasks, itemStyle: { color: '#16a34a' } },
-                  { name: '未完成', value: Math.max(0, d.skills.tasks - d.skills.completedTasks), itemStyle: { color: '#D1FAE5' } },
-                ], label: { show: false } }],
-              }} style={{ height: 120 }} />
-            </div>
-          </div>
-
-          {/* ── 3. 笔记本 ── */}
-          <div className="rounded-xl border border-border bg-card p-4 flex flex-col">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-lg">📝</span>
-              <Link href="/notebook" className="text-sm font-semibold text-foreground hover:text-amber-600">笔记本</Link>
-            </div>
-            <div className="space-y-1 flex-1">
-              <MetricRow label="笔记" value={d.notebook.notes} color="text-amber-600" />
-              <MetricRow label="任务" value={d.notebook.tasks} color="text-amber-600" />
-              <MetricRow label="AI分析" value={d.notebook.aiAnalysis} color="text-amber-600" />
-            </div>
-            <div className="mt-3">
-              <ReactECharts option={{
-                tooltip: { trigger: 'item' as const },
-                series: [{ type: 'pie', radius: ['35%', '65%'], data: [
-                  { name: '笔记', value: d.notebook.notes, itemStyle: { color: '#f59e0b' } },
-                  { name: '任务', value: d.notebook.tasks, itemStyle: { color: '#FDE68A' } },
-                  { name: 'AI分析', value: d.notebook.aiAnalysis, itemStyle: { color: '#FEF3C7' } },
-                ], label: { show: false } }],
-              }} style={{ height: 120 }} />
-            </div>
-          </div>
-
-          {/* ── 4. 模拟器 ── */}
-          <div className="rounded-xl border border-border bg-card p-4 flex flex-col">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-lg">🚀</span>
-              <Link href="/simulator" className="text-sm font-semibold text-foreground hover:text-teal-600">模拟器</Link>
-            </div>
-            <div className="space-y-1 flex-1">
-              <MetricRow label="会话数" value={d.simulator.sessions} color="text-teal-600" />
-              <MetricRow label="完成阶段" value={d.simulator.stagesCompleted} color="text-teal-600" />
-              <MetricRow label="平均分" value={d.simulator.avgScore} color="text-teal-600" />
-              <MiniBar value={d.simulator.avgScore} max={100} color="#14b8a6" />
-            </div>
-            <div className="mt-3">
-              <ReactECharts option={{
-                tooltip: {},
-                radar: { indicator: [{ name: '会话', max: Math.max(d.simulator.sessions, 1) }, { name: '阶段', max: Math.max(d.simulator.stagesCompleted, 1) }, { name: '分数', max: 100 }], radius: '60%', shape: 'polygon' as const },
-                series: [{ type: 'radar', data: [{ value: [d.simulator.sessions, d.simulator.stagesCompleted, d.simulator.avgScore], areaStyle: { color: 'rgba(20,184,166,0.2)' }, lineStyle: { color: '#14b8a6' } }] }],
-              }} style={{ height: 120 }} />
-            </div>
-          </div>
-
-          {/* ── 5. 面试助手 ── */}
-          <div className="rounded-xl border border-border bg-card p-4 flex flex-col">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-lg">🎤</span>
-              <Link href="/interview/assistant" className="text-sm font-semibold text-foreground hover:text-purple-600">面试助手</Link>
-            </div>
-            <div className="space-y-1 flex-1">
-              <MetricRow label="QA次数" value={d.interview.qaCount} color="text-purple-600" />
-              <MetricRow label="模拟面试" value={d.interview.mockCount} color="text-purple-600" />
-              <MetricRow label="对话Session" value={d.interview.sessions} color="text-purple-600" />
-              <MetricRow label="平均分" value={d.interview.avgScore} color="text-purple-600" />
-              <MiniBar value={d.interview.avgScore} max={100} color="#7c3aed" />
-            </div>
-            <div className="mt-3">
-              <ReactECharts option={{
-                tooltip: { trigger: 'item' as const },
-                series: [{ type: 'pie', radius: ['35%', '65%'], data: [
-                  { name: 'QA', value: d.interview.qaCount, itemStyle: { color: '#7c3aed' } },
-                  { name: '模拟面试', value: d.interview.mockCount, itemStyle: { color: '#C4B5FD' } },
-                  { name: 'Session', value: d.interview.sessions, itemStyle: { color: '#EDE9FE' } },
-                ], label: { show: false } }],
-              }} style={{ height: 120 }} />
-            </div>
-          </div>
-
-          {/* ── 6. 简历助手 ── */}
-          <div className="rounded-xl border border-border bg-card p-4 flex flex-col">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-lg">📄</span>
-              <Link href="/resume" className="text-sm font-semibold text-foreground hover:text-orange-600">简历助手</Link>
-            </div>
-            <div className="space-y-1 flex-1">
-              <MetricRow label="简历版本" value={d.resume.versions} color="text-orange-600" />
-              <MetricRow label="最佳匹配" value={`${d.resume.matchScore}%`} color="text-orange-600" />
-              <MiniBar value={d.resume.matchScore} max={100} color="#ea580c" />
-            </div>
-            <div className="mt-3">
-              <ReactECharts option={{
-                series: [{ type: 'gauge', startAngle: 180, endAngle: 0, radius: '90%', min: 0, max: 100,
-                  axisLine: { lineStyle: { width: 12, color: [[0.3, '#F97316'], [0.7, '#FB923C'], [1, '#FDBA74']] } },
-                  pointer: { itemStyle: { color: '#ea580c' }, width: 4, length: '60%' },
-                  axisTick: { show: false }, splitLine: { show: false }, axisLabel: { show: false },
-                  detail: { valueAnimation: true, formatter: '{value}%', fontSize: 14, color: '#ea580c', offsetCenter: [0, '40%'] },
-                  data: [{ value: d.resume.matchScore }],
-                }],
-              }} style={{ height: 120 }} />
-            </div>
-          </div>
-
-          {/* ── 7. 资源库 ── */}
-          <div className="rounded-xl border border-border bg-card p-4 flex flex-col">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-lg">📚</span>
-              <Link href="/resources" className="text-sm font-semibold text-foreground hover:text-blue-600">资源库</Link>
-            </div>
-            <div className="space-y-1 flex-1">
-              <MetricRow label="资源总数" value={d.resources.count} color="text-blue-600" />
-              <MetricRow label="已读文章" value={d.resources.articlesRead} color="text-blue-600" />
-              <MiniBar value={d.resources.articlesRead} max={Math.max(d.resources.count, 1)} color="#3b82f6" />
-            </div>
-            <div className="mt-3">
-              <ReactECharts option={{
-                tooltip: { trigger: 'item' as const },
-                series: [{ type: 'pie', radius: ['35%', '65%'], data: [
-                  { name: '已读', value: d.resources.articlesRead, itemStyle: { color: '#3b82f6' } },
-                  { name: '未读', value: Math.max(0, d.resources.count - d.resources.articlesRead), itemStyle: { color: '#BFDBFE' } },
-                ], label: { show: false } }],
-              }} style={{ height: 120 }} />
-            </div>
-          </div>
-
-          {/* ── 8. 每日挑战 ── */}
-          <div className="rounded-xl border border-border bg-card p-4 flex flex-col">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-lg">🎯</span>
-              <Link href="/daily-challenge" className="text-sm font-semibold text-foreground hover:text-rose-600">每日挑战</Link>
-            </div>
-            <div className="space-y-1 flex-1">
-              <MetricRow label="提交数" value={d.dailyChallenge.submissions} color="text-rose-600" />
-              <MetricRow label="连续天数" value={d.dailyChallenge.streak} color="text-rose-600" />
-              <MetricRow label="平均分" value={d.dailyChallenge.avgScore} color="text-rose-600" />
-              <MiniBar value={d.dailyChallenge.avgScore} max={100} color="#ef4444" />
-            </div>
-            <div className="mt-3">
-              <ReactECharts option={{
-                series: [{ type: 'gauge', startAngle: 180, endAngle: 0, radius: '90%', min: 0, max: 100,
-                  axisLine: { lineStyle: { width: 12, color: [[0.3, '#EF4444'], [0.7, '#F87171'], [1, '#FCA5A5']] } },
-                  pointer: { itemStyle: { color: '#ef4444' }, width: 4, length: '60%' },
-                  axisTick: { show: false }, splitLine: { show: false }, axisLabel: { show: false },
-                  detail: { valueAnimation: true, formatter: '{value}', fontSize: 14, color: '#ef4444', offsetCenter: [0, '40%'] },
-                  data: [{ value: d.dailyChallenge.avgScore }],
-                }],
-              }} style={{ height: 120 }} />
-            </div>
+            <ReactECharts option={{
+              tooltip: { trigger: 'item' as const },
+              series: [{ type: 'pie', radius: ['40%', '70%'], center: ['50%', '50%'], data: [
+                { name: '近期活跃', value: d.coding.recentActivity, itemStyle: { color: '#818CF8' } },
+                { name: '其他', value: Math.max(0, d.coding.flows - d.coding.recentActivity), itemStyle: { color: '#E0E7FF' } },
+              ], label: { show: true, fontSize: 11, formatter: '{b}\n{c}' }, emphasis: { itemStyle: { shadowBlur: 8 } } }],
+            }} style={{ height: 200 }} />
+            <ReactECharts option={{
+              tooltip: { trigger: 'axis' as const },
+              grid: { left: 30, right: 10, top: 20, bottom: 30 },
+              xAxis: { type: 'category' as const, data: d.coding.dailyActivity.map((x) => x.date), axisLabel: { fontSize: 10 } },
+              yAxis: { type: 'value' as const, minInterval: 1, axisLabel: { fontSize: 10 } },
+              series: [{ type: 'bar', data: d.coding.dailyActivity.map((x) => x.count), itemStyle: { color: '#818CF8', borderRadius: [4, 4, 0, 0] }, barWidth: '50%' }],
+            }} style={{ height: 200 }} />
           </div>
         </div>
 
-        {/* Bottom: Activity + Score trend */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
-          <div className="rounded-xl border border-border bg-card p-4">
-            <h3 className="mb-2 text-sm font-semibold text-foreground">近 30 天活跃度</h3>
+        {/* ── 2. 技能树 ── */}
+        <div className="rounded-xl border border-border bg-card p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <span className="text-xl">🌳</span>
+              <Link href="/skills/tree" className="text-lg font-semibold text-foreground hover:text-emerald-600">技能树</Link>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="space-y-1">
+              <StatItem label="技能覆盖度" value={`${d.skills.coverage}%`} color="text-emerald-600" />
+              <StatItem label="模块总数" value={d.skills.modules} color="text-emerald-600" />
+              <StatItem label="任务完成" value={`${d.skills.completedTasks}/${d.skills.tasks}`} color="text-emerald-600" />
+              <StatItem label="完成率" value={`${d.skills.tasks > 0 ? Math.round((d.skills.completedTasks / d.skills.tasks) * 100) : 0}%`} color="text-emerald-600" />
+            </div>
+            <ReactECharts option={{
+              tooltip: { trigger: 'axis' as const },
+              grid: { left: 60, right: 10, top: 20, bottom: 30 },
+              xAxis: { type: 'value' as const, max: 100, axisLabel: { fontSize: 10 } },
+              yAxis: { type: 'category' as const, data: d.skills.moduleBreakdown.slice(0, 6).map((m) => m.name), axisLabel: { fontSize: 10 } },
+              series: [
+                { name: '已完成', type: 'bar', stack: 'total', data: d.skills.moduleBreakdown.slice(0, 6).map((m) => m.completed), itemStyle: { color: '#16a34a', borderRadius: [0, 0, 0, 0] } },
+                { name: '未完成', type: 'bar', stack: 'total', data: d.skills.moduleBreakdown.slice(0, 6).map((m) => m.total - m.completed), itemStyle: { color: '#D1FAE5' } },
+              ],
+            }} style={{ height: 200 }} />
+            <ReactECharts option={{
+              series: [{ type: 'gauge', startAngle: 200, endAngle: -20, radius: '85%', min: 0, max: 100,
+                axisLine: { lineStyle: { width: 14, color: [[0.3, '#F87171'], [0.7, '#FBBF24'], [1, '#16a34a']] } },
+                pointer: { itemStyle: { color: '#16a34a' }, width: 5, length: '55%' },
+                axisTick: { show: false }, splitLine: { show: false }, axisLabel: { show: false },
+                detail: { valueAnimation: true, formatter: '{value}%', fontSize: 18, color: '#16a34a', offsetCenter: [0, '50%'] },
+                data: [{ value: d.skills.coverage }],
+              }],
+            }} style={{ height: 200 }} />
+          </div>
+        </div>
+
+        {/* ── 3. 笔记本 ── */}
+        <div className="rounded-xl border border-border bg-card p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <span className="text-xl">📝</span>
+              <Link href="/notebook" className="text-lg font-semibold text-foreground hover:text-amber-600">笔记本</Link>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="space-y-1">
+              <StatItem label="笔记数" value={d.notebook.notes} color="text-amber-600" />
+              <StatItem label="任务数" value={d.notebook.tasks} color="text-amber-600" />
+              <StatItem label="AI分析" value={d.notebook.aiAnalysis} color="text-amber-600" />
+            </div>
+            <ReactECharts option={{
+              tooltip: { trigger: 'item' as const },
+              series: [{ type: 'pie', radius: ['40%', '70%'], center: ['50%', '50%'], data: [
+                { name: '笔记', value: d.notebook.notes, itemStyle: { color: '#f59e0b' } },
+                { name: '任务', value: d.notebook.tasks, itemStyle: { color: '#FDE68A' } },
+                { name: 'AI分析', value: d.notebook.aiAnalysis, itemStyle: { color: '#FEF3C7' } },
+              ], label: { show: true, fontSize: 11, formatter: '{b}\n{c}' } }],
+            }} style={{ height: 200 }} />
+            <ReactECharts option={{
+              tooltip: { trigger: 'axis' as const },
+              legend: { data: ['笔记', '任务'], bottom: 0, textStyle: { fontSize: 10 } },
+              grid: { left: 30, right: 10, top: 20, bottom: 40 },
+              xAxis: { type: 'category' as const, data: d.notebook.dailyCreation.map((x) => x.date.slice(5)), axisLabel: { fontSize: 10 } },
+              yAxis: { type: 'value' as const, minInterval: 1, axisLabel: { fontSize: 10 } },
+              series: [
+                { name: '笔记', type: 'bar', data: d.notebook.dailyCreation.map((x) => x.notes), itemStyle: { color: '#f59e0b', borderRadius: [4, 4, 0, 0] } },
+                { name: '任务', type: 'bar', data: d.notebook.dailyCreation.map((x) => x.tasks), itemStyle: { color: '#FDE68A', borderRadius: [4, 4, 0, 0] } },
+              ],
+            }} style={{ height: 200 }} />
+          </div>
+        </div>
+
+        {/* ── 4. 模拟器 ── */}
+        <div className="rounded-xl border border-border bg-card p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <span className="text-xl">🚀</span>
+              <Link href="/simulator" className="text-lg font-semibold text-foreground hover:text-teal-600">模拟器</Link>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="space-y-1">
+              <StatItem label="会话数" value={d.simulator.sessions} color="text-teal-600" />
+              <StatItem label="完成阶段" value={d.simulator.stagesCompleted} color="text-teal-600" />
+              <StatItem label="平均分" value={d.simulator.avgScore} color="text-teal-600" />
+            </div>
+            <ReactECharts option={{
+              tooltip: {},
+              radar: {
+                indicator: [
+                  { name: '会话', max: Math.max(d.simulator.sessions, 1) },
+                  { name: '阶段', max: Math.max(d.simulator.stagesCompleted, 1) },
+                  { name: '分数', max: 100 },
+                ],
+                radius: '65%', shape: 'polygon' as const,
+              },
+              series: [{ type: 'radar', data: [{ value: [d.simulator.sessions, d.simulator.stagesCompleted, d.simulator.avgScore], areaStyle: { color: 'rgba(20,184,166,0.25)' }, lineStyle: { color: '#14b8a6', width: 2 } }] }],
+            }} style={{ height: 200 }} />
+            <ReactECharts option={{
+              series: [{ type: 'gauge', startAngle: 200, endAngle: -20, radius: '85%', min: 0, max: 100,
+                axisLine: { lineStyle: { width: 14, color: [[0.3, '#F87171'], [0.7, '#FBBF24'], [1, '#14b8a6']] } },
+                pointer: { itemStyle: { color: '#14b8a6' }, width: 5, length: '55%' },
+                axisTick: { show: false }, splitLine: { show: false }, axisLabel: { show: false },
+                detail: { valueAnimation: true, formatter: '{value}', fontSize: 18, color: '#14b8a6', offsetCenter: [0, '50%'] },
+                data: [{ value: d.simulator.avgScore }],
+              }],
+            }} style={{ height: 200 }} />
+          </div>
+        </div>
+
+        {/* ── 5. 面试助手 ── */}
+        <div className="rounded-xl border border-border bg-card p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <span className="text-xl">🎤</span>
+              <Link href="/interview/assistant" className="text-lg font-semibold text-foreground hover:text-purple-600">面试助手</Link>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="space-y-1">
+              <StatItem label="QA次数" value={d.interview.qaCount} color="text-purple-600" />
+              <StatItem label="模拟面试" value={d.interview.mockCount} color="text-purple-600" />
+              <StatItem label="对话Session" value={d.interview.sessions} color="text-purple-600" />
+              <StatItem label="平均分" value={d.interview.avgScore} color="text-purple-600" />
+            </div>
+            <ReactECharts option={{
+              tooltip: { trigger: 'item' as const },
+              series: [{ type: 'pie', radius: ['40%', '70%'], center: ['50%', '50%'], data: [
+                { name: 'QA', value: d.interview.qaCount, itemStyle: { color: '#7c3aed' } },
+                { name: '模拟面试', value: d.interview.mockCount, itemStyle: { color: '#C4B5FD' } },
+                { name: 'Session', value: d.interview.sessions, itemStyle: { color: '#EDE9FE' } },
+              ], label: { show: true, fontSize: 11, formatter: '{b}\n{c}' } }],
+            }} style={{ height: 200 }} />
+            <ReactECharts option={{
+              tooltip: { trigger: 'axis' as const },
+              grid: { left: 36, right: 10, top: 20, bottom: 30 },
+              xAxis: { type: 'category' as const, data: d.interview.scoreHistory.map((s) => s.date), axisLabel: { fontSize: 10 } },
+              yAxis: { type: 'value' as const, min: 0, max: 100, axisLabel: { fontSize: 10 } },
+              series: [{ type: 'line', data: d.interview.scoreHistory.map((s) => s.score), itemStyle: { color: '#7c3aed' }, lineStyle: { width: 2 }, areaStyle: { color: 'rgba(124,58,237,0.1)' }, symbol: 'circle', symbolSize: 6 }],
+            }} style={{ height: 200 }} />
+          </div>
+        </div>
+
+        {/* ── 6. 简历助手 ── */}
+        <div className="rounded-xl border border-border bg-card p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <span className="text-xl">📄</span>
+              <Link href="/resume" className="text-lg font-semibold text-foreground hover:text-orange-600">简历助手</Link>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="space-y-1">
+              <StatItem label="简历版本" value={d.resume.versions} color="text-orange-600" />
+              <StatItem label="最佳匹配" value={`${d.resume.matchScore}%`} color="text-orange-600" />
+            </div>
+            <ReactECharts option={{
+              series: [{ type: 'gauge', startAngle: 200, endAngle: -20, radius: '85%', min: 0, max: 100,
+                axisLine: { lineStyle: { width: 14, color: [[0.3, '#F97316'], [0.7, '#FB923C'], [1, '#FDBA74']] } },
+                pointer: { itemStyle: { color: '#ea580c' }, width: 5, length: '55%' },
+                axisTick: { show: false }, splitLine: { show: false }, axisLabel: { show: false },
+                detail: { valueAnimation: true, formatter: '{value}%', fontSize: 18, color: '#ea580c', offsetCenter: [0, '50%'] },
+                data: [{ value: d.resume.matchScore }],
+              }],
+            }} style={{ height: 200 }} />
+            <ReactECharts option={{
+              tooltip: { trigger: 'item' as const },
+              series: [{ type: 'pie', radius: ['40%', '70%'], center: ['50%', '50%'], data: [
+                { name: '匹配度', value: d.resume.matchScore, itemStyle: { color: '#ea580c' } },
+                { name: '差距', value: 100 - d.resume.matchScore, itemStyle: { color: '#FED7AA' } },
+              ], label: { show: true, fontSize: 11, formatter: '{b}\n{value}%' } }],
+            }} style={{ height: 200 }} />
+          </div>
+        </div>
+
+        {/* ── 7. 资源库 ── */}
+        <div className="rounded-xl border border-border bg-card p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <span className="text-xl">📚</span>
+              <Link href="/resources" className="text-lg font-semibold text-foreground hover:text-blue-600">资源库</Link>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="space-y-1">
+              <StatItem label="资源总数" value={d.resources.count} color="text-blue-600" />
+              <StatItem label="已读文章" value={d.resources.articlesRead} color="text-blue-600" />
+              <StatItem label="阅读率" value={`${d.resources.count > 0 ? Math.round((d.resources.articlesRead / d.resources.count) * 100) : 0}%`} color="text-blue-600" />
+            </div>
+            <ReactECharts option={{
+              tooltip: { trigger: 'item' as const },
+              series: [{ type: 'pie', radius: ['40%', '70%'], center: ['50%', '50%'], data: [
+                { name: '已读', value: d.resources.articlesRead, itemStyle: { color: '#3b82f6' } },
+                { name: '未读', value: Math.max(0, d.resources.count - d.resources.articlesRead), itemStyle: { color: '#BFDBFE' } },
+              ], label: { show: true, fontSize: 11, formatter: '{b}\n{c}' } }],
+            }} style={{ height: 200 }} />
+            <ReactECharts option={{
+              tooltip: {},
+              radar: {
+                indicator: [
+                  { name: '资源总数', max: Math.max(d.resources.count, 1) },
+                  { name: '已读', max: Math.max(d.resources.articlesRead, 1) },
+                  { name: '阅读率%', max: 100 },
+                ],
+                radius: '65%', shape: 'polygon' as const,
+              },
+              series: [{ type: 'radar', data: [{ value: [d.resources.count, d.resources.articlesRead, d.resources.count > 0 ? Math.round((d.resources.articlesRead / d.resources.count) * 100) : 0], areaStyle: { color: 'rgba(59,130,246,0.2)' }, lineStyle: { color: '#3b82f6', width: 2 } }] }],
+            }} style={{ height: 200 }} />
+          </div>
+        </div>
+
+        {/* ── 8. 每日挑战 ── */}
+        <div className="rounded-xl border border-border bg-card p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <span className="text-xl">🎯</span>
+              <Link href="/daily-challenge" className="text-lg font-semibold text-foreground hover:text-rose-600">每日挑战</Link>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="space-y-1">
+              <StatItem label="提交数" value={d.dailyChallenge.submissions} color="text-rose-600" />
+              <StatItem label="连续天数" value={d.dailyChallenge.streak} color="text-rose-600" />
+              <StatItem label="平均分" value={d.dailyChallenge.avgScore} color="text-rose-600" />
+            </div>
+            <ReactECharts option={{
+              series: [{ type: 'gauge', startAngle: 200, endAngle: -20, radius: '85%', min: 0, max: 100,
+                axisLine: { lineStyle: { width: 14, color: [[0.3, '#EF4444'], [0.7, '#F87171'], [1, '#FCA5A5']] } },
+                pointer: { itemStyle: { color: '#ef4444' }, width: 5, length: '55%' },
+                axisTick: { show: false }, splitLine: { show: false }, axisLabel: { show: false },
+                detail: { valueAnimation: true, formatter: '{value}', fontSize: 18, color: '#ef4444', offsetCenter: [0, '50%'] },
+                data: [{ value: d.dailyChallenge.avgScore }],
+              }],
+            }} style={{ height: 200 }} />
+            <ReactECharts option={{
+              tooltip: { trigger: 'axis' as const },
+              grid: { left: 36, right: 10, top: 20, bottom: 30 },
+              xAxis: { type: 'category' as const, data: d.dailyChallenge.scoreHistory.map((s) => s.date), axisLabel: { fontSize: 10 } },
+              yAxis: { type: 'value' as const, min: 0, max: 100, axisLabel: { fontSize: 10 } },
+              series: [{ type: 'line', data: d.dailyChallenge.scoreHistory.map((s) => s.score), itemStyle: { color: '#ef4444' }, lineStyle: { width: 2 }, areaStyle: { color: 'rgba(239,68,68,0.1)' }, symbol: 'circle', symbolSize: 6 }],
+            }} style={{ height: 200 }} />
+          </div>
+        </div>
+
+        {/* ── Bottom: Activity + Score trend ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div className="rounded-xl border border-border bg-card p-5">
+            <h3 className="mb-3 text-base font-semibold text-foreground">近 30 天活跃度</h3>
             {data.progressCurve.length > 0 ? (
               <ReactECharts option={{
                 tooltip: { trigger: 'axis' as const },
-                legend: { data: ['活跃度', '平均分'], bottom: 0, textStyle: { fontSize: 10 } },
-                grid: { left: 36, right: 16, top: 16, bottom: 36 },
-                xAxis: { type: 'category' as const, data: data.progressCurve.map((p) => p.date.slice(5)), axisLabel: { fontSize: 9, rotate: 30 } },
+                legend: { data: ['活跃度', '平均分'], bottom: 0, textStyle: { fontSize: 11 } },
+                grid: { left: 40, right: 20, top: 20, bottom: 44 },
+                xAxis: { type: 'category' as const, data: data.progressCurve.map((p) => p.date.slice(5)), axisLabel: { fontSize: 10, rotate: 30 } },
                 yAxis: [
-                  { type: 'value' as const, name: '活跃度', min: 0, axisLabel: { fontSize: 9 } },
-                  { type: 'value' as const, name: '分数', min: 0, max: 100, axisLabel: { fontSize: 9 } },
+                  { type: 'value' as const, name: '活跃度', min: 0, axisLabel: { fontSize: 10 } },
+                  { type: 'value' as const, name: '分数', min: 0, max: 100, axisLabel: { fontSize: 10 } },
                 ],
                 series: [
-                  { name: '活跃度', type: 'bar', data: data.progressCurve.map((p) => p.totalActivity), itemStyle: { color: '#818CF8' }, barWidth: '40%' },
+                  { name: '活跃度', type: 'bar', data: data.progressCurve.map((p) => p.totalActivity), itemStyle: { color: '#818CF8', borderRadius: [4, 4, 0, 0] }, barWidth: '40%' },
                   { name: '平均分', type: 'line', yAxisIndex: 1, data: data.progressCurve.map((p) => p.avgScore), itemStyle: { color: '#F59E0B' }, lineStyle: { width: 2 }, symbol: 'circle', symbolSize: 5 },
                 ],
-              }} style={{ height: 220 }} />
-            ) : <p className="py-8 text-center text-xs text-muted-foreground">暂无数据</p>}
+              }} style={{ height: 260 }} />
+            ) : <p className="py-10 text-center text-sm text-muted-foreground">暂无数据</p>}
           </div>
-          <div className="rounded-xl border border-border bg-card p-4">
-            <h3 className="mb-2 text-sm font-semibold text-foreground">分数趋势</h3>
+          <div className="rounded-xl border border-border bg-card p-5">
+            <h3 className="mb-3 text-base font-semibold text-foreground">分数趋势</h3>
             {data.scoreTrend.length > 0 ? (
               <ReactECharts option={{
                 tooltip: { trigger: 'axis' as const },
-                grid: { left: 36, right: 16, top: 16, bottom: 28 },
-                xAxis: { type: 'category' as const, data: data.scoreTrend.map((s) => s.date), axisLabel: { fontSize: 9 } },
-                yAxis: { type: 'value' as const, min: 0, max: 100, axisLabel: { fontSize: 9 } },
-                series: [{ type: 'line', data: data.scoreTrend.map((s) => s.score), itemStyle: { color: '#4F46E5' }, lineStyle: { width: 2 }, areaStyle: { color: 'rgba(79,70,229,0.1)' }, symbol: 'circle', symbolSize: 5 }],
-              }} style={{ height: 220 }} />
-            ) : <p className="py-8 text-center text-xs text-muted-foreground">暂无数据</p>}
+                grid: { left: 40, right: 20, top: 20, bottom: 30 },
+                xAxis: { type: 'category' as const, data: data.scoreTrend.map((s) => s.date), axisLabel: { fontSize: 10 } },
+                yAxis: { type: 'value' as const, min: 0, max: 100, axisLabel: { fontSize: 10 } },
+                series: [{ type: 'line', data: data.scoreTrend.map((s) => s.score), itemStyle: { color: '#4F46E5' }, lineStyle: { width: 2 }, areaStyle: { color: 'rgba(79,70,229,0.1)' }, symbol: 'circle', symbolSize: 6 }],
+              }} style={{ height: 260 }} />
+            ) : <p className="py-10 text-center text-sm text-muted-foreground">暂无数据</p>}
           </div>
         </div>
       </div>

@@ -20,6 +20,18 @@ export async function GET() {
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     const codingRecent = (codingFlows ?? []).filter((f) => new Date(f.created_at) >= sevenDaysAgo).length;
 
+    // Coding 7-day daily activity
+    const codingDaily: Record<string, number> = {};
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      codingDaily[d.toISOString().split('T')[0]] = 0;
+    }
+    for (const f of codingFlows ?? []) {
+      const date = new Date(f.created_at).toISOString().split('T')[0];
+      if (date in codingDaily) codingDaily[date]++;
+    }
+
     // ── Skills ──
     const { data: modules } = await serviceClient
       .from('skill_modules')
@@ -40,8 +52,23 @@ export async function GET() {
     const completedModuleIds = new Set(completedTasks.map((t) => t.module_id));
     const skillCoverage = totalModules > 0 ? Math.round((completedModuleIds.size / totalModules) * 100) : 0;
 
+    // Skills per-module breakdown
+    const moduleTaskMap: Record<string, { total: number; completed: number }> = {};
+    for (const t of userTasks ?? []) {
+      if (!moduleTaskMap[t.module_id]) moduleTaskMap[t.module_id] = { total: 0, completed: 0 };
+      moduleTaskMap[t.module_id].total++;
+      if (t.status === 'completed') moduleTaskMap[t.module_id].completed++;
+    }
+    const skillModules = Object.entries(moduleTaskMap).map(([id, v]) => ({
+      id,
+      name: (modules ?? []).find((m) => m.id === id)?.level ?? `模块${id.slice(0, 4)}`,
+      total: v.total,
+      completed: v.completed,
+    }));
+
     // ── Notebook ──
     let notebookNotes = 0, notebookTasks = 0, notebookAiAnalysis = 0;
+    let notebookDaily: { date: string; notes: number; tasks: number }[] = [];
     try {
       const { count: nCount } = await serviceClient
         .from('notebook_notes')
@@ -58,6 +85,43 @@ export async function GET() {
         .select('id', { count: 'exact', head: true })
         .eq('user_id', user.id);
       notebookAiAnalysis = aCount ?? 0;
+
+      // Notebook 7-day creation
+      const { data: recentNotes } = await serviceClient
+        .from('notebook_notes')
+        .select('created_at')
+        .eq('user_id', user.id)
+        .gte('created_at', sevenDaysAgo.toISOString())
+        .order('created_at', { ascending: true });
+      const { data: recentTasks } = await serviceClient
+        .from('notebook_tasks')
+        .select('created_at')
+        .eq('user_id', user.id)
+        .gte('created_at', sevenDaysAgo.toISOString())
+        .order('created_at', { ascending: true });
+
+      const noteDailyMap: Record<string, number> = {};
+      const taskDailyMap: Record<string, number> = {};
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const key = d.toISOString().split('T')[0];
+        noteDailyMap[key] = 0;
+        taskDailyMap[key] = 0;
+      }
+      for (const n of recentNotes ?? []) {
+        const date = new Date(n.created_at).toISOString().split('T')[0];
+        if (date in noteDailyMap) noteDailyMap[date]++;
+      }
+      for (const t of recentTasks ?? []) {
+        const date = new Date(t.created_at).toISOString().split('T')[0];
+        if (date in taskDailyMap) taskDailyMap[date]++;
+      }
+      notebookDaily = Object.keys(noteDailyMap).sort().map((date) => ({
+        date,
+        notes: noteDailyMap[date] ?? 0,
+        tasks: taskDailyMap[date] ?? 0,
+      }));
     } catch { /* tables may not exist */ }
 
     // ── Simulator ──
@@ -114,12 +178,25 @@ export async function GET() {
       sessionCount = sCount ?? 0;
     } catch {}
 
+    // Interview score history (last 15)
+    const interviewScoreHistory = (qaRecords ?? [])
+      .filter((r) => {
+        const ev = r.evaluation as Record<string, unknown> | null;
+        return ev && typeof (ev.total_score ?? ev.score ?? ev.overall_score) === 'number';
+      })
+      .slice(-15)
+      .map((r) => {
+        const ev = r.evaluation as Record<string, unknown>;
+        const s = ev.total_score ?? ev.score ?? ev.overall_score;
+        return { date: new Date(r.created_at).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' }), score: typeof s === 'number' ? s : 0 };
+      });
+
     // ── Resume ──
     let resumeVersions = 0, resumeMatchScore = 0;
     try {
       const { data: resumeData } = await serviceClient
         .from('resume_versions')
-        .select('id, match_score')
+        .select('id, match_score, created_at')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
       resumeVersions = resumeData?.length ?? 0;
@@ -138,13 +215,14 @@ export async function GET() {
       resourcesCount = rCount ?? 0;
       const { data: readData } = await serviceClient
         .from('user_resource_reads')
-        .select('id')
+        .select('id, created_at')
         .eq('user_id', user.id);
       articlesRead = readData?.length ?? 0;
     } catch {}
 
     // ── Daily Challenge ──
     let challengeCount = 0, dailyStreak = 0, challengeAvgScore = 0;
+    let challengeScoreHistory: { date: string; score: number }[] = [];
     try {
       const { data: challenges } = await serviceClient
         .from('daily_challenge_submissions')
@@ -155,11 +233,9 @@ export async function GET() {
       if (challenges && challenges.length > 0) {
         const scores = challenges.map((c) => c.score ?? 0).filter((s) => s > 0);
         challengeAvgScore = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
-        // Calculate streak
         const dates = challenges.map((c) => new Date(c.created_at).toISOString().split('T')[0]);
         const uniqueDates = [...new Set(dates)].sort().reverse();
         let streak = 0;
-        const today = new Date().toISOString().split('T')[0];
         for (let i = 0; i < uniqueDates.length; i++) {
           const expected = new Date();
           expected.setDate(expected.getDate() - i);
@@ -167,6 +243,10 @@ export async function GET() {
           else break;
         }
         dailyStreak = streak;
+        challengeScoreHistory = challenges.slice(-15).map((c) => ({
+          date: new Date(c.created_at).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' }),
+          score: c.score ?? 0,
+        }));
       }
     } catch {}
 
@@ -203,7 +283,6 @@ export async function GET() {
 
     const estimatedInterviewTime = interviewCount * 15;
     const estimatedTaskTime = completedTaskCount * 10;
-    const totalChallengeTime = 0;
     const totalLearningMinutes = estimatedInterviewTime + estimatedTaskTime;
 
     return NextResponse.json({
@@ -218,24 +297,41 @@ export async function GET() {
       completedTasks: completedTaskCount,
       progressCurve,
       scoreTrend,
-      codingFlows: codingFlowCount,
-      notebookNotes,
-      notebookTasks,
-      simulatorSessions,
-      simulatorStagesCompleted,
-      resumeVersions,
-      resumeMatchScore,
-      resourcesCount,
-      dailyStreak,
       moduleDetails: {
-        coding: { flows: codingFlowCount, recentActivity: codingRecent },
-        skills: { coverage: skillCoverage, modules: totalModules, tasks: totalTaskCount, completedTasks: completedTaskCount },
-        notebook: { notes: notebookNotes, tasks: notebookTasks, aiAnalysis: notebookAiAnalysis },
+        coding: {
+          flows: codingFlowCount,
+          recentActivity: codingRecent,
+          dailyActivity: Object.entries(codingDaily).sort(([a], [b]) => a.localeCompare(b)).map(([date, count]) => ({ date: date.slice(5), count })),
+        },
+        skills: {
+          coverage: skillCoverage,
+          modules: totalModules,
+          tasks: totalTaskCount,
+          completedTasks: completedTaskCount,
+          moduleBreakdown: skillModules,
+        },
+        notebook: {
+          notes: notebookNotes,
+          tasks: notebookTasks,
+          aiAnalysis: notebookAiAnalysis,
+          dailyCreation: notebookDaily,
+        },
         simulator: { sessions: simulatorSessions, stagesCompleted: simulatorStagesCompleted, avgScore: simulatorAvgScore },
-        interview: { qaCount: interviewCount, mockCount, avgScore, sessions: sessionCount },
+        interview: {
+          qaCount: interviewCount,
+          mockCount,
+          avgScore,
+          sessions: sessionCount,
+          scoreHistory: interviewScoreHistory,
+        },
         resume: { versions: resumeVersions, matchScore: resumeMatchScore },
         resources: { count: resourcesCount, articlesRead },
-        dailyChallenge: { submissions: challengeCount, streak: dailyStreak, avgScore: challengeAvgScore },
+        dailyChallenge: {
+          submissions: challengeCount,
+          streak: dailyStreak,
+          avgScore: challengeAvgScore,
+          scoreHistory: challengeScoreHistory,
+        },
       },
     });
   } catch (err) {
