@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Markdown from '@/components/ui/markdown';
+import type { SimulatorStageConfig } from '@/lib/simulator-config';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -9,19 +10,21 @@ interface Message {
 }
 
 interface InteractiveChatProps {
-  npcName: string;
-  npcAvatar: string;
-  sessionId: string;
-  stageId: string;
-  initialMessages?: Message[];
-  onEvaluation: (evaluation: { passed: boolean; score: number; feedback: string }) => void;
+  stage: SimulatorStageConfig;
+  sessionId: string | null;
+  scenarioId: string;
+  savedMessages?: { role: string; content: string }[];
+  isLoadingHistory?: boolean;
+  onEvaluationComplete: (result: { score: number; feedback: string }) => void;
 }
 
-export default function InteractiveChat({ npcName, npcAvatar, sessionId, stageId, initialMessages, onEvaluation }: InteractiveChatProps) {
-  const [messages, setMessages] = useState<Message[]>(initialMessages || []);
+export default function InteractiveChat({ stage, sessionId, scenarioId, savedMessages, isLoadingHistory, onEvaluationComplete }: InteractiveChatProps) {
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [evaluation, setEvaluation] = useState<{ passed: boolean; score: number; feedback: string } | null>(null);
+  const [currentSessionId, setCurrentSessionId] = useState(sessionId);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -29,11 +32,25 @@ export default function InteractiveChat({ npcName, npcAvatar, sessionId, stageId
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Load saved messages or opening message
+  useEffect(() => {
+    if (isLoadingHistory) return;
+
+    if (savedMessages && savedMessages.length > 0) {
+      // Restore from DB
+      setMessages(savedMessages.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })));
+    } else if (stage.openingMessage && messages.length === 0) {
+      // Show NPC opening message
+      setMessages([{ role: 'assistant', content: stage.openingMessage }]);
+    }
+  }, [savedMessages, isLoadingHistory, stage.openingMessage]);
+
   const sendMessage = async (isSubmission = false) => {
     const text = input.trim();
     if (!text || isStreaming || isSubmitting) return;
 
-    setMessages(prev => [...prev, { role: 'user', content: text }]);
+    const userMsg = { role: 'user' as const, content: text };
+    setMessages(prev => [...prev, userMsg]);
     setInput('');
 
     if (isSubmission) {
@@ -48,19 +65,29 @@ export default function InteractiveChat({ npcName, npcAvatar, sessionId, stageId
       const res = await fetch('/api/simulator/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session_id: sessionId, stage_id: stageId, message: text, is_submission: isSubmission }),
+        body: JSON.stringify({
+          message: text,
+          stage_id: stage.id,
+          scenario_id: scenarioId,
+          session_id: currentSessionId,
+          is_submission: isSubmission,
+          history: messages.filter(m => m.role === 'user' || m.role === 'assistant'),
+        }),
         signal: abortRef.current.signal,
       });
 
       if (isSubmission) {
         const data = await res.json();
         if (data.evaluation) {
-          onEvaluation(data.evaluation);
+          setEvaluation(data.evaluation);
+          onEvaluationComplete({ score: data.evaluation.score, feedback: data.evaluation.feedback });
         }
+        if (data.session_id) setCurrentSessionId(data.session_id);
         setIsSubmitting(false);
         return;
       }
 
+      // SSE streaming
       const reader = res.body?.getReader();
       const decoder = new TextDecoder();
 
@@ -89,6 +116,9 @@ export default function InteractiveChat({ npcName, npcAvatar, sessionId, stageId
                     return copy;
                   });
                 }
+                if (data.type === 'done' && data.session_id) {
+                  setCurrentSessionId(data.session_id);
+                }
               } catch { /* ignore */ }
             }
           }
@@ -106,27 +136,52 @@ export default function InteractiveChat({ npcName, npcAvatar, sessionId, stageId
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex-1 space-y-4 overflow-y-auto p-4">
-        {messages.length === 0 && (
-          <div className="py-12 text-center text-sm text-gray-400">
-            开始和 {npcAvatar} {npcName} 对话吧...
+      {/* Evaluation banner */}
+      {evaluation && (
+        <div className={`shrink-0 border-b px-6 py-4 ${evaluation.passed ? 'border-emerald-200 bg-emerald-50' : 'border-rose-200 bg-rose-50'}`}>
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">{evaluation.passed ? '🎉' : '💪'}</span>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <span className={`text-sm font-bold ${evaluation.passed ? 'text-emerald-700' : 'text-rose-700'}`}>
+                  {evaluation.passed ? '通关成功！' : '未通过，再试试'}
+                </span>
+                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                  evaluation.score >= 80 ? 'bg-emerald-100 text-emerald-700' : evaluation.score >= 60 ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700'
+                }`}>
+                  {evaluation.score} 分
+                </span>
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">{evaluation.feedback}</p>
+            </div>
           </div>
-        )}
+        </div>
+      )}
+
+      {/* Loading history indicator */}
+      {isLoadingHistory && (
+        <div className="shrink-0 border-b border-border bg-muted/50 px-6 py-2 text-center text-xs text-muted-foreground">
+          正在加载历史记录...
+        </div>
+      )}
+
+      {/* Messages */}
+      <div className="flex-1 space-y-4 overflow-y-auto p-4">
         {messages.map((msg, i) => (
           <div key={i} className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
             {msg.role === 'assistant' && (
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-teal-100 text-sm">
-                {npcAvatar}
+                {stage.npcAvatar}
               </div>
             )}
             <div className={`max-w-[75%] rounded-2xl px-4 py-3 ${
               msg.role === 'user'
                 ? 'bg-indigo-600 text-white'
-                : 'border border-gray-200 bg-white text-gray-800'
+                : 'border border-border bg-card text-foreground'
             }`}>
               {msg.role === 'assistant' ? (
                 <div className="prose prose-sm max-w-none">
-                  <Markdown content={msg.content || '...'} enableECharts={stageId === 'stage-14-dashboard'} />
+                  <Markdown content={msg.content || '...'} />
                 </div>
               ) : (
                 <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
@@ -136,8 +191,8 @@ export default function InteractiveChat({ npcName, npcAvatar, sessionId, stageId
         ))}
         {(isStreaming || isSubmitting) && messages.length > 0 && messages[messages.length - 1].role === 'user' && !isStreaming && (
           <div className="flex gap-3">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-teal-100 text-sm">{npcAvatar}</div>
-            <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-teal-100 text-sm">{stage.npcAvatar}</div>
+            <div className="rounded-2xl border border-border bg-card px-4 py-3">
               <div className="flex gap-1">
                 <span className="h-2 w-2 animate-bounce rounded-full bg-gray-400" style={{ animationDelay: '0ms' }} />
                 <span className="h-2 w-2 animate-bounce rounded-full bg-gray-400" style={{ animationDelay: '150ms' }} />
@@ -149,14 +204,15 @@ export default function InteractiveChat({ npcName, npcAvatar, sessionId, stageId
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="shrink-0 border-t border-gray-200 bg-white p-4">
+      {/* Input */}
+      <div className="shrink-0 border-t border-border bg-card p-4">
         <div className="flex gap-2">
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="输入你的回复..."
+            placeholder={`和 ${stage.npcName} 对话...`}
             rows={2}
-            className="flex-1 resize-none rounded-xl border border-gray-300 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+            className="flex-1 resize-none rounded-xl border border-border bg-muted px-4 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
             disabled={isStreaming || isSubmitting}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) sendMessage();

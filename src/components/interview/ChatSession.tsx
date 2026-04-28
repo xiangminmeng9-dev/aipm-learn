@@ -100,8 +100,8 @@ export default function ChatSession({
                 <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z" />
               </svg>
             </div>
-            <p className="text-sm font-medium text-[#6B7280]">开始和 AI 面试教练对话</p>
-            <p className="mt-1 text-xs text-[#9CA3AF]">输入你的面试问题，教练会帮你深度分析</p>
+            <p className="text-sm font-medium text-muted-foreground">开始和 AI 面试教练对话</p>
+            <p className="mt-1 text-xs text-muted-foreground">输入你的面试问题，教练会帮你深度分析</p>
           </div>
         )}
 
@@ -124,7 +124,7 @@ export default function ChatSession({
               <div className={`rounded-2xl px-4 py-3 ${
                 msg.role === 'user'
                   ? 'bg-indigo-600 text-white'
-                  : 'bg-white border border-[#E5E7EB] text-[#1F2937] shadow-sm'
+                  : 'bg-card border border-border text-foreground shadow-sm'
               }`}>
                 {msg.role === 'user' ? (
                   <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
@@ -132,19 +132,19 @@ export default function ChatSession({
                   <div className="prose prose-sm max-w-none
                     prose-headings:mt-5 prose-headings:mb-2 prose-headings:font-bold
                     prose-h2:text-base prose-h2:text-indigo-700 prose-h2:border-b prose-h2:border-indigo-100 prose-h2:pb-1
-                    prose-h3:text-sm prose-h3:text-gray-800
+                    prose-h3:text-sm prose-h3:text-foreground
                     prose-p:my-2 prose-p:leading-relaxed
                     prose-li:my-1 prose-ul:my-2 prose-ol:my-2
                     prose-blockquote:my-3 prose-blockquote:border-l-indigo-400 prose-blockquote:bg-indigo-50 prose-blockquote:py-2 prose-blockquote:px-4 prose-blockquote:rounded-r-lg
                     prose-strong:text-indigo-700
-                    prose-table:my-3 prose-th:bg-gray-50 prose-th:px-3 prose-th:py-1.5 prose-td:px-3 prose-td:py-1.5 prose-td:border-gray-200">
+                    prose-table:my-3 prose-th:bg-muted prose-th:px-3 prose-th:py-1.5 prose-td:px-3 prose-td:py-1.5 prose-td:border-border">
                     <Markdown content={msg.content} />
                   </div>
                 )}
               </div>
 
               {/* Timestamp */}
-              <p className={`mt-1 text-[10px] text-[#9CA3AF] ${msg.role === 'user' ? 'text-right' : ''}`}>
+              <p className={`mt-1 text-[10px] text-muted-foreground ${msg.role === 'user' ? 'text-right' : ''}`}>
                 {new Date(msg.timestamp).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
               </p>
             </div>
@@ -162,7 +162,7 @@ export default function ChatSession({
                 </div>
                 <span className="text-[10px] font-medium text-indigo-600">AI 教练</span>
               </div>
-              <div className="rounded-2xl border border-[#E5E7EB] bg-white px-4 py-3 shadow-sm">
+              <div className="rounded-2xl border border-border bg-card px-4 py-3 shadow-sm">
                 <div className="flex items-center gap-1.5">
                   <div className="h-2 w-2 animate-bounce rounded-full bg-indigo-400" style={{ animationDelay: '0ms' }} />
                   <div className="h-2 w-2 animate-bounce rounded-full bg-indigo-400" style={{ animationDelay: '150ms' }} />
@@ -177,14 +177,14 @@ export default function ChatSession({
       </div>
 
       {/* Input */}
-      <div className="shrink-0 border-t border-[#E5E7EB] bg-white px-4 py-3">
+      <div className="shrink-0 border-t border-border bg-card px-4 py-3">
         <div className="flex gap-2">
           <Textarea
             ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="输入你的问题..."
-            className="min-h-[44px] max-h-[120px] flex-1 resize-none border-[#E5E7EB] bg-[#F9FAFB] text-sm text-[#1F2937] placeholder:text-[#9CA3AF]"
+            className="min-h-[44px] max-h-[120px] flex-1 resize-none border-border bg-muted text-sm text-foreground placeholder:text-muted-foreground"
             disabled={isLoading}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {

@@ -168,8 +168,8 @@ export default function QAPage() {
   return (
     <div className="p-8 space-y-8">
       <div>
-        <h1 className="text-4xl font-semibold text-[#1F2937]">面试问答</h1>
-        <p className="mt-2 text-base text-[#6B7280]">输入面试问题，获取四部分深度分析</p>
+        <h1 className="text-4xl font-semibold text-foreground">面试问答</h1>
+        <p className="mt-2 text-base text-muted-foreground">输入面试问题，获取四部分深度分析</p>
       </div>
 
       <TrendingQuestions questions={trendingQuestions} onSelect={handleTrendingSelect} />
@@ -179,7 +179,7 @@ export default function QAPage() {
         <div>
           <button
             onClick={() => setShowHistory(!showHistory)}
-            className="flex items-center gap-2 text-sm font-medium text-[#4F46E5] hover:text-[#4338CA]"
+            className="flex items-center gap-2 text-sm font-medium text-primary hover:text-[#4338CA]"
           >
             <svg className={`h-4 w-4 transition-transform ${showHistory ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
@@ -192,13 +192,13 @@ export default function QAPage() {
                 <button
                   key={h.id}
                   onClick={() => handleAnalyze(h.question)}
-                  className="w-full rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-left text-sm transition-colors hover:bg-[#F9FAFB] hover:border-indigo-200"
+                  className="w-full rounded-xl border border-border bg-card px-4 py-3 text-left text-sm transition-colors hover:bg-muted hover:border-indigo-200"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-medium text-[#1F2937] line-clamp-1">{h.question}</span>
-                    <span className="text-xs text-[#9CA3AF]">{new Date(h.created_at).toLocaleDateString()}</span>
+                    <span className="font-medium text-foreground line-clamp-1">{h.question}</span>
+                    <span className="text-xs text-muted-foreground">{new Date(h.created_at).toLocaleDateString()}</span>
                   </div>
-                  {h.type_name && <span className="text-xs text-[#6B7280]">{h.type_name}</span>}
+                  {h.type_name && <span className="text-xs text-muted-foreground">{h.type_name}</span>}
                 </button>
               ))}
             </div>
@@ -214,20 +214,20 @@ export default function QAPage() {
 
       {/* Streaming text display */}
       {isLoading && streamingText && !result && (
-        <div className="rounded-2xl border border-[#E5E7EB] bg-white p-6 shadow-sm">
+        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
           <div className="flex items-center gap-2 mb-4">
             <div className="h-5 w-5 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
-            <span className="text-sm font-medium text-[#6B7280]">AI 正在分析...</span>
+            <span className="text-sm font-medium text-muted-foreground">AI 正在分析...</span>
           </div>
           <div className="prose prose-sm max-w-none
             prose-headings:mt-5 prose-headings:mb-2 prose-headings:font-bold
             prose-h2:text-base prose-h2:text-indigo-700 prose-h2:border-b prose-h2:border-indigo-100 prose-h2:pb-1
-            prose-h3:text-sm prose-h3:text-gray-800
+            prose-h3:text-sm prose-h3:text-foreground
             prose-p:my-2 prose-p:leading-relaxed
             prose-li:my-1 prose-ul:my-2 prose-ol:my-2
             prose-blockquote:my-3 prose-blockquote:border-l-indigo-400 prose-blockquote:bg-indigo-50 prose-blockquote:py-2 prose-blockquote:px-4 prose-blockquote:rounded-r-lg
             prose-strong:text-indigo-700
-            prose-table:my-3 prose-th:bg-gray-50 prose-th:px-3 prose-th:py-1.5 prose-td:px-3 prose-td:py-1.5 prose-td:border-gray-200">
+            prose-table:my-3 prose-th:bg-muted prose-th:px-3 prose-th:py-1.5 prose-td:px-3 prose-td:py-1.5 prose-td:border-border">
             <Markdown content={streamingText} />
           </div>
         </div>
@@ -235,9 +235,9 @@ export default function QAPage() {
 
       {/* Loading spinner (before streaming starts) */}
       {isLoading && !streamingText && !result && (
-        <div className="flex items-center justify-center rounded-2xl bg-white border border-[#E5E7EB] py-12">
+        <div className="flex items-center justify-center rounded-2xl bg-card border border-border py-12">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
-          <span className="ml-3 text-[#6B7280]">AI 正在深度分析...</span>
+          <span className="ml-3 text-muted-foreground">AI 正在深度分析...</span>
         </div>
       )}
 
@@ -249,7 +249,7 @@ export default function QAPage() {
               <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${frequencyStyle(frequency)}`}>
                 {frequency}
               </span>
-              <span className="text-xs text-[#6B7280]">该类型问题出现频率</span>
+              <span className="text-xs text-muted-foreground">该类型问题出现频率</span>
             </div>
           )}
           <AnalysisResult result={result} />

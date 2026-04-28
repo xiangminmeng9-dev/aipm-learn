@@ -95,7 +95,7 @@ export default function ResumeUploader({ onTextExtracted }: ResumeUploaderProps)
             ? 'border-rose-300 bg-rose-50/30'
             : fileName
             ? 'border-emerald-300 bg-emerald-50/30'
-            : 'border-[#D1D5DB] bg-white hover:border-indigo-300 hover:bg-indigo-50/20'
+            : 'border-border bg-card hover:border-indigo-300 hover:bg-indigo-50/20'
         }`}
         whileHover={!isUploading ? { scale: 1.01 } : {}}
         whileTap={!isUploading ? { scale: 0.99 } : {}}
@@ -118,7 +118,7 @@ export default function ResumeUploader({ onTextExtracted }: ResumeUploaderProps)
               className="flex flex-col items-center gap-3"
             >
               <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
-              <p className="text-sm text-[#6B7280]">正在解析简历...</p>
+              <p className="text-sm text-muted-foreground">正在解析简历...</p>
             </motion.div>
           ) : fileName && !error ? (
             <motion.div
@@ -134,7 +134,7 @@ export default function ResumeUploader({ onTextExtracted }: ResumeUploaderProps)
                 </svg>
               </div>
               <p className="text-sm font-medium text-emerald-700">{fileName}</p>
-              <p className="text-xs text-[#6B7280]">点击重新上传</p>
+              <p className="text-xs text-muted-foreground">点击重新上传</p>
             </motion.div>
           ) : (
             <motion.div
@@ -150,8 +150,8 @@ export default function ResumeUploader({ onTextExtracted }: ResumeUploaderProps)
                 </svg>
               </div>
               <div>
-                <p className="text-sm font-medium text-[#1F2937]">拖拽或点击上传简历</p>
-                <p className="mt-1 text-xs text-[#9CA3AF]">支持 PDF、DOCX 格式</p>
+                <p className="text-sm font-medium text-foreground">拖拽或点击上传简历</p>
+                <p className="mt-1 text-xs text-muted-foreground">支持 PDF、DOCX 格式</p>
               </div>
             </motion.div>
           )}
@@ -182,7 +182,7 @@ export default function ResumeUploader({ onTextExtracted }: ResumeUploaderProps)
       <div className="text-center">
         <button
           onClick={() => setShowPaste(!showPaste)}
-          className="text-xs text-[#9CA3AF] hover:text-indigo-500 transition-colors"
+          className="text-xs text-muted-foreground hover:text-indigo-500 transition-colors"
         >
           {showPaste ? '收起' : '或直接粘贴简历文本'}
         </button>
@@ -204,7 +204,7 @@ export default function ResumeUploader({ onTextExtracted }: ResumeUploaderProps)
               className="app-input w-full min-h-[120px] resize-none p-4 text-sm"
             />
             <div className="mt-2 flex items-center justify-between">
-              <span className="text-xs text-[#9CA3AF]">{pasteText.length} 字符</span>
+              <span className="text-xs text-muted-foreground">{pasteText.length} 字符</span>
               <button
                 onClick={handlePasteSubmit}
                 disabled={!pasteText.trim()}

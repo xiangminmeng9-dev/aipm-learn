@@ -79,16 +79,16 @@ export default function SessionsPage() {
     <div className="p-8">
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-[#1F2937]">对话 Session</h1>
-          <p className="mt-1 text-base text-[#6B7280]">多轮对话，支持 JD/简历背景</p>
+          <h1 className="text-3xl font-bold text-foreground">对话 Session</h1>
+          <p className="mt-1 text-base text-muted-foreground">多轮对话，支持 JD/简历背景</p>
         </div>
         <Dialog>
           <DialogTrigger className="app-btn-primary rounded-lg px-4 py-2 text-base font-medium">
             + 新对话
           </DialogTrigger>
-          <DialogContent className="border-[#E5E7EB] bg-white">
+          <DialogContent className="border-border bg-card">
             <DialogHeader>
-              <DialogTitle className="text-[#1F2937]">创建新对话</DialogTitle>
+              <DialogTitle className="text-foreground">创建新对话</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 pt-2">
               <Input
@@ -110,14 +110,14 @@ export default function SessionsPage() {
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
         </div>
       ) : sessions.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-[#D1D5DB] bg-white py-16 text-center">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
-            <svg className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <div className="rounded-xl border border-dashed border-border bg-card py-16 text-center">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-secondary">
+            <svg className="h-6 w-6 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 0 1-.825-.242m9.345-8.334a2.126 2.126 0 0 0-.476-.095 48.64 48.64 0 0 0-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0 0 11.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155" />
             </svg>
           </div>
-          <p className="text-sm font-medium text-[#6B7280]">还没有对话</p>
-          <p className="mt-1 text-xs text-[#9CA3AF]">点击&ldquo;新对话&rdquo;开始</p>
+          <p className="text-sm font-medium text-muted-foreground">还没有对话</p>
+          <p className="mt-1 text-xs text-muted-foreground">点击&ldquo;新对话&rdquo;开始</p>
         </div>
       ) : (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -135,11 +135,11 @@ export default function SessionsPage() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ duration: 0.2, delay: index * 0.05 }}
-                  className={`group overflow-hidden rounded-xl border border-[#E5E7EB] border-l-4 bg-white shadow-sm transition-shadow hover:shadow-md ${accentColor}`}
+                  className={`group overflow-hidden rounded-xl border border-border border-l-4 bg-card shadow-sm transition-shadow hover:shadow-md ${accentColor}`}
                 >
                   {/* Top row: title + meta */}
                   <div className="px-4 pt-4 pb-3">
-                    <h3 className="mb-2 text-base font-semibold text-[#1F2937] line-clamp-2">
+                    <h3 className="mb-2 text-base font-semibold text-foreground line-clamp-2">
                       {session.title}
                     </h3>
                     <div className="flex flex-wrap items-center gap-1.5">
@@ -149,13 +149,13 @@ export default function SessionsPage() {
                       {session.has_resume && (
                         <span className="inline-flex items-center rounded-md bg-violet-50 px-1.5 py-0.5 text-[10px] font-medium text-violet-600">简历</span>
                       )}
-                      <span className="text-[11px] text-[#9CA3AF]">{relativeTime(session.updated_at)}</span>
+                      <span className="text-[11px] text-muted-foreground">{relativeTime(session.updated_at)}</span>
                     </div>
                   </div>
 
                   {/* Bottom row: count + actions */}
                   <div className="flex items-center justify-between border-t border-[#F3F4F6] px-4 py-3">
-                    <span className="text-xs text-[#6B7280]">{session.message_count} 条消息</span>
+                    <span className="text-xs text-muted-foreground">{session.message_count} 条消息</span>
                     <div className="flex items-center gap-1.5">
                       <Link href={`/interview/sessions/${session.id}`}>
                         <Button variant="outline" size="sm" className="h-7 text-xs app-btn-outline hover:border-indigo-400 hover:text-indigo-600">
@@ -164,7 +164,7 @@ export default function SessionsPage() {
                       </Link>
                       <button
                         onClick={() => handleDelete(session.id)}
-                        className="rounded-md px-2 py-1 text-[11px] text-[#9CA3AF] transition-colors hover:bg-rose-50 hover:text-rose-500"
+                        className="rounded-md px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-rose-50 hover:text-rose-500"
                       >
                         删除
                       </button>

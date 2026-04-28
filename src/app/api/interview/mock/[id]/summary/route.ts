@@ -1,29 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { generateText } from '@/lib/ai/claude';
 import { buildMockSummaryPrompt, MOCK_SUMMARY_SYSTEM_PROMPT } from '@/lib/ai/prompts';
 
-export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-    if (!user) {
+    // Fallback: try Authorization header
+    let authenticatedUser = user;
+    if (!authenticatedUser) {
+      const authHeader = request.headers.get('Authorization');
+      if (authHeader?.startsWith('Bearer ')) {
+        const token = authHeader.slice(7);
+        const { data: { user: headerUser } } = await supabase.auth.getUser(token);
+        authenticatedUser = headerUser;
+      }
+    }
+
+    if (!authenticatedUser) {
       return NextResponse.json({ error: '未登录', code: 'UNAUTHORIZED' }, { status: 401 });
     }
 
     const { id: mockId } = await params;
+    const serviceClient = createServiceClient();
 
     // 获取模拟面试
-    const { data: mockInterview } = await supabase
+    const { data: mockInterview } = await serviceClient
       .from('mock_interviews')
       .select(
         'id, type_id, total_questions, status, total_score, summary_strengths, summary_weaknesses, summary_suggestions, weak_skill_modules'
       )
       .eq('id', mockId)
-      .eq('user_id', user.id)
+      .eq('user_id', authenticatedUser.id)
       .single();
 
     if (!mockInterview) {
@@ -38,7 +48,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     }
 
     // 获取所有答案
-    const { data: answers } = await supabase
+    const { data: answers } = await serviceClient
       .from('interview_answers')
       .select('question_number, question_text, user_answer, score, gap_analysis, is_skipped')
       .eq('mock_interview_id', mockId)
@@ -71,7 +81,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     }
 
     // 生成总结
-    const { data: typeData } = await supabase
+    const { data: typeData } = await serviceClient
       .from('question_types')
       .select('name')
       .eq('id', mockInterview.type_id)

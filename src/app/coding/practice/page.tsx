@@ -47,8 +47,8 @@ export default function CodingPracticePage() {
   return (
     <div className="p-8 space-y-8">
       <div>
-        <h1 className="text-3xl font-semibold text-[#1F2937]">AI Coding 练习</h1>
-        <p className="mt-2 text-[#6B7280]">输入面试题目，选择开发模式，获取思考链开发流程</p>
+        <h1 className="text-3xl font-semibold text-foreground">AI Coding 练习</h1>
+        <p className="mt-2 text-muted-foreground">输入面试题目，选择开发模式，获取思考链开发流程</p>
       </div>
 
       {!result && (
@@ -63,9 +63,9 @@ export default function CodingPracticePage() {
       )}
 
       {isLoading && (
-        <div className="flex items-center justify-center rounded-2xl bg-white border border-[#E5E7EB] py-12">
+        <div className="flex items-center justify-center rounded-2xl bg-card border border-border py-12">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
-          <span className="ml-3 text-[#6B7280]">AI 正在生成开发流程...</span>
+          <span className="ml-3 text-muted-foreground">AI 正在生成开发流程...</span>
         </div>
       )}
 

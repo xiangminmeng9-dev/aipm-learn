@@ -37,7 +37,7 @@ function FlowSection({ label, icon, accent, bg, border, content }: {
         <div className={`flex h-6 w-6 items-center justify-center rounded-lg bg-gradient-to-br ${accent} text-white text-xs shadow-sm`}>
           {icon}
         </div>
-        <h4 className="text-sm font-semibold text-[#1F2937]">{label}</h4>
+        <h4 className="text-sm font-semibold text-foreground">{label}</h4>
       </div>
       <div className="border-t border-white/60 px-4 py-3">
         <Markdown content={content} className="text-sm" />
@@ -54,7 +54,7 @@ function FlowCard({ flow, isExpanded, onToggle }: {
   onToggle: () => void;
 }) {
   const modeName = (flow.dev_modes as { name: string })?.name ?? '未知';
-  const modeStyle = MODE_COLORS[modeName] ?? { bg: 'bg-gray-50', text: 'text-gray-600', border: 'border-gray-200' };
+  const modeStyle = MODE_COLORS[modeName] ?? { bg: 'bg-muted', text: 'text-muted-foreground', border: 'border-border' };
   const date = new Date(flow.created_at as string);
   const dateStr = date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
   const timeStr = date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
@@ -63,7 +63,7 @@ function FlowCard({ flow, isExpanded, onToggle }: {
 
   return (
     <div className="group">
-      <div className={`rounded-xl border bg-white transition-all duration-200 ${isExpanded ? 'border-indigo-200 shadow-md shadow-indigo-100/50' : 'border-[#E5E7EB] shadow-sm hover:shadow-md hover:border-gray-300'}`}>
+      <div className={`rounded-xl border bg-card transition-all duration-200 ${isExpanded ? 'border-indigo-200 shadow-md shadow-indigo-100/50' : 'border-border shadow-sm hover:shadow-md hover:border-border'}`}>
         <button
           onClick={onToggle}
           className="flex w-full items-start gap-3 p-4 text-left"
@@ -75,21 +75,21 @@ function FlowCard({ flow, isExpanded, onToggle }: {
           </div>
 
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-[#1F2937] leading-relaxed line-clamp-2">
+            <p className="text-sm font-medium text-foreground leading-relaxed line-clamp-2">
               {flow.question_text as string}
             </p>
             <div className="mt-1.5 flex items-center gap-2">
               <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-medium ${modeStyle.bg} ${modeStyle.text} ${modeStyle.border} border`}>
                 {modeName}
               </span>
-              <span className="text-[11px] text-[#9CA3AF]">{dateStr} {timeStr}</span>
+              <span className="text-[11px] text-muted-foreground">{dateStr} {timeStr}</span>
               {sectionCount > 0 && (
-                <span className="text-[11px] text-[#9CA3AF]">· {sectionCount} 个要点</span>
+                <span className="text-[11px] text-muted-foreground">· {sectionCount} 个要点</span>
               )}
             </div>
           </div>
 
-          <div className={`mt-1 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md transition-colors ${isExpanded ? 'bg-indigo-50 text-indigo-500' : 'text-[#9CA3AF] group-hover:bg-gray-100 group-hover:text-gray-500'}`}>
+          <div className={`mt-1 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md transition-colors ${isExpanded ? 'bg-indigo-50 text-indigo-500' : 'text-muted-foreground group-hover:bg-secondary group-hover:text-muted-foreground'}`}>
             <svg className={`h-3.5 w-3.5 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
             </svg>
@@ -148,21 +148,21 @@ export default function CodingFlowsPage() {
   }, []);
 
   return (
-    <div className="flex h-full flex-col bg-[#F8F9FB]">
+    <div className="flex h-full flex-col bg-background">
       {isLoading ? (
         <div className="flex flex-1 items-center justify-center">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
         </div>
       ) : flows.length === 0 ? (
         <div className="flex flex-1 items-center justify-center">
-          <div className="rounded-xl border border-dashed border-[#D1D5DB] bg-white px-12 py-16 text-center">
-            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
-              <svg className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <div className="rounded-xl border border-dashed border-border bg-card px-12 py-16 text-center">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-secondary">
+              <svg className="h-6 w-6 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 18 7.125v-1.5a1.125 1.125 0 0 0-1.125-1.125M3.75 14.25h16.5M3.75 9.75h16.5M3.75 5.25h16.5" />
               </svg>
             </div>
-            <p className="text-sm font-medium text-[#6B7280]">还没有开发流程记录</p>
-            <p className="mt-1 text-xs text-[#9CA3AF]">去练习页面生成你的第一个开发流程</p>
+            <p className="text-sm font-medium text-muted-foreground">还没有开发流程记录</p>
+            <p className="mt-1 text-xs text-muted-foreground">去练习页面生成你的第一个开发流程</p>
           </div>
         </div>
       ) : (

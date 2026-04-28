@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { streamChatResponse, generateText } from '@/lib/ai/claude';
 import {
   ASSISTANT_SYSTEM_PROMPT,
@@ -14,8 +14,25 @@ export const maxDuration = 60;
 // POST /api/interview/assistant
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: '未登录' }, { status: 401 });
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+  // Fallback: try Authorization header if cookie auth failed
+  let authenticatedUser = user;
+  if (!authenticatedUser) {
+    const authHeader = request.headers.get('Authorization');
+    if (authHeader?.startsWith('Bearer ')) {
+      const token = authHeader.slice(7);
+      const { data: { user: headerUser } } = await supabase.auth.getUser(token);
+      authenticatedUser = headerUser;
+    }
+  }
+
+  if (!authenticatedUser) {
+    console.error('Auth failed:', { cookieError: authError?.message });
+    return NextResponse.json({ error: '未登录' }, { status: 401 });
+  }
+
+  const serviceClient = createServiceClient();
 
   const body = await request.json();
   const { question, category, evaluate, record_id, user_answer } = body;
@@ -27,7 +44,7 @@ export async function POST(request: NextRequest) {
       .from('assistant_qa_records')
       .select('id, question, category')
       .eq('id', record_id)
-      .eq('user_id', user.id)
+      .eq('user_id', authenticatedUser.id)
       .single();
 
     if (!record) {
@@ -67,11 +84,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Update the record with evaluation
-    await supabase
+    await serviceClient
       .from('assistant_qa_records')
       .update({ evaluation })
       .eq('id', record_id)
-      .eq('user_id', user.id);
+      .eq('user_id', authenticatedUser.id);
 
     return NextResponse.json({ evaluation });
   }
@@ -96,7 +113,7 @@ export async function POST(request: NextRequest) {
     const { data: recentRecords } = await supabase
       .from('assistant_qa_records')
       .select('question, answer, created_at')
-      .eq('user_id', user.id)
+      .eq('user_id', authenticatedUser.id)
       .order('created_at', { ascending: false })
       .limit(5);
 
@@ -111,20 +128,20 @@ export async function POST(request: NextRequest) {
   const systemPrompt = ASSISTANT_SYSTEM_PROMPT + knowledgeContext + realQuestionsContext + memoryContext;
 
   // Create assistant_qa_record FIRST (before streaming)
-  const { data: newRecord, error: insertError } = await supabase
+  const { data: newRecord, error: insertError } = await serviceClient
     .from('assistant_qa_records')
     .insert({
-      user_id: user.id,
+      user_id: authenticatedUser.id,
       question: question.trim(),
       category: category || null,
-      answer: '', // will be updated after streaming
+      answer: '',
     })
     .select('id')
     .single();
 
   if (insertError || !newRecord) {
-    console.error('Create assistant record error:', insertError);
-    return NextResponse.json({ error: '创建记录失败' }, { status: 500 });
+    console.error('Create assistant record error:', JSON.stringify({ message: insertError?.message, code: insertError?.code, details: insertError?.details, hint: insertError?.hint }));
+    return NextResponse.json({ error: '创建记录失败，请确认数据库表已创建' }, { status: 500 });
   }
 
   const recordId = newRecord.id;
@@ -147,14 +164,13 @@ export async function POST(request: NextRequest) {
         }
 
         // Update the record with full answer
-        await supabase
+        await serviceClient
           .from('assistant_qa_records')
           .update({ answer: fullAnswer })
           .eq('id', recordId);
 
         // Also save to question_analyses for methodology/stats integration
         try {
-          // Find or create interview_question
           let questionId: string | null = null;
           if (category) {
             const { data: typeData } = await supabase
@@ -166,7 +182,7 @@ export async function POST(request: NextRequest) {
               const { data: existingQ } = await supabase
                 .from('interview_questions')
                 .select('id')
-                .eq('user_id', user.id)
+                .eq('user_id', authenticatedUser.id)
                 .eq('text', question.trim())
                 .limit(1);
               if (existingQ && existingQ.length > 0) {
@@ -174,7 +190,7 @@ export async function POST(request: NextRequest) {
               } else {
                 const { data: newQ } = await supabase
                   .from('interview_questions')
-                  .insert({ user_id: user.id, text: question.trim(), source: 'user_input', type_id: typeData.id })
+                  .insert({ user_id: authenticatedUser.id, text: question.trim(), source: 'user_input', type_id: typeData.id })
                   .select('id')
                   .single();
                 questionId = newQ?.id;
@@ -182,14 +198,13 @@ export async function POST(request: NextRequest) {
 
               if (questionId) {
                 await supabase.from('question_analyses').insert({
-                  user_id: user.id,
+                  user_id: authenticatedUser.id,
                   question_id: questionId,
                   analysis: fullAnswer,
                 });
 
-                // Trigger methodology update
                 const { generateOrUpdateMethodology } = await import('@/app/api/interview/methodology/route');
-                await generateOrUpdateMethodology(supabase, user.id, typeData.id);
+                await generateOrUpdateMethodology(supabase, authenticatedUser.id, typeData.id);
               }
             }
           }

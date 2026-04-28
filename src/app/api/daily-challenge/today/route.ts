@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 
 export const maxDuration = 60;
 
 export async function GET() {
   try {
     const supabase = await createClient();
+    const serviceClient = createServiceClient();
     const today = new Date().toISOString().split('T')[0];
 
     // Check if today's challenge already exists in DB (cached)
@@ -51,8 +52,8 @@ export async function GET() {
       ],
     };
 
-    // Insert default immediately so user sees content right away
-    const { data: inserted } = await supabase
+    // Use service client to insert (bypasses RLS — no INSERT policy on this table)
+    const { data: inserted } = await serviceClient
       .from('daily_challenges')
       .insert(defaultChallenge)
       .select()
@@ -95,8 +96,8 @@ async function generateAndUpgradeChallenge(date: string, category: string, diffi
     const parsed = JSON.parse(cleaned);
     if (!parsed.question) return;
 
-    const supabase = await createClient();
-    await supabase
+    const serviceClient = createServiceClient();
+    await serviceClient
       .from('daily_challenges')
       .update({
         question: parsed.question,

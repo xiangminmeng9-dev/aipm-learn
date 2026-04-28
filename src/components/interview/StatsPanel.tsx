@@ -16,33 +16,33 @@ export default function StatsPanel({ stats }: StatsPanelProps) {
     <div className="space-y-6">
       {/* 总览卡片 */}
       <div className="grid gap-4 sm:grid-cols-3">
-        <Card className="border-[#E5E7EB] bg-white">
+        <Card className="border-border bg-card">
           <CardContent className="pt-6">
             <div className="text-3xl font-bold text-indigo-600">{stats.total_questions}</div>
-            <div className="mt-1 text-base text-[#6B7280]">总练习数</div>
+            <div className="mt-1 text-base text-muted-foreground">总练习数</div>
           </CardContent>
         </Card>
-        <Card className="border-[#E5E7EB] bg-white">
+        <Card className="border-border bg-card">
           <CardContent className="pt-6">
             <div className="text-3xl font-bold text-indigo-600">{stats.mock_interviews.total}</div>
-            <div className="mt-1 text-base text-[#6B7280]">模拟面试</div>
+            <div className="mt-1 text-base text-muted-foreground">模拟面试</div>
           </CardContent>
         </Card>
-        <Card className="border-[#E5E7EB] bg-white">
+        <Card className="border-border bg-card">
           <CardContent className="pt-6">
             <div className="text-3xl font-bold text-indigo-600">
               {stats.mock_interviews.average_score || '-'}
             </div>
-            <div className="mt-1 text-base text-[#6B7280]">平均得分</div>
+            <div className="mt-1 text-base text-muted-foreground">平均得分</div>
           </CardContent>
         </Card>
       </div>
 
       {/* 类型分布 */}
       {stats.type_distribution.length > 0 && (
-        <Card className="border-[#E5E7EB] bg-white">
+        <Card className="border-border bg-card">
           <CardHeader>
-            <CardTitle className="text-lg text-[#1F2937]">类型分布</CardTitle>
+            <CardTitle className="text-lg text-foreground">类型分布</CardTitle>
           </CardHeader>
           <CardContent>
             <PieChart data={stats.type_distribution} />
@@ -52,9 +52,9 @@ export default function StatsPanel({ stats }: StatsPanelProps) {
 
       {/* 得分趋势 */}
       {stats.mock_interviews.score_trend.length > 0 && (
-        <Card className="border-[#E5E7EB] bg-white">
+        <Card className="border-border bg-card">
           <CardHeader>
-            <CardTitle className="text-lg text-[#1F2937]">模拟面试得分趋势</CardTitle>
+            <CardTitle className="text-lg text-foreground">模拟面试得分趋势</CardTitle>
           </CardHeader>
           <CardContent>
             <LineChart data={stats.mock_interviews.score_trend} />
@@ -64,25 +64,25 @@ export default function StatsPanel({ stats }: StatsPanelProps) {
 
       {/* 弱项领域 */}
       {stats.weak_areas.length > 0 && (
-        <Card className="border-[#E5E7EB] bg-white">
+        <Card className="border-border bg-card">
           <CardHeader>
             <CardTitle className="text-lg text-[#ff3b30]">弱项领域</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               {stats.weak_areas.map((area) => (
-                <div key={area.type_name} className="rounded-lg border border-[#E5E7EB] p-3">
+                <div key={area.type_name} className="rounded-lg border border-border p-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-base font-medium text-[#1F2937]">{area.type_name}</span>
+                    <span className="text-base font-medium text-foreground">{area.type_name}</span>
                     <Badge variant="secondary" className="bg-red-50 text-[#ff3b30]">
                       均分 {area.average_score}
                     </Badge>
                   </div>
                   {area.recommended_questions.length > 0 && (
                     <div className="mt-2 space-y-1">
-                      <span className="text-sm text-[#6B7280]">推荐练习：</span>
+                      <span className="text-sm text-muted-foreground">推荐练习：</span>
                       {area.recommended_questions.map((q) => (
-                        <p key={q.id} className="text-sm text-[#6B7280]">
+                        <p key={q.id} className="text-sm text-muted-foreground">
                           • {q.text}
                         </p>
                       ))}
@@ -90,7 +90,7 @@ export default function StatsPanel({ stats }: StatsPanelProps) {
                   )}
                   {area.related_modules && area.related_modules.length > 0 && (
                     <div className="mt-2 flex items-center gap-1 flex-wrap">
-                      <span className="text-sm text-[#6B7280]">相关技能：</span>
+                      <span className="text-sm text-muted-foreground">相关技能：</span>
                       {area.related_modules.map((mod) => (
                         <Link
                           key={mod.id}

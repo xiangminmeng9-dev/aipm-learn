@@ -102,19 +102,19 @@ export default function JdGapsPage() {
             </span>
             <div className="min-w-0 flex-1">
               {r.type === 'note' ? (
-                <p className="text-xs text-[#4B5563] break-words">{r.title}{r.notes ? `：${r.notes}` : ''}</p>
+                <p className="text-xs text-muted-foreground break-words">{r.title}{r.notes ? `：${r.notes}` : ''}</p>
               ) : (
                 <div className="flex items-center gap-1 min-w-0">
                   {r.url ? (
                     <a href={r.url} target="_blank" rel="noopener noreferrer" className="truncate text-xs text-indigo-600 hover:underline">{r.title}</a>
                   ) : (
-                    <span className="truncate text-xs text-[#9CA3AF]">{r.title}</span>
+                    <span className="truncate text-xs text-muted-foreground">{r.title}</span>
                   )}
-                  {r.source && <span className="shrink-0 text-xs text-[#6B7280]">— {r.source}</span>}
+                  {r.source && <span className="shrink-0 text-xs text-muted-foreground">— {r.source}</span>}
                 </div>
               )}
             </div>
-            <button onClick={() => handleResourceDeleted(taskId, r.id)} className="shrink-0 text-[#9CA3AF] hover:text-[#ff3b30]">
+            <button onClick={() => handleResourceDeleted(taskId, r.id)} className="shrink-0 text-muted-foreground hover:text-[#ff3b30]">
               <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
               </svg>
@@ -128,15 +128,15 @@ export default function JdGapsPage() {
   const completedCount = tasks.filter((t) => t.status === 'completed').length;
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB]">
+    <div className="min-h-screen bg-muted">
       <div className="mx-auto max-w-3xl px-4 py-8">
         <div className="mb-6 flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => router.push('/skills/tree')}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold text-[#1F2937]">🎯 岗位差距</h1>
-            <p className="text-base text-[#6B7280]">
+            <h1 className="text-2xl font-bold text-foreground">🎯 岗位差距</h1>
+            <p className="text-base text-muted-foreground">
               JD 分析发现的技能差距 · {completedCount}/{tasks.length} 已完成
             </p>
           </div>
@@ -147,10 +147,10 @@ export default function JdGapsPage() {
             <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
           </div>
         ) : tasks.length === 0 ? (
-          <Card className="border-[#E5E7EB]">
+          <Card className="border-border">
             <CardContent className="py-12 text-center">
-              <p className="text-[#6B7280]">暂无岗位差距任务</p>
-              <p className="mt-1 text-sm text-[#9CA3AF]">分析 JD 后，发现的技能差距会自动出现在这里</p>
+              <p className="text-muted-foreground">暂无岗位差距任务</p>
+              <p className="mt-1 text-sm text-muted-foreground">分析 JD 后，发现的技能差距会自动出现在这里</p>
             </CardContent>
           </Card>
         ) : (
@@ -163,8 +163,8 @@ export default function JdGapsPage() {
               return (
                 <Card
                   key={task.id}
-                  className={`border-[#E5E7EB] transition-colors ${
-                    task.status === 'completed' ? 'bg-emerald-50/50 border-emerald-200' : 'bg-white'
+                  className={`border-border transition-colors ${
+                    task.status === 'completed' ? 'bg-emerald-50/50 border-emerald-200' : 'bg-card'
                   }`}
                 >
                   <CardHeader className="pb-2">
@@ -179,12 +179,12 @@ export default function JdGapsPage() {
                         </button>
                         <div className="min-w-0 flex-1">
                           <button className="text-left w-full" onClick={() => setExpandedTask(isExpanded ? null : task.id)}>
-                            <CardTitle className={`text-base break-words ${task.status === 'completed' ? 'text-emerald-700 line-through' : 'text-[#1F2937]'}`}>
+                            <CardTitle className={`text-base break-words ${task.status === 'completed' ? 'text-emerald-700 line-through' : 'text-foreground'}`}>
                               {task.title}
                             </CardTitle>
                           </button>
                           {task.objective && (
-                            <p className="mt-1 text-sm text-[#6B7280] break-words">{task.objective}</p>
+                            <p className="mt-1 text-sm text-muted-foreground break-words">{task.objective}</p>
                           )}
                           {!isExpanded && totalResources > 0 && (
                             <button onClick={() => setExpandedTask(task.id)} className="mt-1 text-xs text-indigo-600 hover:underline">
@@ -197,7 +197,7 @@ export default function JdGapsPage() {
                         <Badge variant="secondary" className={task.status === 'completed' ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}>
                           {task.status === 'completed' ? '已完成' : '待提升'}
                         </Badge>
-                        <button onClick={() => handleDelete(task.id)} className="text-[#9CA3AF] hover:text-[#ff3b30] transition-colors" title="删除">
+                        <button onClick={() => handleDelete(task.id)} className="text-muted-foreground hover:text-[#ff3b30] transition-colors" title="删除">
                           <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
@@ -208,18 +208,18 @@ export default function JdGapsPage() {
                     <CardContent className="pt-2">
                       {resources.length > 0 && (
                         <div className="space-y-2 mb-3">
-                          <p className="text-xs font-medium text-[#1F2937]">学习资源</p>
+                          <p className="text-xs font-medium text-foreground">学习资源</p>
                           {resources.map((r, i) => (
-                            <div key={i} className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 border border-[#E5E7EB]">
+                            <div key={i} className="flex items-center gap-2 rounded-xl bg-card px-3 py-2 border border-border">
                               <span className={`rounded-md px-1.5 py-0.5 text-xs font-medium ${RESOURCE_COLORS[r.type] ?? ''}`}>
                                 {RESOURCE_ICONS[r.type]} {r.type === 'article' ? '文章' : r.type === 'video' ? '视频' : '书籍'}
                               </span>
                               {r.url ? (
                                 <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-600 hover:underline">{r.title}</a>
                               ) : (
-                                <span className="text-xs text-[#9CA3AF]">{r.title}</span>
+                                <span className="text-xs text-muted-foreground">{r.title}</span>
                               )}
-                              {r.source && <span className="text-xs text-[#6B7280]">— {r.source}</span>}
+                              {r.source && <span className="text-xs text-muted-foreground">— {r.source}</span>}
                             </div>
                           ))}
                         </div>

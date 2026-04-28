@@ -42,7 +42,7 @@ export default function AnalysisResult({ result }: AnalysisResultProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <h3 className="text-lg font-semibold text-[#1F2937]">分析结果</h3>
+        <h3 className="text-lg font-semibold text-foreground">分析结果</h3>
         <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-700">
           {result.type.name}
           {result.type.is_new && ' (新类型)'}
@@ -54,19 +54,19 @@ export default function AnalysisResult({ result }: AnalysisResultProps) {
           const isExpanded = expandedSections.has(key);
           const content = result[key];
           return (
-            <div key={key} className="rounded-xl border border-[#E5E7EB] bg-white overflow-hidden">
+            <div key={key} className="rounded-xl border border-border bg-card overflow-hidden">
               <button
                 onClick={() => toggleSection(key)}
-                className="flex w-full items-center justify-between px-5 py-3.5 text-left hover:bg-[#F9FAFB] transition-colors"
+                className="flex w-full items-center justify-between px-5 py-3.5 text-left hover:bg-muted transition-colors"
               >
-                <span className="flex items-center gap-2 text-[#1F2937]">
+                <span className="flex items-center gap-2 text-foreground">
                   <span>{icon}</span>
                   <span className="font-medium">{label}</span>
                 </span>
-                <span className="text-[#9CA3AF]">{isExpanded ? '▲' : '▼'}</span>
+                <span className="text-muted-foreground">{isExpanded ? '▲' : '▼'}</span>
               </button>
               {isExpanded && content && (
-                <div className="border-t border-[#E5E7EB] px-5 py-4">
+                <div className="border-t border-border px-5 py-4">
                   <Markdown content={content} />
                 </div>
               )}

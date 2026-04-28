@@ -27,11 +27,11 @@ export default function RegisterForm() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#F5F7FA] px-4">
+    <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm">
-        <div className="rounded-2xl border border-[#E5E7EB] bg-white p-8 shadow-sm">
-          <h1 className="mb-1 text-2xl font-semibold text-[#1F2937]">注册</h1>
-          <p className="mb-6 text-sm text-[#6B7280]">创建 AI 产品经理学习平台账号</p>
+        <div className="rounded-2xl border border-border bg-card p-8 shadow-sm">
+          <h1 className="mb-1 text-2xl font-semibold text-foreground">注册</h1>
+          <p className="mb-6 text-sm text-muted-foreground">创建 AI 产品经理学习平台账号</p>
           <form onSubmit={handleRegister} className="space-y-4">
             <input type="email" placeholder="邮箱地址" value={email} onChange={(e) => setEmail(e.target.value)} required className="app-input w-full rounded-lg px-4 py-3 text-sm" />
             <input type="password" placeholder="密码（至少 6 个字符）" value={password} onChange={(e) => setPassword(e.target.value)} required className="app-input w-full rounded-lg px-4 py-3 text-sm" />
@@ -41,7 +41,7 @@ export default function RegisterForm() {
               {loading ? '注册中...' : '注册'}
             </button>
           </form>
-          <p className="mt-4 text-center text-sm text-[#6B7280]">
+          <p className="mt-4 text-center text-sm text-muted-foreground">
             已有账号？ <Link href="/login" className="text-indigo-600 hover:underline">登录</Link>
           </p>
         </div>

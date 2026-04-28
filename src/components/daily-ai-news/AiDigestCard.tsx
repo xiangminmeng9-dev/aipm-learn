@@ -26,7 +26,7 @@ export default function AiDigestCard({ digest, articleCount }: Props) {
     <Card className="border-indigo-100 bg-gradient-to-br from-indigo-50/50 to-white overflow-hidden">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-xl text-[#1F2937]">AI 每日摘要</CardTitle>
+          <CardTitle className="text-xl text-foreground">AI 每日摘要</CardTitle>
           <span className="inline-flex items-center gap-1 rounded-full bg-indigo-100 px-3 py-1.5 text-sm font-medium text-indigo-600">
             <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a8.25 8.25 0 0 0-5.34-5.34L2 9.75l2.846-.813a8.25 8.25 0 0 0 5.34-5.34L9 1.5l.813 2.846a8.25 8.25 0 0 0 5.34 5.34L18.75 9l-2.846.813a8.25 8.25 0 0 0-5.34 5.34ZM18.259 8.715 18 9.75l-.259-1.035a3.75 3.75 0 0 0-2.456-2.456L14.25 6l1.035-.259a3.75 3.75 0 0 0 2.456-2.456L18 2.25l.259 1.035a3.75 3.75 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.75 3.75 0 0 0-2.456 2.456ZM16.5 12.75l-1.035.259a3.75 3.75 0 0 0-2.456 2.456L12.75 16.5l-.259-1.035a3.75 3.75 0 0 0-2.456-2.456L8.25 12l1.035-.259a3.75 3.75 0 0 0 2.456-2.456L12 8.25l.259 1.035a3.75 3.75 0 0 0 2.456 2.456L15.75 12l-1.035.259Z" />

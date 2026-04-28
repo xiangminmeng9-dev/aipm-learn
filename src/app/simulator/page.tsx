@@ -1,220 +1,209 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { STAGES_CONFIG } from '@/lib/simulator-config';
+import { SIMULATOR_SCENARIOS, DIFFICULTY_LABELS, SimulatorScenario } from '@/lib/simulator-config';
 import StageRoadmap from '@/components/simulator/StageRoadmap';
-import StageDetail from '@/components/simulator/StageDetail';
-import type { SimulatorSession } from '@/types';
+import { cacheGet, cacheSet, TTL } from '@/lib/cache';
+
+interface StageScore {
+  score: number;
+  feedback: string;
+  completed_at: string;
+}
 
 export default function SimulatorPage() {
-  const [session, setSession] = useState<SimulatorSession | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [selectedStageId, setSelectedStageId] = useState<string | null>(null);
+  const [selectedScenario, setSelectedScenario] = useState<SimulatorScenario | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [currentStageId, setCurrentStageId] = useState<string>('');
+  const [stageScores, setStageScores] = useState<Record<string, StageScore>>({});
+  const [isLoading, setIsLoading] = useState(false);
+  const [scenarioProgress, setScenarioProgress] = useState<Record<string, { currentStage: string; scores: Record<string, StageScore> }>>({});
   const router = useRouter();
 
-  const fetchProgress = useCallback(async () => {
-    try {
-      const res = await fetch('/api/simulator/progress');
-      if (res.ok) {
-        const data = await res.json();
-        setSession(data.session);
-      }
-    } catch { /* ignore */ } finally { setIsLoading(false); }
+  // Load scenario progress from DB on mount
+  useEffect(() => {
+    loadAllProgress();
   }, []);
 
-  useEffect(() => { fetchProgress(); }, [fetchProgress]);
+  const loadAllProgress = async () => {
+    try {
+      // Load progress for each scenario
+      const progressMap: Record<string, { currentStage: string; scores: Record<string, StageScore> }> = {};
+      for (const scenario of SIMULATOR_SCENARIOS) {
+        try {
+          const res = await fetch(`/api/simulator/progress?scenario_id=${scenario.id}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.session) {
+              progressMap[scenario.id] = {
+                currentStage: data.session.current_stage || scenario.stages[0].id,
+                scores: data.stageScores || {},
+              };
+            }
+          }
+        } catch { /* skip */ }
+      }
+      setScenarioProgress(progressMap);
 
-  const handleStart = async () => {
+      // Also check cache for current session
+      const cached = cacheGet<{ scenarioId: string; sessionId: string; currentStageId: string; stageScores: Record<string, StageScore> }>('simulator-workflow-session');
+      if (cached) {
+        const scenario = SIMULATOR_SCENARIOS.find(s => s.id === cached.scenarioId);
+        if (scenario) {
+          setSelectedScenario(scenario);
+          setSessionId(cached.sessionId);
+          setCurrentStageId(cached.currentStageId);
+          // Merge: DB scores take precedence, then cache
+          const dbScores = progressMap[cached.scenarioId]?.scores || {};
+          setStageScores({ ...cached.stageScores, ...dbScores });
+        }
+      }
+    } catch { /* ignore */ }
+  };
+
+  const saveCache = (scenarioId: string, sid: string | null, stageId: string, scores: Record<string, StageScore>) => {
+    cacheSet('simulator-workflow-session', { scenarioId, sessionId: sid, currentStageId: stageId, stageScores: scores }, TTL.DAILY);
+  };
+
+  const handleSelectScenario = async (scenario: SimulatorScenario) => {
     setIsLoading(true);
     try {
       const res = await fetch('/api/simulator/progress', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'start' }),
+        body: JSON.stringify({ action: 'start', scenario_id: scenario.id }),
       });
+
       if (res.ok) {
         const data = await res.json();
-        setSession(data.session);
+        const sid = data.session?.id;
+        const currentStage = data.session?.current_stage || scenario.stages[0].id;
+        const scores = data.session?.stage_scores || {};
+
+        setSelectedScenario(scenario);
+        setSessionId(sid);
+        setCurrentStageId(currentStage);
+        setStageScores(scores);
+        saveCache(scenario.id, sid, currentStage, scores);
+      } else {
+        // Not logged in, use local mode
+        setSelectedScenario(scenario);
+        setSessionId(null);
+        setCurrentStageId(scenario.stages[0].id);
+        setStageScores({});
+        saveCache(scenario.id, null, scenario.stages[0].id, {});
       }
-    } catch { /* ignore */ } finally { setIsLoading(false); }
+    } catch {
+      setSelectedScenario(scenario);
+      setSessionId(null);
+      setCurrentStageId(scenario.stages[0].id);
+      setStageScores({});
+      saveCache(scenario.id, null, scenario.stages[0].id, {});
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSelectStage = (stageId: string) => {
-    setSelectedStageId(stageId);
+    if (!selectedScenario) return;
+    const params = new URLSearchParams();
+    if (sessionId) params.set('sid', sessionId);
+    params.set('scenario', selectedScenario.id);
+    router.push(`/simulator/${stageId}?${params.toString()}`);
   };
 
-  const handleEnterStage = (stageId: string) => {
-    if (!session) return;
-    router.push(`/simulator/${stageId}?sid=${session.id}`);
+  const handleBackToScenarios = () => {
+    setSelectedScenario(null);
+    setSessionId(null);
+    setCurrentStageId('');
+    setStageScores({});
+    cacheSet('simulator-workflow-session', null as unknown as object, 0);
   };
 
-  const selectedStage = STAGES_CONFIG.find(s => s.id === selectedStageId);
-  const stageScores = (session?.stage_scores || {}) as Record<string, { score: number; feedback: string; completed_at: string }>;
-
-  const hasNewStages = session?.status === 'completed' &&
-    STAGES_CONFIG.some(s => !stageScores[s.id]);
-
-  const handleContinueTraining = async () => {
-    if (!session) return;
-    setIsLoading(true);
-    try {
-      const res = await fetch('/api/simulator/progress', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'next_stage', session_id: session.id, stage_id: 'stage-11-report' }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setSession(data.session);
-      }
-    } catch { /* ignore */ } finally { setIsLoading(false); }
-  };
-
-  if (isLoading) {
+  // Scenario selection screen
+  if (!selectedScenario) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F8F9FB]">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-teal-500 border-t-transparent" />
+      <div className="mx-auto max-w-4xl px-6 py-8">
+        <div className="mb-6">
+          <h1 className="text-lg font-bold text-foreground">工作流程模拟</h1>
+          <p className="mt-1 text-sm text-muted-foreground">选择一个项目场景，体验完整的AI PM工作流程</p>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {SIMULATOR_SCENARIOS.map((scenario) => {
+            const diff = DIFFICULTY_LABELS[scenario.difficulty];
+            const progress = scenarioProgress[scenario.id];
+            const completedCount = progress ? Object.keys(progress.scores).length : 0;
+            const totalStages = scenario.stages.length;
+
+            return (
+              <button
+                key={scenario.id}
+                onClick={() => handleSelectScenario(scenario)}
+                disabled={isLoading}
+                className="rounded-2xl border border-border bg-card p-5 text-left transition-all hover:border-teal-300 hover:shadow-sm disabled:opacity-50"
+              >
+                <div className="mb-3 flex items-center gap-2">
+                  <span className="text-2xl">{scenario.icon}</span>
+                  <span className={`rounded-lg px-2 py-0.5 text-[10px] font-medium ${diff.color}`}>{diff.label}</span>
+                  {completedCount > 0 && (
+                    <span className="ml-auto rounded-full bg-teal-100 px-2 py-0.5 text-[10px] font-medium text-teal-700">
+                      {completedCount}/{totalStages}
+                    </span>
+                  )}
+                </div>
+                <h3 className="text-sm font-semibold text-foreground">{scenario.title}</h3>
+                <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{scenario.description}</p>
+                <div className="mt-3 flex flex-wrap gap-1">
+                  {scenario.tags.map((tag) => (
+                    <span key={tag} className="rounded-md bg-secondary px-1.5 py-0.5 text-[10px] text-muted-foreground">{tag}</span>
+                  ))}
+                </div>
+                <div className="mt-3 flex items-center gap-1 text-[10px] text-muted-foreground">
+                  <span>{totalStages} 个阶段</span>
+                  <span>·</span>
+                  {scenario.stages.slice(0, 3).map((s, i) => (
+                    <span key={i}>{s.title}{i < 2 ? '→' : ''}</span>
+                  ))}
+                </div>
+                {completedCount > 0 && (
+                  <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-secondary">
+                    <div
+                      className="h-full rounded-full bg-teal-500 transition-all"
+                      style={{ width: `${(completedCount / totalStages) * 100}%` }}
+                    />
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
     );
   }
 
+  // Stage roadmap screen
   return (
-    <div className="min-h-screen bg-[#F8F9FB]">
-      {/* Header with back button */}
-      <header className="sticky top-0 z-40 border-b border-gray-200 bg-white/80 backdrop-blur">
-        <div className="flex items-center justify-between px-8 py-4 md:px-12">
-          <div className="flex items-center gap-4">
-            <Link
-              href="/"
-              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
-            >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-              </svg>
-              返回首页
-            </Link>
-            <span className="text-gray-300">|</span>
-            <div>
-              <h1 className="text-lg font-bold text-gray-900">AI PM 模拟工作流程</h1>
-              <p className="text-xs text-gray-500">沉浸式体验大厂 AI 产品经理的日常</p>
-            </div>
-          </div>
-          {session && (
-            <div className="flex items-center gap-2">
-              <span className="rounded-full bg-teal-50 px-3 py-1 text-xs font-medium text-teal-700">
-                进度 {Object.keys((session.stage_scores || {}) as Record<string, unknown>).length}/{STAGES_CONFIG.length}
-              </span>
-            </div>
-          )}
-        </div>
-      </header>
-
-      {/* Content */}
-      <div className="px-8 py-8 md:px-12">
-
-        {!session ? (
-          <div className="mx-auto max-w-2xl rounded-2xl border-2 border-dashed border-teal-300 bg-white p-12 text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-teal-100 text-3xl">
-              🚀
-            </div>
-            <h2 className="text-lg font-semibold text-gray-800">准备好开始你的 AI PM 之旅了吗？</h2>
-            <p className="mt-2 text-sm text-gray-500">你将依次经历 {STAGES_CONFIG.length} 个核心阶段，与不同角色的 AI 互动，完成实战挑战。</p>
-            <button
-              onClick={handleStart}
-              className="mt-6 rounded-xl bg-teal-600 px-8 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-teal-700"
-            >
-              开始模拟
-            </button>
-          </div>
-        ) : (
-          <div className="grid gap-6 lg:grid-cols-5">
-            <div className="lg:col-span-3">
-              <StageRoadmap
-                stages={STAGES_CONFIG}
-                currentStageId={session.current_stage_id}
-                stageScores={stageScores}
-                onSelectStage={handleSelectStage}
-              />
-            </div>
-            <div className="lg:col-span-2">
-              {selectedStage ? (
-                <div className="sticky top-28 space-y-4">
-                  <StageDetail stage={selectedStage} />
-                  <button
-                    onClick={() => handleEnterStage(selectedStage.id)}
-                    disabled={!!stageScores[selectedStage.id]}
-                    className="w-full rounded-xl bg-teal-600 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-teal-700 disabled:bg-gray-300 disabled:text-gray-500"
-                  >
-                    {stageScores[selectedStage.id] ? '已完成' : '进入挑战'}
-                  </button>
-                </div>
-              ) : (
-                <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-sm text-gray-400">
-                  点击左侧阶段查看详情
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {hasNewStages && (
-          <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-semibold text-amber-800">新阶段已解锁！</h3>
-                <p className="mt-1 text-xs text-amber-700">专项技能训练模块已上线：日报周报、1v1 沟通、PRD 沙盒、数据看板、跨部门协作</p>
-              </div>
-              <button
-                onClick={handleContinueTraining}
-                className="shrink-0 rounded-xl bg-amber-500 px-5 py-2 text-sm font-semibold text-white hover:bg-amber-600"
-              >
-                继续训练
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Project Sandbox Entry */}
-        <div className="mt-8 rounded-2xl border border-teal-200 bg-white p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-base font-semibold text-gray-900">🏗️ 项目实战沙盒</h2>
-              <p className="mt-1 text-sm text-gray-500">选择一个虚拟 AI 产品项目，从 0 到 1 完成完整产出，AI 评审团队逐项审查</p>
-            </div>
-            <Link
-              href="/simulator/project"
-              className="shrink-0 rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-teal-700"
-            >
-              进入沙盒
-            </Link>
-          </div>
-          <div className="mt-4 flex gap-3">
-            <div className="rounded-xl bg-gray-50 px-3 py-2 text-xs text-gray-600">🤖 智能客服系统</div>
-            <div className="rounded-xl bg-gray-50 px-3 py-2 text-xs text-gray-600">🛡️ AI 内容审核平台</div>
-            <div className="rounded-xl bg-gray-50 px-3 py-2 text-xs text-gray-600">🎯 个性化推荐引擎</div>
+    <div className="mx-auto max-w-3xl px-6 py-8">
+      <div className="mb-6">
+        <button onClick={handleBackToScenarios} className="mb-3 text-sm text-muted-foreground hover:text-foreground">
+          ← 返回场景选择
+        </button>
+        <div className="flex items-center gap-3">
+          <span className="text-3xl">{selectedScenario.icon}</span>
+          <div>
+            <h1 className="text-lg font-bold text-foreground">{selectedScenario.title}</h1>
+            <p className="text-sm text-muted-foreground">{selectedScenario.description}</p>
           </div>
         </div>
-
-        {session?.status === 'completed' && !hasNewStages && (
-          <div className="mt-8 rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-center">
-            <div className="text-3xl">🎉</div>
-            <h2 className="mt-2 text-lg font-bold text-emerald-800">恭喜完成全部模拟！</h2>
-            <div className="mt-4 flex flex-wrap justify-center gap-3">
-              {STAGES_CONFIG.map(stage => {
-                const scoreData = stageScores[stage.id];
-                return scoreData ? (
-                  <div key={stage.id} className="rounded-xl border border-emerald-200 bg-white px-4 py-2">
-                    <div className="text-xs text-gray-500">{stage.title.split('：')[1] || stage.title}</div>
-                    <div className="text-lg font-bold text-emerald-600">{scoreData.score}</div>
-                  </div>
-                ) : null;
-              })}
-            </div>
-          </div>
-        )}
       </div>
+
+      <StageRoadmap
+        stages={selectedScenario.stages}
+        currentStageId={currentStageId}
+        stageScores={stageScores}
+        onSelectStage={handleSelectStage}
+      />
     </div>
   );
 }

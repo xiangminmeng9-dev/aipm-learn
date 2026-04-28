@@ -137,19 +137,19 @@ export default function CustomModuleDetailPage({ params }: CustomModuleDetailPag
             </span>
             <div className="min-w-0 flex-1">
               {r.type === 'note' ? (
-                <p className="text-xs text-[#4B5563] break-words">{r.title}{r.notes ? `：${r.notes}` : ''}</p>
+                <p className="text-xs text-muted-foreground break-words">{r.title}{r.notes ? `：${r.notes}` : ''}</p>
               ) : (
                 <div className="flex items-center gap-1 min-w-0">
                   {r.url ? (
                     <a href={r.url} target="_blank" rel="noopener noreferrer" className="truncate text-xs text-indigo-600 hover:underline">{r.title}</a>
                   ) : (
-                    <span className="truncate text-xs text-[#9CA3AF]">{r.title}</span>
+                    <span className="truncate text-xs text-muted-foreground">{r.title}</span>
                   )}
-                  {r.source && <span className="shrink-0 text-xs text-[#6B7280]">— {r.source}</span>}
+                  {r.source && <span className="shrink-0 text-xs text-muted-foreground">— {r.source}</span>}
                 </div>
               )}
             </div>
-            <button onClick={() => handleResourceDeleted(taskId, r.id)} className="shrink-0 text-[#9CA3AF] hover:text-[#ff3b30]">
+            <button onClick={() => handleResourceDeleted(taskId, r.id)} className="shrink-0 text-muted-foreground hover:text-[#ff3b30]">
               <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
               </svg>
@@ -175,7 +175,7 @@ export default function CustomModuleDetailPage({ params }: CustomModuleDetailPag
         </div>
       ) : !module ? (
         <div className="py-16 text-center">
-          <p className="text-base text-[#6B7280]">模块不存在</p>
+          <p className="text-base text-muted-foreground">模块不存在</p>
         </div>
       ) : (
         <>
@@ -184,16 +184,16 @@ export default function CustomModuleDetailPage({ params }: CustomModuleDetailPag
               <span className="text-4xl">{module.icon}</span>
               <div>
                 <div className="flex items-center gap-2">
-                  <h1 className="text-2xl font-semibold text-[#1F2937]">{module.name}</h1>
+                  <h1 className="text-2xl font-semibold text-foreground">{module.name}</h1>
                   <Badge className="bg-indigo-50 text-sm text-indigo-600">{module.level_name}</Badge>
                   <Badge className="bg-indigo-500/20 text-sm text-indigo-600">自定义</Badge>
                 </div>
-                <p className="mt-1 text-base text-[#6B7280]">{module.description}</p>
+                <p className="mt-1 text-base text-muted-foreground">{module.description}</p>
               </div>
             </div>
-            <div className="mt-5 rounded-2xl border-[#E5E7EB] bg-white p-4">
+            <div className="mt-5 rounded-2xl border-border bg-card p-4">
               <div className="flex items-center justify-between text-base">
-                <span className="text-[#6B7280]">{completedCount}/{tasks.length} 完成</span>
+                <span className="text-muted-foreground">{completedCount}/{tasks.length} 完成</span>
                 <span className="font-semibold text-indigo-600">{progressPct}%</span>
               </div>
               <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#E5E7EB]">
@@ -209,26 +209,26 @@ export default function CustomModuleDetailPage({ params }: CustomModuleDetailPag
               const totalResources = resources.length + userResources.length;
               const isExpanded = expandedTask === task.id;
               return (
-                <div key={task.id} className="rounded-2xl border-[#E5E7EB] bg-white p-5">
+                <div key={task.id} className="rounded-2xl border-border bg-card p-5">
                   <div className="flex items-start justify-between">
                     <button className="flex-1 text-left" onClick={() => setExpandedTask(isExpanded ? null : task.id)}>
                       <div className="flex items-center gap-3">
                         <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-indigo-500/10 text-sm font-medium text-indigo-600">{idx + 1}</span>
                         <div>
-                          <h3 className="text-base font-semibold text-[#1F2937]">{task.title}</h3>
-                          <p className="mt-0.5 text-sm text-[#6B7280]">{task.objective}</p>
+                          <h3 className="text-base font-semibold text-foreground">{task.title}</h3>
+                          <p className="mt-0.5 text-sm text-muted-foreground">{task.objective}</p>
                         </div>
                       </div>
                     </button>
                     <div className="flex items-center gap-2 shrink-0 ml-4">
-                      <span className="rounded-full bg-[#E5E7EB] px-2 py-0.5 text-sm text-[#6B7280]">{task.estimated_days}天</span>
-                      {resources.length > 0 && <span className="rounded-full bg-[#E5E7EB] px-2 py-0.5 text-sm text-[#6B7280]">{totalResources}资源</span>}
+                      <span className="rounded-full bg-[#E5E7EB] px-2 py-0.5 text-sm text-muted-foreground">{task.estimated_days}天</span>
+                      {resources.length > 0 && <span className="rounded-full bg-[#E5E7EB] px-2 py-0.5 text-sm text-muted-foreground">{totalResources}资源</span>}
                       <button
                         onClick={() => handleToggle(task.id, task.status)}
                         className={`rounded-full px-3 py-1 text-sm font-medium transition-colors ${
                           task.status === 'completed'
                             ? 'bg-[#34c759] text-white'
-                            : 'bg-[#E5E7EB] text-[#6B7280] hover:bg-[#F3F4F6]'
+                            : 'bg-[#E5E7EB] text-muted-foreground hover:bg-secondary'
                         }`}
                       >
                         {task.status === 'completed' ? '✓ 已完成' : '标记完成'}
@@ -237,7 +237,7 @@ export default function CustomModuleDetailPage({ params }: CustomModuleDetailPag
                   </div>
 
                   {isExpanded && (
-                    <div className="mt-4 border-t border-[#E5E7EB] pt-4">
+                    <div className="mt-4 border-t border-border pt-4">
                       {task.content_summary && (
                         <div className="mb-3">
                           <Markdown content={task.content_summary} />
@@ -245,18 +245,18 @@ export default function CustomModuleDetailPage({ params }: CustomModuleDetailPag
                       )}
                       {resources.length > 0 && (
                         <div className="space-y-2">
-                          <p className="text-sm font-medium text-[#1F2937]">学习资源</p>
+                          <p className="text-sm font-medium text-foreground">学习资源</p>
                           {resources.map((r, i) => (
-                            <div key={i} className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 border border-[#E5E7EB]">
+                            <div key={i} className="flex items-center gap-2 rounded-xl bg-card px-3 py-2 border border-border">
                               <span className={`rounded-md px-1.5 py-0.5 text-sm font-medium ${RESOURCE_COLORS[r.type] ?? ''}`}>
                                 {RESOURCE_ICONS[r.type]} {r.type === 'article' ? '文章' : r.type === 'video' ? '视频' : '书籍'}
                               </span>
                               {r.url ? (
                                 <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-sm text-indigo-600 hover:underline">{r.title}</a>
                               ) : (
-                                <span className="text-sm text-[#9CA3AF]">{r.title}</span>
+                                <span className="text-sm text-muted-foreground">{r.title}</span>
                               )}
-                              {r.source && <span className="text-sm text-[#6B7280]">— {r.source}</span>}
+                              {r.source && <span className="text-sm text-muted-foreground">— {r.source}</span>}
                             </div>
                           ))}
                         </div>
@@ -283,7 +283,7 @@ export default function CustomModuleDetailPage({ params }: CustomModuleDetailPag
 
           {tasks.length === 0 && (
             <div className="py-12 text-center">
-              <p className="text-base text-[#6B7280]">暂无学习任务，点击下方添加</p>
+              <p className="text-base text-muted-foreground">暂无学习任务，点击下方添加</p>
             </div>
           )}
 
@@ -291,19 +291,19 @@ export default function CustomModuleDetailPage({ params }: CustomModuleDetailPag
           <div className="mt-6">
             {showAddTask ? (
               <div className="rounded-2xl border border-indigo-200 bg-indigo-50/30 p-5">
-                <h3 className="mb-3 text-sm font-semibold text-[#1F2937]">添加学习任务</h3>
+                <h3 className="mb-3 text-sm font-semibold text-foreground">添加学习任务</h3>
                 <div className="space-y-3">
                   <input
                     value={newTaskTitle}
                     onChange={(e) => setNewTaskTitle(e.target.value)}
                     placeholder="任务名称，如：学习 RAG 检索优化"
-                    className="w-full rounded-xl border border-[#D1D5DB] bg-white px-4 py-2.5 text-sm text-[#1F2937] placeholder-[#9CA3AF] focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    className="w-full rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-foreground placeholder-[#9CA3AF] focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                   />
                   <input
                     value={newTaskObjective}
                     onChange={(e) => setNewTaskObjective(e.target.value)}
                     placeholder="学习目标（可选），如：掌握混合检索和重排序技术"
-                    className="w-full rounded-xl border border-[#D1D5DB] bg-white px-4 py-2.5 text-sm text-[#1F2937] placeholder-[#9CA3AF] focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    className="w-full rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-foreground placeholder-[#9CA3AF] focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                   />
                   <div className="flex gap-2">
                     <button
@@ -315,7 +315,7 @@ export default function CustomModuleDetailPage({ params }: CustomModuleDetailPag
                     </button>
                     <button
                       onClick={() => { setShowAddTask(false); setNewTaskTitle(''); setNewTaskObjective(''); }}
-                      className="rounded-xl border border-[#E5E7EB] px-4 py-2 text-sm text-[#6B7280] hover:bg-[#F3F4F6]"
+                      className="rounded-xl border border-border px-4 py-2 text-sm text-muted-foreground hover:bg-secondary"
                     >
                       取消
                     </button>
@@ -325,7 +325,7 @@ export default function CustomModuleDetailPage({ params }: CustomModuleDetailPag
             ) : (
               <button
                 onClick={() => setShowAddTask(true)}
-                className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-[#D1D5DB] bg-white py-4 text-sm font-medium text-[#6B7280] transition-colors hover:border-indigo-300 hover:bg-indigo-50/30 hover:text-indigo-600"
+                className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-border bg-card py-4 text-sm font-medium text-muted-foreground transition-colors hover:border-indigo-300 hover:bg-indigo-50/30 hover:text-indigo-600"
               >
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />

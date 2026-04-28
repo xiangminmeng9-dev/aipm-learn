@@ -39,12 +39,12 @@ export default function MockSummary({ summary }: MockSummaryProps) {
   return (
     <div className="space-y-6">
       {/* 总分 */}
-      <Card className="border-[#E5E7EB] bg-white">
+      <Card className="border-border bg-card">
         <CardContent className="flex items-center justify-center py-8">
           <div className="text-center">
             <div className={`text-5xl font-bold ${scoreColor}`}>{summary.total_score}</div>
-            <div className="mt-1 text-base text-[#6B7280]">综合得分</div>
-            <div className="mt-2 flex items-center justify-center gap-4 text-sm text-[#6B7280]">
+            <div className="mt-1 text-base text-muted-foreground">综合得分</div>
+            <div className="mt-2 flex items-center justify-center gap-4 text-sm text-muted-foreground">
               <span>{summary.answered_count} 题已答</span>
               <span>{summary.skipped_count} 题跳过</span>
             </div>
@@ -53,20 +53,20 @@ export default function MockSummary({ summary }: MockSummaryProps) {
       </Card>
 
       {/* 各题得分明细 */}
-      <Card className="border-[#E5E7EB] bg-white">
+      <Card className="border-border bg-card">
         <CardHeader>
-          <CardTitle className="text-lg text-[#1F2937]">各题得分</CardTitle>
+          <CardTitle className="text-lg text-foreground">各题得分</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
             {summary.answers.map((a) => (
               <div key={a.number} className="flex items-start gap-3">
-                <span className="shrink-0 text-base text-[#6B7280]">#{a.number}</span>
+                <span className="shrink-0 text-base text-muted-foreground">#{a.number}</span>
                 <div className="flex-1 min-w-0">
-                  <p className="truncate text-base text-[#9CA3AF]">{a.question}</p>
+                  <p className="truncate text-base text-muted-foreground">{a.question}</p>
                 </div>
                 {a.is_skipped ? (
-                  <Badge variant="secondary" className="shrink-0 bg-[#E5E7EB] text-[#6B7280]">
+                  <Badge variant="secondary" className="shrink-0 bg-[#E5E7EB] text-muted-foreground">
                     跳过
                   </Badge>
                 ) : (
@@ -90,39 +90,39 @@ export default function MockSummary({ summary }: MockSummaryProps) {
 
       {/* 强项和弱项 */}
       <div className="grid gap-4 md:grid-cols-2">
-        <Card className="border-[#E5E7EB] bg-white">
+        <Card className="border-border bg-card">
           <CardHeader>
             <CardTitle className="text-lg text-green-600">强项</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="whitespace-pre-wrap text-base text-[#9CA3AF]">{summary.strengths}</p>
+            <p className="whitespace-pre-wrap text-base text-muted-foreground">{summary.strengths}</p>
           </CardContent>
         </Card>
-        <Card className="border-[#E5E7EB] bg-white">
+        <Card className="border-border bg-card">
           <CardHeader>
             <CardTitle className="text-lg text-[#ff3b30]">弱项</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="whitespace-pre-wrap text-base text-[#9CA3AF]">{summary.weaknesses}</p>
+            <p className="whitespace-pre-wrap text-base text-muted-foreground">{summary.weaknesses}</p>
           </CardContent>
         </Card>
       </div>
 
       {/* 改进建议 */}
-      <Card className="border-[#E5E7EB] bg-white">
+      <Card className="border-border bg-card">
         <CardHeader>
           <CardTitle className="text-lg text-indigo-600">改进建议</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="whitespace-pre-wrap text-base text-[#9CA3AF]">{summary.suggestions}</p>
+          <p className="whitespace-pre-wrap text-base text-muted-foreground">{summary.suggestions}</p>
         </CardContent>
       </Card>
 
       {/* 弱项技能模块推荐 */}
       {summary.weak_skill_modules.length > 0 && (
-        <Card className="border-[#E5E7EB] bg-white">
+        <Card className="border-border bg-card">
           <CardHeader>
-            <CardTitle className="text-lg text-[#1F2937]">推荐技能提升</CardTitle>
+            <CardTitle className="text-lg text-foreground">推荐技能提升</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
@@ -130,10 +130,10 @@ export default function MockSummary({ summary }: MockSummaryProps) {
                 <Link
                   key={mod.module_id}
                   href={`/skills/module/${mod.module_id}`}
-                  className="block rounded-lg border border-[#E5E7EB] p-3 transition-colors hover:border-indigo-300"
+                  className="block rounded-lg border border-border p-3 transition-colors hover:border-indigo-300"
                 >
                   <div className="flex items-center justify-between">
-                    <p className="text-base font-medium text-[#1F2937]">{mod.module_name}</p>
+                    <p className="text-base font-medium text-foreground">{mod.module_name}</p>
                     <span className="text-sm text-indigo-600">去学习 →</span>
                   </div>
                   {mod.recommended_tasks.length > 0 && (
@@ -142,7 +142,7 @@ export default function MockSummary({ summary }: MockSummaryProps) {
                         <Badge
                           key={task.task_id}
                           variant="secondary"
-                          className="bg-[#E5E7EB] text-sm text-[#6B7280]"
+                          className="bg-[#E5E7EB] text-sm text-muted-foreground"
                         >
                           {task.task_name}
                         </Badge>

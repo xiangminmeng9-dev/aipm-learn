@@ -22,12 +22,12 @@ export default function ResumeJobsPage() {
       <div className="mb-8">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-[#1F2937]">AI PM 职位推荐</h1>
-            <p className="mt-1 text-sm text-[#6B7280]">发现适合你的 AI 产品经理岗位</p>
+            <h1 className="text-2xl font-bold text-foreground">AI PM 职位推荐</h1>
+            <p className="mt-1 text-sm text-muted-foreground">发现适合你的 AI 产品经理岗位</p>
           </div>
           <motion.button
             onClick={() => window.location.reload()}
-            className="flex items-center gap-1.5 rounded-xl border border-[#E5E7EB] bg-white px-4 py-2 text-sm font-medium text-[#6B7280] transition-all hover:border-indigo-300 hover:text-indigo-600"
+            className="flex items-center gap-1.5 rounded-xl border border-border bg-card px-4 py-2 text-sm font-medium text-muted-foreground transition-all hover:border-indigo-300 hover:text-indigo-600"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >

@@ -417,7 +417,7 @@ export const SKILL_RECOMMENDATION_SYSTEM_PROMPT = `你是一位技能发展顾�
 // ============================================================
 
 export function buildResumeAnalysisPrompt(resumeText: string, jdText?: string): string {
-  let prompt = `请分析以下简历，提取技能并识别差距。
+  let prompt = `请分析以下简历与目标岗位的匹配度。
 
 简历内容：
 ${resumeText}`;
@@ -426,16 +426,55 @@ ${resumeText}`;
     prompt += `\n\n目标岗位 JD：\n${jdText}`;
   }
 
-  prompt += `\n\n请按以下格式输出（严格使用 JSON）：
+  prompt += `\n\n请从以下维度进行深入分析，并严格按 JSON 格式输出：
 {
-  "extracted_skills": ["<技能1>", ...],
-  "skill_gaps": ["<差距1>", ...],
-  "suggested_focus": ["<建议重点1>", ...]
-}`;
+  "match_score": <0-100的整数，表示简历与JD的整体匹配度>,
+  "strengths": ["<匹配优势1>", "<匹配优势2>", ...],
+  "gaps": ["<差距1>", "<差距2>", ...],
+  "suggestions": ["<具体修改建议1>", "<具体修改建议2>", ...],
+  "ats_analysis": {
+    "overall_score": <0-100的整数，大厂ATS系统兼容性总评分>,
+    "dimensions": [
+      {
+        "name": "关键词匹配",
+        "score": <0-100>,
+        "comment": "<JD中的关键技能/关键词在简历中是否出现，缺失哪些>"
+      },
+      {
+        "name": "格式兼容性",
+        "score": <0-100>,
+        "comment": "<简历格式是否ATS友好（无表格/图片/特殊排版），是否存在解析风险>"
+      },
+      {
+        "name": "结构完整性",
+        "score": <0-100>,
+        "comment": "<是否包含必要板块：联系方式、教育、工作经历、项目经历、技能等>"
+      },
+      {
+        "name": "量化表达",
+        "score": <0-100>,
+        "comment": "<工作/项目经历中是否有数据化成果描述（如提升了X%、减少了Y天等）>"
+      },
+      {
+        "name": "经历相关性",
+        "score": <0-100>,
+        "comment": "<过往经历与目标岗位的相关程度>"
+      }
+    ],
+    "improvement": "<针对ATS评分的总体改进建议，2-3句话>"
+  }
+}
+
+分析要求：
+1. match_score 要综合评估，不要随意给高分
+2. strengths 列出3-5个简历与JD匹配的优势
+3. gaps 列出2-5个关键差距
+4. suggestions 给出3-5条具体可执行的修改建议
+5. ats_analysis 模拟大厂ATS系统（如Workday、Greenhouse、Lever）的简历筛选逻辑进行评分`;
   return prompt;
 }
 
-export const RESUME_ANALYSIS_SYSTEM_PROMPT = `你是一位资深简历顾问，擅长分析简历与岗位的匹配度。输出严格的 JSON 格式。`;
+export const RESUME_ANALYSIS_SYSTEM_PROMPT = `你是一位资深简历顾问，同时精通大厂ATS（Applicant Tracking System）简历筛选机制。你熟悉Workday、Greenhouse、Lever等主流ATS系统的解析规则和筛选逻辑。输出严格的 JSON 格式，不要添加任何JSON之外的文字。`;
 
 export function buildResumeGeneratePrompt(options: { resumeText: string; jdText?: string; styleType: string }): string {
   const styleNames: Record<string, string> = {

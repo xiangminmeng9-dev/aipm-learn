@@ -17,10 +17,12 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { resume_text, jd_text, style_type } = body as {
+    const { resume_text, jd_text, style_type, company_name, position_name } = body as {
       resume_text: string;
       jd_text: string;
       style_type: string;
+      company_name?: string;
+      position_name?: string;
     };
 
     if (!resume_text || resume_text.trim().length < 5) {
@@ -81,6 +83,8 @@ export async function POST(request: NextRequest) {
         changes_summary: parsed.changes_summary,
         style_type,
         jd_text,
+        company_name: company_name || null,
+        position_name: position_name || null,
       })
       .select('id')
       .single();

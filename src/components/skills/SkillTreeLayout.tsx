@@ -64,6 +64,8 @@ export interface GraphLink {
     curveness: number;
     opacity: number;
   };
+  symbol?: string[];
+  symbolSize?: number[];
 }
 
 export interface GraphData {
@@ -232,6 +234,8 @@ export function buildSkillGraphData(modules: ModuleWithCustom[]): GraphData {
           curveness: 0.2,
           opacity: prereqCompleted ? 0.7 : 0.35,
         },
+        symbol: ['none', 'arrow'],
+        symbolSize: [0, 8],
       });
     }
   }

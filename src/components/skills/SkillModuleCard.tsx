@@ -13,8 +13,8 @@ export default function SkillModuleCard({ module, onClick, onDelete }: SkillModu
 
   return (
     <div
-      className={`cursor-pointer rounded-2xl bg-white border p-5 transition-all hover:bg-[#F3F4F6] hover:border-[#D1D5DB] ${
-        isCustom ? 'border-indigo-200' : 'border-[#E5E7EB]'
+      className={`cursor-pointer rounded-2xl bg-card border p-5 transition-all hover:bg-secondary hover:border-border ${
+        isCustom ? 'border-indigo-200' : 'border-border'
       }`}
       onClick={onClick}
     >
@@ -34,7 +34,7 @@ export default function SkillModuleCard({ module, onClick, onDelete }: SkillModu
           {isCustom && onDelete && (
             <button
               onClick={(e) => { e.stopPropagation(); onDelete(); }}
-              className="rounded-full p-1 text-[#6B7280] hover:bg-[#F3F4F6] hover:text-[#ff3b30] transition-colors"
+              className="rounded-full p-1 text-muted-foreground hover:bg-secondary hover:text-[#ff3b30] transition-colors"
               title="删除模块"
             >
               <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -44,15 +44,15 @@ export default function SkillModuleCard({ module, onClick, onDelete }: SkillModu
           )}
         </div>
       </div>
-      <h3 className="mb-1 text-base font-semibold text-[#1F2937]">{module.name}</h3>
-      <p className="mb-3 line-clamp-2 text-sm text-[#6B7280]">{module.description}</p>
+      <h3 className="mb-1 text-base font-semibold text-foreground">{module.name}</h3>
+      <p className="mb-3 line-clamp-2 text-sm text-muted-foreground">{module.description}</p>
       <div className="mb-2 h-1.5 overflow-hidden rounded-full bg-[#E5E7EB]">
         <div
           className="h-full rounded-full progress-gradient transition-all"
           style={{ width: `${module.progress_percentage}%` }}
         />
       </div>
-      <span className="text-sm text-[#6B7280]">
+      <span className="text-sm text-muted-foreground">
         {module.completed_count}/{module.task_count} 任务
       </span>
       {!isCustom && module.interview_weak_types && module.interview_weak_types.length > 0 && (
@@ -66,7 +66,7 @@ export default function SkillModuleCard({ module, onClick, onDelete }: SkillModu
         </div>
       )}
       {!isCustom && module.interview_methodology_count && module.interview_methodology_count > 0 && (
-        <span className="mt-1 block text-sm text-[#6B7280]">
+        <span className="mt-1 block text-sm text-muted-foreground">
           {module.interview_methodology_count} 条方法论
         </span>
       )}

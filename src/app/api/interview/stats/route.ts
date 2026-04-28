@@ -12,11 +12,18 @@ export async function GET() {
       return NextResponse.json({ error: '未登录', code: 'UNAUTHORIZED' }, { status: 401 });
     }
 
-    // 总练习数（问答分析数）
-    const { count: totalQuestions } = await supabase
+    // 总练习数（问答分析数 + 面试助手记录数）
+    const { count: qaCount } = await supabase
       .from('question_analyses')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', user.id);
+
+    const { count: assistantCount } = await supabase
+      .from('assistant_qa_records')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id);
+
+    const totalQuestions = (qaCount ?? 0) + (assistantCount ?? 0);
 
     // 类型分布
     const { data: typeDistribution } = await supabase

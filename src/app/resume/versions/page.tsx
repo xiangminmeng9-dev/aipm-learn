@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import Markdown from '@/components/ui/markdown';
 
@@ -12,6 +13,8 @@ interface ResumeVersion {
   created_at: string;
   changes_summary: string;
   modified_resume: string;
+  original_resume_text: string;
+  jd_text: string;
 }
 
 const STYLE_LABELS: Record<string, string> = {
@@ -23,7 +26,7 @@ const STYLE_LABELS: Record<string, string> = {
 };
 
 const STYLE_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  standard: { bg: 'bg-gray-50', text: 'text-gray-600', border: 'border-gray-200' },
+  standard: { bg: 'bg-muted', text: 'text-muted-foreground', border: 'border-border' },
   big_company: { bg: 'bg-indigo-50', text: 'text-indigo-600', border: 'border-indigo-200' },
   industry_tech: { bg: 'bg-sky-50', text: 'text-sky-600', border: 'border-sky-200' },
   industry_finance: { bg: 'bg-amber-50', text: 'text-amber-600', border: 'border-amber-200' },
@@ -31,11 +34,12 @@ const STYLE_COLORS: Record<string, { bg: string; text: string; border: string }>
 };
 
 export default function ResumeVersionsPage() {
+  const router = useRouter();
   const [versions, setVersions] = useState<ResumeVersion[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
-  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
   const fetchVersions = useCallback(async () => {
     setIsLoading(true);
@@ -63,13 +67,38 @@ export default function ResumeVersionsPage() {
       const res = await fetch(`/api/resume/versions?id=${id}`, { method: 'DELETE' });
       if (res.ok) {
         setVersions((prev) => prev.filter((v) => v.id !== id));
-        if (expandedId === id) setExpandedId(null);
       }
     } catch {
       // Silently fail
     } finally {
       setDeletingId(null);
     }
+  };
+
+  const toggleExpand = (id: string) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleRestore = (version: ResumeVersion) => {
+    try {
+      localStorage.setItem('resume-editor-state', JSON.stringify({
+        resumeText: version.original_resume_text || '',
+        jdText: version.jd_text || '',
+        style: version.style_type,
+        analysis: null,
+        modifiedResume: version.modified_resume || '',
+        changesSummary: version.changes_summary || '',
+        companyName: version.company_name || '',
+        positionName: version.position_name || '',
+        savedAt: Date.now(),
+      }));
+    } catch { /* ignore */ }
+    router.push('/resume');
   };
 
   if (isLoading) {
@@ -84,8 +113,8 @@ export default function ResumeVersionsPage() {
     <div className="min-h-full p-6 md:p-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-[#1F2937]">历史版本</h1>
-        <p className="mt-1 text-sm text-[#6B7280]">查看和管理所有简历修改版本</p>
+        <h1 className="text-2xl font-bold text-foreground">历史版本</h1>
+        <p className="mt-1 text-sm text-muted-foreground">每次生成修改版简历都会自动保存，点击「继续编辑」可恢复到编辑器</p>
       </div>
 
       {/* Error */}
@@ -100,49 +129,69 @@ export default function ResumeVersionsPage() {
 
       {/* Empty state */}
       {versions.length === 0 && !error && (
-        <div className="rounded-xl border border-[#E5E7EB] bg-white p-12 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gray-50">
-            <svg className="h-8 w-8 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <div className="rounded-xl border border-border bg-card p-12 text-center">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
+            <svg className="h-8 w-8 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <h3 className="text-sm font-medium text-[#6B7280]">暂无历史版本</h3>
-          <p className="mt-1 text-xs text-[#9CA3AF]">修改简历后，版本将自动保存到这里</p>
+          <h3 className="text-sm font-medium text-muted-foreground">暂无历史版本</h3>
+          <p className="mt-1 text-xs text-muted-foreground">修改简历后，版本将自动保存到这里</p>
         </div>
       )}
 
-      {/* Versions grid */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {/* Versions list - always show full content */}
+      <div className="space-y-6">
         <AnimatePresence>
           {versions.map((version, index) => {
             const styleLabel = STYLE_LABELS[version.style_type] || version.style_type;
-            const styleColor = STYLE_COLORS[version.style_type] || STYLE_COLORS.general;
-            const isExpanded = expandedId === version.id;
+            const styleColor = STYLE_COLORS[version.style_type] || STYLE_COLORS.standard;
             const isDeleting = deletingId === version.id;
 
             return (
               <motion.div
                 key={version.id}
-                layout
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ delay: index * 0.03 }}
-                className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white transition-shadow hover:shadow-md"
+                className="overflow-hidden rounded-xl border border-border bg-card"
               >
-                {/* Color accent bar */}
-                <div className="h-1 bg-gradient-to-r from-indigo-400 to-violet-400" />
-
-                <div className="p-5">
-                  {/* Top: badge + delete */}
-                  <div className="mb-3 flex items-center justify-between">
+                {/* Header row - clickable to toggle */}
+                <div
+                  className="flex items-center justify-between border-b border-border px-5 py-4 cursor-pointer select-none hover:bg-muted/30 transition-colors"
+                  onClick={() => toggleExpand(version.id)}
+                >
+                  <div className="flex items-center gap-3">
+                    <svg
+                      className={`h-4 w-4 text-muted-foreground transition-transform ${expandedIds.has(version.id) ? 'rotate-90' : ''}`}
+                      fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
                     <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${styleColor.bg} ${styleColor.text} border ${styleColor.border}`}>
                       {styleLabel}
                     </span>
+                    <span className="text-sm font-semibold text-foreground">
+                      {version.company_name || version.position_name
+                        ? `${version.company_name || '未指定'} · ${version.position_name || '未指定'}`
+                        : '简历修改版'}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(version.created_at).toLocaleString('zh-CN')}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      onClick={() => handleRestore(version)}
+                      className="rounded-lg bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-600 transition-colors hover:bg-indigo-100"
+                    >
+                      继续编辑
+                    </button>
                     <button
                       onClick={() => handleDelete(version.id)}
                       disabled={isDeleting}
-                      className="rounded-md p-1 text-[#9CA3AF] transition-colors hover:bg-rose-50 hover:text-rose-500 disabled:opacity-50"
+                      className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-rose-50 hover:text-rose-500 disabled:opacity-50"
                     >
                       {isDeleting ? (
                         <span className="h-4 w-4 animate-spin rounded-full border-2 border-rose-400 border-t-transparent" />
@@ -153,39 +202,11 @@ export default function ResumeVersionsPage() {
                       )}
                     </button>
                   </div>
-
-                  {/* Company and position */}
-                  <h3 className="text-sm font-semibold text-[#1F2937] line-clamp-1">
-                    {version.company_name || '未指定公司'}
-                  </h3>
-                  <p className="mt-0.5 text-xs text-[#6B7280] line-clamp-1">
-                    {version.position_name || '未指定职位'}
-                  </p>
-
-                  {/* Date */}
-                  <p className="mt-2 text-[10px] text-[#9CA3AF]">
-                    {new Date(version.created_at).toLocaleString('zh-CN')}
-                  </p>
-
-                  {/* Changes summary preview */}
-                  {version.changes_summary && (
-                    <p className="mt-2 line-clamp-2 text-xs text-[#6B7280]">
-                      {version.changes_summary}
-                    </p>
-                  )}
-
-                  {/* Expand toggle */}
-                  <button
-                    onClick={() => setExpandedId(isExpanded ? null : version.id)}
-                    className="mt-3 w-full rounded-lg bg-gray-50 px-3 py-1.5 text-xs font-medium text-[#6B7280] transition-colors hover:bg-gray-100"
-                  >
-                    {isExpanded ? '收起' : '查看完整简历'}
-                  </button>
                 </div>
 
-                {/* Expanded content */}
+                {/* Content - collapsible */}
                 <AnimatePresence>
-                  {isExpanded && (
+                  {expandedIds.has(version.id) && (
                     <motion.div
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: 'auto', opacity: 1 }}
@@ -193,14 +214,20 @@ export default function ResumeVersionsPage() {
                       transition={{ duration: 0.2 }}
                       className="overflow-hidden"
                     >
-                      <div className="border-t border-[#E5E7EB] bg-[#F9FAFB] p-5">
+                      <div className="p-5">
+                        {/* Changes summary */}
                         {version.changes_summary && (
                           <div className="mb-4 rounded-lg border border-indigo-100 bg-indigo-50/30 p-3">
                             <h4 className="mb-1 text-xs font-semibold text-indigo-700">修改摘要</h4>
                             <Markdown content={version.changes_summary} />
                           </div>
                         )}
-                        <Markdown content={version.modified_resume} />
+
+                        {/* Modified resume content */}
+                        {version.modified_resume
+                          ? <Markdown content={version.modified_resume} />
+                          : <p className="text-sm text-muted-foreground">（简历内容为空，可能是生成时 AI 返回格式异常）</p>
+                        }
                       </div>
                     </motion.div>
                   )}

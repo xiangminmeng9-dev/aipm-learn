@@ -35,7 +35,7 @@ function GlassButton({
     rose: 'bg-rose-500/15 hover:bg-rose-500/25 text-rose-600 border-rose-200/60',
     emerald: 'bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-600 border-emerald-200/60',
     amber: 'bg-amber-500/15 hover:bg-amber-500/25 text-amber-600 border-amber-200/60',
-    gray: 'bg-gray-100 hover:bg-gray-200/80 text-gray-600 border-gray-200',
+    gray: 'bg-secondary hover:bg-gray-200/80 text-muted-foreground border-border',
   };
   const sizeClass = size === 'sm' ? 'px-3 py-1.5 text-xs' : 'px-4 py-2 text-sm';
 
@@ -74,7 +74,7 @@ function NoteCard({
       className="group relative"
     >
       <div
-        className={`relative w-full cursor-pointer overflow-hidden rounded-2xl border ${cc.border} bg-white transition-all duration-300 group-hover:shadow-lg`}
+        className={`relative w-full cursor-pointer overflow-hidden rounded-2xl border ${cc.border} bg-card transition-all duration-300 group-hover:shadow-lg`}
         onClick={onOpen}
       >
         {/* Color accent bar at top */}
@@ -93,22 +93,22 @@ function NoteCard({
           </div>
 
           {/* Title */}
-          <h3 className="mb-1 line-clamp-2 text-sm font-bold text-gray-800">{note.title}</h3>
+          <h3 className="mb-1 line-clamp-2 text-sm font-bold text-foreground">{note.title}</h3>
 
           {/* Content preview */}
           {note.content && (
-            <p className="line-clamp-2 text-xs leading-relaxed text-gray-400 font-mono">{note.content.slice(0, 100)}</p>
+            <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground font-mono">{note.content.slice(0, 100)}</p>
           )}
 
           {/* Date */}
-          <p className="mt-3 text-[10px] text-gray-300">{new Date(note.created_at).toLocaleDateString('zh-CN')}</p>
+          <p className="mt-3 text-[10px] text-muted-foreground">{new Date(note.created_at).toLocaleDateString('zh-CN')}</p>
         </div>
 
         {/* Hover actions */}
         <div className="absolute inset-0 flex items-center justify-center gap-2 rounded-2xl bg-black/5 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
           <button
             onClick={(e) => { e.stopPropagation(); onPin(); }}
-            className="rounded-lg bg-white/90 px-3 py-1.5 text-xs font-medium text-gray-600 shadow-sm hover:bg-white"
+            className="rounded-lg bg-white/90 px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-sm hover:bg-white"
           >
             {note.pinned ? '取消置顶' : '📌 置顶'}
           </button>
@@ -154,18 +154,18 @@ function NoteEditor({
         initial={{ y: 30, scale: 0.95 }}
         animate={{ y: 0, scale: 1 }}
         exit={{ y: 30, scale: 0.95 }}
-        className="relative z-10 flex w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl"
+        className="relative z-10 flex w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Accent bar */}
         <div className={`h-1.5 w-full bg-gradient-to-r ${cc.gradient}`} />
 
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+        <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <div className="flex items-center gap-3">
             <span className="text-lg">{cc.icon}</span>
             <span className={`rounded-lg px-2.5 py-1 text-xs font-semibold ${cc.color} ${cc.bg} border ${cc.border}`}>{cc.label}</span>
-            <h2 className="text-lg font-bold text-gray-800">{title || '未命名笔记'}</h2>
+            <h2 className="text-lg font-bold text-foreground">{title || '未命名笔记'}</h2>
           </div>
           <div className="flex items-center gap-2">
             <GlassButton onClick={() => setShowPreview(!showPreview)} color="gray">{showPreview ? '编辑' : '预览'}</GlassButton>
@@ -179,7 +179,7 @@ function NoteEditor({
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="笔记标题..."
-            className="mb-4 w-full bg-transparent text-xl font-bold text-gray-800 placeholder:text-gray-300 focus:outline-none"
+            className="mb-4 w-full bg-transparent text-xl font-bold text-foreground placeholder:text-muted-foreground focus:outline-none"
           />
           <div className="mb-4 flex items-center gap-2">
             {Object.entries(CATEGORY_CONFIG).map(([k, v]) => (
@@ -187,7 +187,7 @@ function NoteEditor({
                 key={k}
                 onClick={() => setCategory(k)}
                 className={`flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
-                  category === k ? `${v.color} ${v.bg} border ${v.border}` : 'text-gray-400 hover:text-gray-600 border border-transparent'
+                  category === k ? `${v.color} ${v.bg} border ${v.border}` : 'text-muted-foreground hover:text-muted-foreground border border-transparent'
                 }`}
               >
                 <span>{v.icon}</span>{v.label}
@@ -196,7 +196,7 @@ function NoteEditor({
           </div>
 
           {showPreview ? (
-            <div className="min-h-[300px] rounded-xl border border-gray-200 bg-gray-50 p-5">
+            <div className="min-h-[300px] rounded-xl border border-border bg-muted p-5">
               <div className="prose prose-sm max-w-none">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{content || '*暂无内容*'}</ReactMarkdown>
               </div>
@@ -206,14 +206,14 @@ function NoteEditor({
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder="支持 Markdown 语法..."
-              className="min-h-[300px] w-full resize-none rounded-xl border border-gray-200 bg-gray-50 p-5 font-mono text-sm text-gray-700 placeholder:text-gray-300 focus:outline-none focus:border-indigo-300"
+              className="min-h-[300px] w-full resize-none rounded-xl border border-border bg-muted p-5 font-mono text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-indigo-300"
             />
           )}
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between border-t border-gray-100 px-6 py-3">
-          <p className="text-[10px] text-gray-400">最后编辑: {new Date(note.updated_at).toLocaleString('zh-CN')}</p>
+        <div className="flex items-center justify-between border-t border-border px-6 py-3">
+          <p className="text-[10px] text-muted-foreground">最后编辑: {new Date(note.updated_at).toLocaleString('zh-CN')}</p>
           <GlassButton onClick={() => onSave(note.id, { title, content, category })} color="indigo" size="md">保存</GlassButton>
         </div>
       </motion.div>
@@ -317,7 +317,7 @@ export default function NotesPage() {
           className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-medium transition-all ${
             filterCategory === null
               ? 'bg-gray-800 text-white shadow-sm'
-              : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'
+              : 'bg-card text-muted-foreground border border-border hover:bg-muted'
           }`}
         >
           📚 全部
@@ -329,14 +329,14 @@ export default function NotesPage() {
             className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-medium transition-all ${
               filterCategory === k
                 ? `${v.bg} ${v.color} border ${v.border} shadow-sm`
-                : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'
+                : 'bg-card text-muted-foreground border border-border hover:bg-muted'
             }`}
           >
             <span>{v.icon}</span>{v.label}
           </button>
         ))}
         <div className="ml-auto flex items-center gap-2">
-          <span className="text-xs text-gray-400">{notes.length} 条笔记</span>
+          <span className="text-xs text-muted-foreground">{notes.length} 条笔记</span>
           <GlassButton onClick={() => setIsCreating(true)} color="indigo" size="md">+ 新建笔记</GlassButton>
         </div>
       </div>
@@ -356,7 +356,7 @@ export default function NotesPage() {
                 onChange={(e) => setNewTitle(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
                 placeholder="笔记标题..."
-                className="mb-3 w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-indigo-300"
+                className="mb-3 w-full rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-indigo-300"
                 autoFocus
               />
               <div className="flex items-center justify-between">
@@ -366,7 +366,7 @@ export default function NotesPage() {
                       key={k}
                       onClick={() => setNewCategory(k)}
                       className={`flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
-                        newCategory === k ? `${v.color} ${v.bg} border ${v.border}` : 'text-gray-400 hover:text-gray-600 border border-transparent'
+                        newCategory === k ? `${v.color} ${v.bg} border ${v.border}` : 'text-muted-foreground hover:text-muted-foreground border border-transparent'
                       }`}
                     >
                       <span>{v.icon}</span>{v.label}
@@ -400,8 +400,8 @@ export default function NotesPage() {
 
       {notes.length === 0 && !isCreating && (
         <div className="py-16 text-center">
-          <p className="text-sm text-gray-400">暂无笔记</p>
-          <p className="mt-1 text-xs text-gray-300">点击「+ 新建笔记」开始</p>
+          <p className="text-sm text-muted-foreground">暂无笔记</p>
+          <p className="mt-1 text-xs text-muted-foreground">点击「+ 新建笔记」开始</p>
         </div>
       )}
 

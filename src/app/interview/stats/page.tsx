@@ -29,8 +29,8 @@ export default function StatsPage() {
   return (
     <div className="p-8">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-[#1F2937]">练习统计</h1>
-        <p className="mt-1 text-base text-[#6B7280]">练习量、类型分布、得分趋势、弱项推荐</p>
+        <h1 className="text-3xl font-bold text-foreground">练习统计</h1>
+        <p className="mt-1 text-base text-muted-foreground">练习量、类型分布、得分趋势、弱项推荐</p>
       </div>
 
       {isLoading ? (
@@ -41,8 +41,8 @@ export default function StatsPage() {
         <StatsPanel stats={stats} />
       ) : (
         <div className="py-16 text-center">
-          <p className="text-[#6B7280]">还没有练习数据</p>
-          <p className="mt-1 text-base text-[#6B7280]">开始面试问答或模拟面试，数据会自动统计</p>
+          <p className="text-muted-foreground">还没有练习数据</p>
+          <p className="mt-1 text-base text-muted-foreground">开始面试问答或模拟面试，数据会自动统计</p>
         </div>
       )}
     </div>

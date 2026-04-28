@@ -99,22 +99,22 @@ export default function ModuleDetailPage({ params }: ModuleDetailPageProps) {
             </span>
             <div className="min-w-0 flex-1">
               {r.type === 'note' ? (
-                <p className="text-xs text-[#4B5563] break-words">{r.title}{r.notes ? `：${r.notes}` : ''}</p>
+                <p className="text-xs text-muted-foreground break-words">{r.title}{r.notes ? `：${r.notes}` : ''}</p>
               ) : (
                 <div className="flex items-center gap-1 min-w-0">
                   {r.url ? (
                     <a href={r.url} target="_blank" rel="noopener noreferrer" className="truncate text-xs text-indigo-600 hover:underline">{r.title}</a>
                   ) : (
-                    <span className="truncate text-xs text-[#9CA3AF]">{r.title}</span>
+                    <span className="truncate text-xs text-muted-foreground">{r.title}</span>
                   )}
-                  {r.source && <span className="shrink-0 text-xs text-[#6B7280]">— {r.source}</span>}
+                  {r.source && <span className="shrink-0 text-xs text-muted-foreground">— {r.source}</span>}
                 </div>
               )}
-              {r.type !== 'note' && r.notes && <p className="mt-0.5 text-xs text-[#9CA3AF] break-words">{r.notes}</p>}
+              {r.type !== 'note' && r.notes && <p className="mt-0.5 text-xs text-muted-foreground break-words">{r.notes}</p>}
             </div>
             <button
               onClick={() => handleResourceDeleted(taskId, r.id)}
-              className="shrink-0 text-[#9CA3AF] hover:text-[#ff3b30] transition-colors"
+              className="shrink-0 text-muted-foreground hover:text-[#ff3b30] transition-colors"
               title="删除"
             >
               <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -145,17 +145,17 @@ export default function ModuleDetailPage({ params }: ModuleDetailPageProps) {
                 <span className="text-4xl">{module.icon}</span>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h1 className="text-2xl font-semibold text-[#1F2937]">{module.name}</h1>
+                    <h1 className="text-2xl font-semibold text-foreground">{module.name}</h1>
                     {module.level_name && (
                       <span className="rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-600">{module.level_name}</span>
                     )}
                   </div>
-                  <p className="mt-1 text-base text-[#6B7280]">{module.description}</p>
+                  <p className="mt-1 text-base text-muted-foreground">{module.description}</p>
                 </div>
               </div>
-              <div className="mt-5 rounded-2xl border-[#E5E7EB] bg-white p-4">
+              <div className="mt-5 rounded-2xl border-border bg-card p-4">
                 <div className="flex items-center justify-between text-base">
-                  <span className="text-[#6B7280]">{completedCount}/{tasks.length} 完成</span>
+                  <span className="text-muted-foreground">{completedCount}/{tasks.length} 完成</span>
                   <span className="font-semibold text-indigo-600">{progressPct}%</span>
                 </div>
                 <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#E5E7EB]">
@@ -167,15 +167,15 @@ export default function ModuleDetailPage({ params }: ModuleDetailPageProps) {
 
           {/* 面试关联区 */}
           {interviewInsights && interviewInsights.mapped_types.length > 0 && (
-            <div className="mb-8 rounded-2xl border-[#E5E7EB] bg-white p-6">
+            <div className="mb-8 rounded-2xl border-border bg-card p-6">
               <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-[#1F2937]">面试关联</h2>
+                <h2 className="text-lg font-semibold text-foreground">面试关联</h2>
                 <Link href="/interview/stats" className="text-base text-indigo-600 hover:underline">
                   查看面试统计 →
                 </Link>
               </div>
               <div className="mb-4">
-                <p className="mb-2 text-sm text-[#6B7280]">关联面试题型</p>
+                <p className="mb-2 text-sm text-muted-foreground">关联面试题型</p>
                 <div className="flex flex-wrap gap-2">
                   {interviewInsights.mapped_types.map((t) => (
                     <Link key={t.id} href={`/interview/qa`} className="rounded-full bg-indigo-50 px-3 py-1 text-sm text-indigo-600 hover:bg-indigo-100">
@@ -186,14 +186,14 @@ export default function ModuleDetailPage({ params }: ModuleDetailPageProps) {
               </div>
               {interviewInsights.methodologies.length > 0 && (
                 <div className="space-y-3">
-                  <p className="text-sm text-[#6B7280]">你的方法论</p>
+                  <p className="text-sm text-muted-foreground">你的方法论</p>
                   {interviewInsights.methodologies.map((m) => (
-                    <div key={m.id} className="rounded-lg border border-[#E5E7EB] p-3">
+                    <div key={m.id} className="rounded-lg border border-border p-3">
                       <div className="mb-1 flex items-center gap-2">
-                        <span className="text-base font-medium text-[#1F2937]">{m.type.name}</span>
+                        <span className="text-base font-medium text-foreground">{m.type.name}</span>
                         <Badge variant="secondary" className="bg-indigo-50 text-sm text-indigo-600">{m.source_count} 次练习</Badge>
                       </div>
-                      <p className="line-clamp-2 text-sm text-[#9CA3AF]">{m.framework}</p>
+                      <p className="line-clamp-2 text-sm text-muted-foreground">{m.framework}</p>
                     </div>
                   ))}
                 </div>
@@ -208,23 +208,23 @@ export default function ModuleDetailPage({ params }: ModuleDetailPageProps) {
               const totalResources = resources.length + userResources.length;
               const isExpanded = expandedTask === task.id;
               return (
-                <div key={task.id} className="rounded-2xl border-[#E5E7EB] bg-white p-5">
+                <div key={task.id} className="rounded-2xl border-border bg-card p-5">
                   <div className="flex items-start justify-between">
                     <button className="flex-1 text-left" onClick={() => setExpandedTask(isExpanded ? null : task.id)}>
                       <div className="flex items-center gap-3">
-                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#E5E7EB] text-sm font-medium text-[#6B7280]">{idx + 1}</span>
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#E5E7EB] text-sm font-medium text-muted-foreground">{idx + 1}</span>
                         <div>
-                          <h3 className="text-base font-semibold text-[#1F2937]">{task.title}</h3>
-                          <p className="mt-0.5 text-sm text-[#6B7280]">{task.objective}</p>
+                          <h3 className="text-base font-semibold text-foreground">{task.title}</h3>
+                          <p className="mt-0.5 text-sm text-muted-foreground">{task.objective}</p>
                         </div>
                       </div>
                     </button>
                     <div className="flex items-center gap-2 shrink-0 ml-4">
-                      <span className="rounded-full bg-[#E5E7EB] px-2 py-0.5 text-sm text-[#6B7280]">{task.estimated_days}天</span>
-                      {totalResources > 0 && <span className="rounded-full bg-[#E5E7EB] px-2 py-0.5 text-sm text-[#6B7280]">{totalResources}资源</span>}
+                      <span className="rounded-full bg-[#E5E7EB] px-2 py-0.5 text-sm text-muted-foreground">{task.estimated_days}天</span>
+                      {totalResources > 0 && <span className="rounded-full bg-[#E5E7EB] px-2 py-0.5 text-sm text-muted-foreground">{totalResources}资源</span>}
                       <button
                         onClick={() => handleToggle(task.id, task.status)}
-                        className={`rounded-full px-3 py-1 text-sm font-medium transition-colors ${task.status === 'completed' ? 'bg-[#34c759] text-white' : 'bg-[#E5E7EB] text-[#6B7280] hover:bg-[#F3F4F6]'}`}
+                        className={`rounded-full px-3 py-1 text-sm font-medium transition-colors ${task.status === 'completed' ? 'bg-[#34c759] text-white' : 'bg-[#E5E7EB] text-muted-foreground hover:bg-secondary'}`}
                       >
                         {task.status === 'completed' ? '✓ 已完成' : '标记完成'}
                       </button>
@@ -232,22 +232,22 @@ export default function ModuleDetailPage({ params }: ModuleDetailPageProps) {
                   </div>
 
                   {isExpanded && (
-                    <div className="mt-4 border-t border-[#E5E7EB] pt-4">
-                      <p className="mb-3 text-sm text-[#9CA3AF]">{task.content_summary}</p>
+                    <div className="mt-4 border-t border-border pt-4">
+                      <p className="mb-3 text-sm text-muted-foreground">{task.content_summary}</p>
                       {resources.length > 0 && (
                         <div className="space-y-2">
-                          <p className="text-sm font-medium text-[#1F2937]">学习资源</p>
+                          <p className="text-sm font-medium text-foreground">学习资源</p>
                           {resources.map((r, i) => (
-                            <div key={i} className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 border border-[#E5E7EB]">
+                            <div key={i} className="flex items-center gap-2 rounded-xl bg-card px-3 py-2 border border-border">
                               <span className={`rounded-md px-1.5 py-0.5 text-sm font-medium ${RESOURCE_COLORS[r.type] ?? ''}`}>
                                 {RESOURCE_ICONS[r.type]} {r.type === 'article' ? '文章' : r.type === 'video' ? '视频' : '书籍'}
                               </span>
                               {r.url ? (
                                 <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-sm text-indigo-600 hover:underline">{r.title}</a>
                               ) : (
-                                <span className="text-sm text-[#9CA3AF]">{r.title}</span>
+                                <span className="text-sm text-muted-foreground">{r.title}</span>
                               )}
-                              {r.source && <span className="text-sm text-[#6B7280]">— {r.source}</span>}
+                              {r.source && <span className="text-sm text-muted-foreground">— {r.source}</span>}
                             </div>
                           ))}
                         </div>
@@ -276,18 +276,18 @@ export default function ModuleDetailPage({ params }: ModuleDetailPageProps) {
           {customTasks.length > 0 && (
             <div className="mt-6">
               <div className="mb-3 flex items-center gap-2">
-                <h2 className="text-base font-semibold text-[#1F2937]">自定义技能</h2>
+                <h2 className="text-base font-semibold text-foreground">自定义技能</h2>
                 <span className="rounded-full bg-[#ff9500]/10 px-2 py-0.5 text-sm text-[#ff9500]">自定义/JD分析</span>
               </div>
               <div className="space-y-3">
                 {customTasks.map((ct, idx) => (
-                  <div key={ct.id} className="rounded-2xl border-[#E5E7EB] bg-white p-5">
+                  <div key={ct.id} className="rounded-2xl border-border bg-card p-5">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
                         <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#ff9500]/10 text-sm font-medium text-[#ff9500]">{idx + 1}</span>
                         <div>
-                          <h3 className="text-base font-semibold text-[#1F2937]">{ct.title}</h3>
-                          <p className="mt-0.5 text-sm text-[#6B7280]">{ct.objective}</p>
+                          <h3 className="text-base font-semibold text-foreground">{ct.title}</h3>
+                          <p className="mt-0.5 text-sm text-muted-foreground">{ct.objective}</p>
                         </div>
                       </div>
                       <button
@@ -296,7 +296,7 @@ export default function ModuleDetailPage({ params }: ModuleDetailPageProps) {
                           setCustomTasks((prev) => prev.map((t) => t.id === ct.id ? { ...t, status: newStatus } : t));
                           await fetch(`/api/skills/tasks/${ct.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: newStatus }) });
                         }}
-                        className={`shrink-0 rounded-full px-3 py-1 text-sm font-medium transition-colors ${ct.status === 'completed' ? 'bg-[#34c759] text-white' : 'bg-[#E5E7EB] text-[#6B7280] hover:bg-[#F3F4F6]'}`}
+                        className={`shrink-0 rounded-full px-3 py-1 text-sm font-medium transition-colors ${ct.status === 'completed' ? 'bg-[#34c759] text-white' : 'bg-[#E5E7EB] text-muted-foreground hover:bg-secondary'}`}
                       >
                         {ct.status === 'completed' ? '✓ 已完成' : '标记完成'}
                       </button>
@@ -318,19 +318,19 @@ export default function ModuleDetailPage({ params }: ModuleDetailPageProps) {
           <div className="mt-6">
             {showAddTask ? (
               <div className="rounded-2xl border border-indigo-200 bg-indigo-50/30 p-5">
-                <h3 className="mb-3 text-sm font-semibold text-[#1F2937]">添加自定义技能/任务</h3>
+                <h3 className="mb-3 text-sm font-semibold text-foreground">添加自定义技能/任务</h3>
                 <div className="space-y-3">
                   <input
                     value={newTaskTitle}
                     onChange={(e) => setNewTaskTitle(e.target.value)}
                     placeholder="技能/任务名称，如：学习 Kubernetes 基础"
-                    className="w-full rounded-xl border border-[#D1D5DB] bg-white px-4 py-2.5 text-sm text-[#1F2937] placeholder-[#9CA3AF] focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    className="w-full rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-foreground placeholder-[#9CA3AF] focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                   />
                   <input
                     value={newTaskObjective}
                     onChange={(e) => setNewTaskObjective(e.target.value)}
                     placeholder="学习目标（可选），如：掌握 K8s 核心概念和部署流程"
-                    className="w-full rounded-xl border border-[#D1D5DB] bg-white px-4 py-2.5 text-sm text-[#1F2937] placeholder-[#9CA3AF] focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    className="w-full rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-foreground placeholder-[#9CA3AF] focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                   />
                   <div className="flex gap-2">
                     <button
@@ -342,7 +342,7 @@ export default function ModuleDetailPage({ params }: ModuleDetailPageProps) {
                     </button>
                     <button
                       onClick={() => { setShowAddTask(false); setNewTaskTitle(''); setNewTaskObjective(''); }}
-                      className="rounded-xl border border-[#E5E7EB] px-4 py-2 text-sm text-[#6B7280] hover:bg-[#F3F4F6]"
+                      className="rounded-xl border border-border px-4 py-2 text-sm text-muted-foreground hover:bg-secondary"
                     >
                       取消
                     </button>
@@ -352,7 +352,7 @@ export default function ModuleDetailPage({ params }: ModuleDetailPageProps) {
             ) : (
               <button
                 onClick={() => setShowAddTask(true)}
-                className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-[#D1D5DB] bg-white py-4 text-sm font-medium text-[#6B7280] transition-colors hover:border-indigo-300 hover:bg-indigo-50/30 hover:text-indigo-600"
+                className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-border bg-card py-4 text-sm font-medium text-muted-foreground transition-colors hover:border-indigo-300 hover:bg-indigo-50/30 hover:text-indigo-600"
               >
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />

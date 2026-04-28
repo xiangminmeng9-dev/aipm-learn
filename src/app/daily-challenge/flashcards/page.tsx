@@ -112,7 +112,7 @@ export default function FlashcardsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F8F9FB]">
+      <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
       </div>
     );
@@ -121,18 +121,18 @@ export default function FlashcardsPage() {
   const currentCard = dueCards[currentIndex];
 
   return (
-    <div className="min-h-screen bg-[#F8F9FB]">
-      <header className="sticky top-0 z-40 border-b border-gray-200 bg-white/80 backdrop-blur">
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-40 border-b border-border bg-card/80 backdrop-blur">
         <div className="flex items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
-            <Link href="/daily-challenge" className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900">
+            <Link href="/daily-challenge" className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
               </svg>
               返回
             </Link>
-            <span className="text-gray-300">|</span>
-            <h1 className="text-lg font-bold text-gray-900">知识闪卡</h1>
+            <span className="text-muted-foreground">|</span>
+            <h1 className="text-lg font-bold text-foreground">知识闪卡</h1>
           </div>
           <div className="flex gap-2">
             {[
@@ -144,7 +144,7 @@ export default function FlashcardsPage() {
                 key={tab.key}
                 onClick={() => setMode(tab.key as typeof mode)}
                 className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-                  mode === tab.key ? 'bg-indigo-100 text-indigo-700' : 'text-gray-500 hover:bg-gray-100'
+                  mode === tab.key ? 'bg-indigo-100 text-indigo-700' : 'text-muted-foreground hover:bg-secondary'
                 }`}
               >
                 {tab.label}{tab.count !== null ? ` (${tab.count})` : ''}
@@ -158,10 +158,10 @@ export default function FlashcardsPage() {
         {mode === 'review' && (
           <>
             {dueCards.length === 0 ? (
-              <div className="rounded-2xl border border-gray-200 bg-white p-12 text-center">
+              <div className="rounded-2xl border border-border bg-card p-12 text-center">
                 <div className="mb-3 text-4xl">🎉</div>
-                <h3 className="text-base font-semibold text-gray-800">暂无待复习卡片</h3>
-                <p className="mt-1 text-sm text-gray-500">所有卡片都已复习完毕，或还没有创建卡片</p>
+                <h3 className="text-base font-semibold text-foreground">暂无待复习卡片</h3>
+                <p className="mt-1 text-sm text-muted-foreground">所有卡片都已复习完毕，或还没有创建卡片</p>
                 <button
                   onClick={() => setMode('generate')}
                   className="mt-4 rounded-xl bg-indigo-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-indigo-700"
@@ -171,7 +171,7 @@ export default function FlashcardsPage() {
               </div>
             ) : (
               <>
-                <div className="mb-4 text-center text-xs text-gray-400">
+                <div className="mb-4 text-center text-xs text-muted-foreground">
                   {currentIndex + 1} / {dueCards.length} {reviewedCount > 0 && `· 已复习 ${reviewedCount} 张`}
                 </div>
 
@@ -194,8 +194,8 @@ export default function FlashcardsPage() {
                       style={{ backfaceVisibility: 'hidden' }}
                     >
                       <div className="mb-3 text-xs font-medium text-indigo-500">问题</div>
-                      <p className="text-lg font-medium text-gray-900 leading-relaxed">{currentCard.front}</p>
-                      <p className="mt-6 text-xs text-gray-400">点击翻转查看答案</p>
+                      <p className="text-lg font-medium text-foreground leading-relaxed">{currentCard.front}</p>
+                      <p className="mt-6 text-xs text-muted-foreground">点击翻转查看答案</p>
                     </div>
 
                     {/* Back */}
@@ -204,14 +204,14 @@ export default function FlashcardsPage() {
                       style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
                     >
                       <div className="mb-3 text-xs font-medium text-emerald-600">答案</div>
-                      <p className="text-base text-gray-800 leading-relaxed whitespace-pre-wrap">{currentCard.back}</p>
+                      <p className="text-base text-foreground leading-relaxed whitespace-pre-wrap">{currentCard.back}</p>
                     </div>
                   </div>
                 </div>
 
                 {isFlipped && (
                   <div className="mt-6">
-                    <p className="mb-3 text-center text-xs text-gray-500">你掌握了吗？</p>
+                    <p className="mb-3 text-center text-xs text-muted-foreground">你掌握了吗？</p>
                     <div className="flex justify-center gap-2">
                       {[
                         { rating: 1, label: '完全不会', color: 'bg-red-100 text-red-700 hover:bg-red-200' },
@@ -239,8 +239,8 @@ export default function FlashcardsPage() {
         {mode === 'all' && (
           <div className="space-y-3">
             {cards.length === 0 ? (
-              <div className="rounded-2xl border border-gray-200 bg-white p-12 text-center">
-                <p className="text-sm text-gray-500">还没有闪卡，去 AI 生成一些吧</p>
+              <div className="rounded-2xl border border-border bg-card p-12 text-center">
+                <p className="text-sm text-muted-foreground">还没有闪卡，去 AI 生成一些吧</p>
                 <button
                   onClick={() => setMode('generate')}
                   className="mt-3 rounded-xl bg-indigo-600 px-5 py-2 text-sm font-medium text-white hover:bg-indigo-700"
@@ -250,13 +250,13 @@ export default function FlashcardsPage() {
               </div>
             ) : (
               cards.map(card => (
-                <div key={card.id} className="rounded-xl border border-gray-200 bg-white p-4">
+                <div key={card.id} className="rounded-xl border border-border bg-card p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900">{card.front}</p>
-                      <p className="mt-1 text-xs text-gray-500 line-clamp-2">{card.back}</p>
+                      <p className="text-sm font-medium text-foreground">{card.front}</p>
+                      <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{card.back}</p>
                     </div>
-                    <span className="shrink-0 rounded-lg bg-gray-100 px-2 py-0.5 text-[10px] text-gray-500">{card.category}</span>
+                    <span className="shrink-0 rounded-lg bg-secondary px-2 py-0.5 text-[10px] text-muted-foreground">{card.category}</span>
                   </div>
                 </div>
               ))
@@ -267,16 +267,16 @@ export default function FlashcardsPage() {
         {mode === 'generate' && (
           <div className="space-y-6">
             {/* AI Generate */}
-            <div className="rounded-2xl border border-indigo-200 bg-white p-6">
-              <h3 className="text-base font-semibold text-gray-900">AI 智能生成</h3>
-              <p className="mt-1 text-xs text-gray-500">输入主题，AI 自动生成 8 张知识闪卡</p>
+            <div className="rounded-2xl border border-indigo-200 bg-card p-6">
+              <h3 className="text-base font-semibold text-foreground">AI 智能生成</h3>
+              <p className="mt-1 text-xs text-muted-foreground">输入主题，AI 自动生成 8 张知识闪卡</p>
               <div className="mt-4 flex gap-2">
                 <input
                   type="text"
                   value={generateTopic}
                   onChange={(e) => setGenerateTopic(e.target.value)}
                   placeholder="例如：AI 推荐系统、NLP 基础、A/B 测试..."
-                  className="flex-1 rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                  className="flex-1 rounded-xl border border-border bg-muted px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100"
                   onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
                 />
                 <button
@@ -292,7 +292,7 @@ export default function FlashcardsPage() {
                   <button
                     key={tag}
                     onClick={() => setGenerateTopic(tag)}
-                    className="rounded-lg bg-gray-100 px-2.5 py-1 text-xs text-gray-600 hover:bg-indigo-50 hover:text-indigo-600"
+                    className="rounded-lg bg-secondary px-2.5 py-1 text-xs text-muted-foreground hover:bg-indigo-50 hover:text-indigo-600"
                   >
                     {tag}
                   </button>
@@ -301,21 +301,21 @@ export default function FlashcardsPage() {
             </div>
 
             {/* Manual Create */}
-            <div className="rounded-2xl border border-gray-200 bg-white p-6">
-              <h3 className="text-base font-semibold text-gray-900">手动创建</h3>
+            <div className="rounded-2xl border border-border bg-card p-6">
+              <h3 className="text-base font-semibold text-foreground">手动创建</h3>
               <div className="mt-4 space-y-3">
                 <input
                   type="text"
                   value={manualFront}
                   onChange={(e) => setManualFront(e.target.value)}
                   placeholder="正面（问题/概念）"
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm placeholder:text-gray-400 focus:border-indigo-300 focus:outline-none"
+                  className="w-full rounded-xl border border-border bg-muted px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:border-indigo-300 focus:outline-none"
                 />
                 <textarea
                   value={manualBack}
                   onChange={(e) => setManualBack(e.target.value)}
                   placeholder="背面（答案/解释）"
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm placeholder:text-gray-400 focus:border-indigo-300 focus:outline-none"
+                  className="w-full rounded-xl border border-border bg-muted px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:border-indigo-300 focus:outline-none"
                   rows={3}
                 />
                 <input
@@ -323,7 +323,7 @@ export default function FlashcardsPage() {
                   value={manualCategory}
                   onChange={(e) => setManualCategory(e.target.value)}
                   placeholder="分类（可选）"
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm placeholder:text-gray-400 focus:border-indigo-300 focus:outline-none"
+                  className="w-full rounded-xl border border-border bg-muted px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:border-indigo-300 focus:outline-none"
                 />
                 <button
                   onClick={handleManualCreate}

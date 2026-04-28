@@ -48,14 +48,25 @@ export async function POST(request: NextRequest) {
       analysis = JSON.parse(cleaned);
     } catch {
       analysis = {
-        extracted_skills: [],
-        skill_gaps: [],
-        suggested_focus: [],
+        match_score: 0,
+        strengths: [],
+        gaps: [],
+        suggestions: [],
+        ats_analysis: { overall_score: 0, dimensions: [], improvement: '' },
         raw: resultText.trim(),
       };
     }
 
-    return NextResponse.json(analysis);
+    // Normalize field names for frontend compatibility
+    const normalized = {
+      match_score: analysis.match_score ?? 0,
+      strengths: analysis.strengths ?? analysis.extracted_skills ?? [],
+      gaps: analysis.gaps ?? analysis.skill_gaps ?? [],
+      suggestions: analysis.suggestions ?? analysis.suggested_focus ?? [],
+      ats_analysis: analysis.ats_analysis ?? { overall_score: 0, dimensions: [], improvement: '' },
+    };
+
+    return NextResponse.json(normalized);
   } catch (error) {
     console.error('Resume analyze API error:', error);
     return NextResponse.json({ error: '服务器内部错误', code: 'INTERNAL_ERROR' }, { status: 500 });

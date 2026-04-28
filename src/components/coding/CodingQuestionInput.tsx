@@ -29,12 +29,12 @@ export default function CodingQuestionInput({ onSubmit, isLoading, hasMode }: Co
   return (
     <div
       onClick={() => taRef.current?.focus()}
-      className={`group relative cursor-text overflow-hidden rounded-2xl border-2 bg-white p-5 transition-all duration-200 ${
+      className={`group relative cursor-text overflow-hidden rounded-2xl border-2 bg-card p-5 transition-all duration-200 ${
         focused
           ? 'border-emerald-500 shadow-[0_8px_24px_rgba(16,185,129,0.18)]'
           : error
             ? 'border-rose-300'
-            : 'border-[#E5E7EB] hover:border-emerald-200 hover:shadow-md'
+            : 'border-border hover:border-emerald-200 hover:shadow-md'
       }`}
     >
       <div
@@ -50,8 +50,8 @@ export default function CodingQuestionInput({ onSubmit, isLoading, hasMode }: Co
             </svg>
           </div>
           <div>
-            <div className="text-sm font-semibold text-[#1F2937]">输入 AI Coding 面试题目</div>
-            <div className="text-xs text-[#9CA3AF]">AI 将生成完整开发流程与技术方案</div>
+            <div className="text-sm font-semibold text-foreground">输入 AI Coding 面试题目</div>
+            <div className="text-xs text-muted-foreground">AI 将生成完整开发流程与技术方案</div>
           </div>
         </div>
         {!hasMode && (
@@ -69,7 +69,7 @@ export default function CodingQuestionInput({ onSubmit, isLoading, hasMode }: Co
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
         placeholder="例如：用 Claude Code 开发一个实时协作白板应用"
-        className="w-full min-h-[140px] resize-none border-0 bg-transparent text-base text-[#1F2937] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-0"
+        className="w-full min-h-[140px] resize-none border-0 bg-transparent text-base text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-0"
         disabled={isLoading}
       />
 
@@ -83,12 +83,12 @@ export default function CodingQuestionInput({ onSubmit, isLoading, hasMode }: Co
       )}
 
       <div className="mt-3 flex items-center justify-between border-t border-[#F3F4F6] pt-3">
-        <div className="flex items-center gap-3 text-xs text-[#6B7280]">
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
           <span className={value.length > 4500 ? 'text-amber-600 font-medium' : ''}>{value.length} / 5000</span>
           <span className="hidden sm:inline-flex items-center gap-1">
-            <kbd className="rounded border border-[#E5E7EB] bg-[#F9FAFB] px-1.5 py-0.5 text-[10px] font-mono">Ctrl</kbd>
+            <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-mono">Ctrl</kbd>
             +
-            <kbd className="rounded border border-[#E5E7EB] bg-[#F9FAFB] px-1.5 py-0.5 text-[10px] font-mono">Enter</kbd>
+            <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-mono">Enter</kbd>
             提交
           </span>
         </div>

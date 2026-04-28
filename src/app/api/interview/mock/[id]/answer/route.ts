@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { generateText } from '@/lib/ai/claude';
 import {
   buildMockScoringPrompt,
@@ -11,24 +11,34 @@ import {
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-    if (!user) {
+    // Fallback: try Authorization header
+    let authenticatedUser = user;
+    if (!authenticatedUser) {
+      const authHeader = request.headers.get('Authorization');
+      if (authHeader?.startsWith('Bearer ')) {
+        const token = authHeader.slice(7);
+        const { data: { user: headerUser } } = await supabase.auth.getUser(token);
+        authenticatedUser = headerUser;
+      }
+    }
+
+    if (!authenticatedUser) {
       return NextResponse.json({ error: '未登录', code: 'UNAUTHORIZED' }, { status: 401 });
     }
 
     const { id: mockId } = await params;
     const body = await request.json();
     const { answer, skip } = body as { answer?: string; skip?: boolean };
+    const serviceClient = createServiceClient();
 
     // 获取模拟面试信息
-    const { data: mockInterview } = await supabase
+    const { data: mockInterview } = await serviceClient
       .from('mock_interviews')
       .select('id, type_id, current_question, total_questions, status, jd_text, resume_text')
       .eq('id', mockId)
-      .eq('user_id', user.id)
+      .eq('user_id', authenticatedUser.id)
       .single();
 
     if (!mockInterview) {
@@ -40,7 +50,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     // 获取当前题目
-    const { data: currentAnswer } = await supabase
+    const { data: currentAnswer } = await serviceClient
       .from('interview_answers')
       .select('id, question_number, question_text')
       .eq('mock_interview_id', mockId)
@@ -96,7 +106,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     // 更新当前答案
-    await supabase
+    await serviceClient
       .from('interview_answers')
       .update({
         user_answer: isSkipped ? null : answerText,
@@ -112,7 +122,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     if (isLast) {
       // 面试结束
-      await supabase
+      await serviceClient
         .from('mock_interviews')
         .update({
           status: 'completed',
@@ -121,7 +131,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         .eq('id', mockId);
 
       // 面试结束后异步触发方法论更新
-      triggerMethodologyUpdate(user.id, mockInterview.type_id).catch(() => {});
+      triggerMethodologyUpdate(authenticatedUser.id, mockInterview.type_id).catch(() => {});
 
       return NextResponse.json({
         evaluation,
@@ -133,14 +143,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     // 生成下一题
     const nextQuestionNumber = mockInterview.current_question + 1;
 
-    const { data: typeData } = await supabase
+    const { data: typeData } = await serviceClient
       .from('question_types')
-      .select('name')
+      .select('id, name')
       .eq('id', mockInterview.type_id)
       .single();
 
     // 获取已出题目
-    const { data: previousAnswers } = await supabase
+    const { data: previousAnswers } = await serviceClient
       .from('interview_answers')
       .select('question_text')
       .eq('mock_interview_id', mockId);
@@ -161,7 +171,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     });
 
     // 保存下一题
-    await supabase.from('interview_answers').insert({
+    await serviceClient.from('interview_answers').insert({
       mock_interview_id: mockId,
       question_number: nextQuestionNumber,
       question_text: nextQuestionText.trim(),
@@ -170,7 +180,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     });
 
     // 更新当前题号
-    await supabase
+    await serviceClient
       .from('mock_interviews')
       .update({ current_question: nextQuestionNumber })
       .eq('id', mockId);

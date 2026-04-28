@@ -133,10 +133,10 @@ export default function ExternalResourcesPanel() {
       <div className="mb-4 flex items-center gap-1 text-sm">
         {folderPath.map((p, i) => (
           <span key={p.id ?? 'root'} className="flex items-center gap-1">
-            {i > 0 && <ChevronRight className="h-3.5 w-3.5 text-[#9CA3AF]" />}
+            {i > 0 && <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
             <button
               onClick={() => setCurrentFolder(p.id)}
-              className={`transition-colors ${i === folderPath.length - 1 ? 'font-medium text-[#1F2937]' : 'text-[#6B7280] hover:text-indigo-600'}`}
+              className={`transition-colors ${i === folderPath.length - 1 ? 'font-medium text-foreground' : 'text-muted-foreground hover:text-indigo-600'}`}
             >
               {i === 0 && <span className="mr-1">📚</span>}
               {p.title}
@@ -149,7 +149,7 @@ export default function ExternalResourcesPanel() {
       <div className="mb-4 flex items-center gap-2">
         <button
           onClick={() => { setAddType('folder'); setShowAdd(true); }}
-          className="flex items-center gap-1 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5 text-sm font-medium text-[#6B7280] transition-colors hover:border-amber-300 hover:bg-amber-50 hover:text-amber-600"
+          className="flex items-center gap-1 rounded-lg border border-border bg-card px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:border-amber-300 hover:bg-amber-50 hover:text-amber-600"
         >
           <Folder className="h-4 w-4" />
           新建文件夹
@@ -168,13 +168,13 @@ export default function ExternalResourcesPanel() {
           <Loader2 className="h-5 w-5 animate-spin text-indigo-500" />
         </div>
       ) : sortedItems.length === 0 ? (
-        <p className="py-6 text-center text-sm text-[#9CA3AF]">暂无资源，点击上方按钮添加</p>
+        <p className="py-6 text-center text-sm text-muted-foreground">暂无资源，点击上方按钮添加</p>
       ) : (
         <div className="space-y-2">
           {sortedItems.map((r) => (
             <div
               key={r.id}
-              className="group flex items-start gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 transition-colors hover:border-indigo-200 hover:bg-indigo-50/30"
+              className="group flex items-start gap-3 rounded-xl border border-border bg-card px-4 py-3 transition-colors hover:border-indigo-200 hover:bg-indigo-50/30"
             >
               {r.type === 'folder' ? (
                 <button
@@ -186,12 +186,12 @@ export default function ExternalResourcesPanel() {
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-base font-medium text-[#1F2937]">{r.title}</span>
+                      <span className="text-base font-medium text-foreground">{r.title}</span>
                       <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs text-amber-600">
                         {resources.filter((c) => c.parent_id === r.id).length} 项
                       </span>
                     </div>
-                    {r.notes && <p className="mt-0.5 text-sm text-[#6B7280] truncate">{r.notes}</p>}
+                    {r.notes && <p className="mt-0.5 text-sm text-muted-foreground truncate">{r.notes}</p>}
                   </div>
                 </button>
               ) : (
@@ -201,14 +201,14 @@ export default function ExternalResourcesPanel() {
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <a href={r.url} target="_blank" rel="noopener noreferrer" className="truncate text-base font-medium text-[#1F2937] hover:text-indigo-600 hover:underline">
+                      <a href={r.url} target="_blank" rel="noopener noreferrer" className="truncate text-base font-medium text-foreground hover:text-indigo-600 hover:underline">
                         {r.title}
                       </a>
                       {r.related_module_name && (
                         <span className="shrink-0 rounded-full bg-indigo-50 px-2 py-0.5 text-xs text-indigo-600">{r.related_module_name}</span>
                       )}
                     </div>
-                    <div className="mt-0.5 flex items-center gap-2 text-sm text-[#6B7280]">
+                    <div className="mt-0.5 flex items-center gap-2 text-sm text-muted-foreground">
                       {r.source && <span>{r.source}</span>}
                       {r.notes && <span className="truncate">— {r.notes}</span>}
                     </div>
@@ -217,7 +217,7 @@ export default function ExternalResourcesPanel() {
               )}
               <button
                 onClick={() => handleDelete(r.id)}
-                className="shrink-0 text-[#9CA3AF] opacity-0 transition-opacity hover:text-[#ff3b30] group-hover:opacity-100"
+                className="shrink-0 text-muted-foreground opacity-0 transition-opacity hover:text-[#ff3b30] group-hover:opacity-100"
                 title="删除"
               >
                 <Trash2 className="h-4 w-4" />
@@ -230,19 +230,19 @@ export default function ExternalResourcesPanel() {
       {/* Add dialog */}
       {showAdd && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/40" onClick={() => setShowAdd(false)}>
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-md rounded-2xl bg-card p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-[#1F2937]">
+              <h3 className="text-lg font-semibold text-foreground">
                 {addType === 'folder' ? '新建文件夹' : '添加学习资源'}
               </h3>
-              <button onClick={() => setShowAdd(false)} className="text-[#9CA3AF] hover:text-[#6B7280]">
+              <button onClick={() => setShowAdd(false)} className="text-muted-foreground hover:text-muted-foreground">
                 <X className="h-5 w-5" />
               </button>
             </div>
 
             {addType !== 'folder' && (
               <div className="mb-4">
-                <label className="mb-1.5 block text-sm font-medium text-[#374151]">类型</label>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">类型</label>
                 <div className="flex gap-2">
                   {TYPE_CONFIG.map((tc) => {
                     const Icon = tc.icon;
@@ -251,7 +251,7 @@ export default function ExternalResourcesPanel() {
                         key={tc.value}
                         onClick={() => setAddType(tc.value)}
                         className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm transition-colors ${
-                          addType === tc.value ? 'border-indigo-300 bg-indigo-50 text-indigo-600' : 'border-[#E5E7EB] text-[#6B7280] hover:border-[#D1D5DB]'
+                          addType === tc.value ? 'border-indigo-300 bg-indigo-50 text-indigo-600' : 'border-border text-muted-foreground hover:border-border'
                         }`}
                       >
                         <Icon className="h-4 w-4" />
@@ -264,38 +264,38 @@ export default function ExternalResourcesPanel() {
             )}
 
             <div className="mb-3">
-              <label className="mb-1.5 block text-sm font-medium text-[#374151]">
+              <label className="mb-1.5 block text-sm font-medium text-foreground">
                 {addType === 'folder' ? '文件夹名称' : '标题'} *
               </label>
               <Input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder={addType === 'folder' ? '文件夹名称' : '资源名称'}
-                className="border-[#E5E7EB]"
+                className="border-border"
               />
             </div>
 
             {addType !== 'folder' && (
               <>
                 <div className="mb-3">
-                  <label className="mb-1.5 block text-sm font-medium text-[#374151]">链接 *</label>
-                  <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://..." type="url" className="border-[#E5E7EB]" />
+                  <label className="mb-1.5 block text-sm font-medium text-foreground">链接 *</label>
+                  <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://..." type="url" className="border-border" />
                 </div>
                 <div className="mb-3">
-                  <label className="mb-1.5 block text-sm font-medium text-[#374151]">来源</label>
-                  <Input value={source} onChange={(e) => setSource(e.target.value)} placeholder="如：微信公众号、B站、知乎..." className="border-[#E5E7EB]" />
+                  <label className="mb-1.5 block text-sm font-medium text-foreground">来源</label>
+                  <Input value={source} onChange={(e) => setSource(e.target.value)} placeholder="如：微信公众号、B站、知乎..." className="border-border" />
                 </div>
               </>
             )}
 
             <div className="mb-5">
-              <label className="mb-1.5 block text-sm font-medium text-[#374151]">备注</label>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">备注</label>
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder={addType === 'folder' ? '文件夹描述...' : '学习笔记、心得...'}
                 rows={2}
-                className="w-full rounded-lg border border-[#E5E7EB] px-3 py-2 text-sm text-[#374151] placeholder:text-[#9CA3AF] focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                className="w-full rounded-lg border border-border px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100"
               />
             </div>
 

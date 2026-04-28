@@ -27,7 +27,7 @@ export default function VersionSelector({ value, onChange }: VersionSelectorProp
             className={`relative rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 ${
               isSelected
                 ? 'bg-indigo-500 text-white shadow-sm'
-                : 'bg-white text-[#6B7280] border border-[#E5E7EB] hover:border-indigo-300 hover:text-indigo-600'
+                : 'bg-card text-muted-foreground border border-border hover:border-indigo-300 hover:text-indigo-600'
             }`}
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}

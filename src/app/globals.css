@@ -84,6 +84,41 @@
   --sidebar-ring: #4F46E5;
 }
 
+.dark {
+  --background: #0F172A;
+  --foreground: #E2E8F0;
+  --card: #1E293B;
+  --card-foreground: #E2E8F0;
+  --popover: #1E293B;
+  --popover-foreground: #E2E8F0;
+  --primary: #4F46E5;
+  --primary-foreground: #FFFFFF;
+  --secondary: #1E293B;
+  --secondary-foreground: #94A3B8;
+  --muted: #334155;
+  --muted-foreground: #94A3B8;
+  --accent: #312E81;
+  --accent-foreground: #C7D2FE;
+  --destructive: #EF4444;
+  --border: #334155;
+  --input: #334155;
+  --ring: #818CF8;
+  --chart-1: #4F46E5;
+  --chart-2: #7C3AED;
+  --chart-3: #06B6D4;
+  --chart-4: #10B981;
+  --chart-5: #F59E0B;
+  --radius: 1rem;
+  --sidebar: #1E293B;
+  --sidebar-foreground: #94A3B8;
+  --sidebar-primary: #4F46E5;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #312E81;
+  --sidebar-accent-foreground: #C7D2FE;
+  --sidebar-border: #334155;
+  --sidebar-ring: #818CF8;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -116,10 +151,10 @@
   background: rgba(0, 0, 0, 0.25);
 }
 
-/* Card style - white bg, sharp border, rounded */
+/* Card style */
 .app-card {
-  background: #FFFFFF;
-  border: 1px solid #E5E7EB;
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: 16px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   transition: box-shadow 0.15s ease;
@@ -130,17 +165,17 @@
 
 /* Input style */
 .app-input {
-  background: #FFFFFF;
-  border: 1px solid #E5E7EB;
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: 8px;
-  color: #1F2937;
+  color: var(--foreground);
   transition: all 0.2s ease;
 }
 .app-input::placeholder {
-  color: #9CA3AF;
+  color: var(--muted-foreground);
 }
 .app-input:focus {
-  border-color: #4F46E5;
+  border-color: var(--ring);
   outline: none;
   box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.15);
 }
@@ -163,19 +198,19 @@
   opacity: 0.5;
 }
 
-/* Outline button - white bg, border */
+/* Outline button */
 .app-btn-outline {
-  background: #FFFFFF;
-  border: 1px solid #D1D5DB;
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: 8px;
-  color: #6B7280;
+  color: var(--muted-foreground);
   font-weight: 500;
   transition: all 0.2s ease;
 }
 .app-btn-outline:hover {
-  background: #F9FAFB;
-  border-color: #9CA3AF;
-  color: #374151;
+  background: var(--muted);
+  border-color: var(--muted-foreground);
+  color: var(--foreground);
 }
 
 /* Gradient text - indigo */

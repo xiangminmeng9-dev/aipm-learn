@@ -15,7 +15,7 @@ export default function JdInput({ value, onChange }: JdInputProps) {
         className="app-input w-full min-h-[200px] resize-none p-4 text-sm"
       />
       <div className="flex items-center justify-end">
-        <span className="text-xs text-[#9CA3AF]">{value.length} 字符</span>
+        <span className="text-xs text-muted-foreground">{value.length} 字符</span>
       </div>
     </div>
   );

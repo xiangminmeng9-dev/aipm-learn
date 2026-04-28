@@ -145,23 +145,23 @@ export default function MethodologyCard({
   const normalizedFramework = normalizeContent(framework);
 
   return (
-    <Card className="border-[#E5E7EB] bg-white overflow-hidden">
+    <Card className="border-border bg-card overflow-hidden">
       <div className="h-1 w-full bg-gradient-to-r from-indigo-400 to-violet-400" />
       <CardHeader className="cursor-pointer" onClick={onToggle}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-lg">📘</span>
-            <CardTitle className="text-lg text-[#1F2937]">{type.name}</CardTitle>
+            <CardTitle className="text-lg text-foreground">{type.name}</CardTitle>
             <Badge variant="secondary" className="bg-indigo-50 text-indigo-600 text-sm">
               {sourceCount} 次练习
             </Badge>
           </div>
-          <span className="text-sm text-[#6B7280]">
+          <span className="text-sm text-muted-foreground">
             {new Date(updatedAt).toLocaleDateString('zh-CN')}
           </span>
         </div>
         {!isExpanded && (
-          <p className="mt-2 line-clamp-2 text-sm text-[#6B7280] break-words overflow-wrap-anywhere">
+          <p className="mt-2 line-clamp-2 text-sm text-muted-foreground break-words overflow-wrap-anywhere">
             {normalizedFramework}
           </p>
         )}
@@ -174,7 +174,7 @@ export default function MethodologyCard({
             <h4 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-indigo-700">
               <span>🏗️</span>核心框架
             </h4>
-            <div className="text-sm text-[#4B5563] break-words overflow-wrap-anywhere hyphens-auto">
+            <div className="text-sm text-muted-foreground break-words overflow-wrap-anywhere hyphens-auto">
               <Markdown content={normalizedFramework} />
             </div>
           </div>
@@ -187,7 +187,7 @@ export default function MethodologyCard({
               </h4>
               <ol className="space-y-2">
                 {keySteps.map((step, i) => (
-                  <li key={i} className="flex gap-2 text-sm text-[#4B5563] break-words overflow-wrap-anywhere">
+                  <li key={i} className="flex gap-2 text-sm text-muted-foreground break-words overflow-wrap-anywhere">
                     <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-amber-100 text-xs font-bold text-amber-600">{i + 1}</span>
                     <span className="min-w-0 break-words overflow-wrap-anywhere">{normalizeContent(step)}</span>
                   </li>
@@ -204,7 +204,7 @@ export default function MethodologyCard({
               </h4>
               <div className="space-y-2">
                 {typicalCases.map((c, i) => (
-                  <div key={i} className="flex gap-2 text-sm text-[#4B5563] break-words overflow-wrap-anywhere">
+                  <div key={i} className="flex gap-2 text-sm text-muted-foreground break-words overflow-wrap-anywhere">
                     <span className="mt-0.5 flex-shrink-0 text-emerald-500">•</span>
                     <span className="min-w-0 break-words overflow-wrap-anywhere">{normalizeContent(c)}</span>
                   </div>
@@ -221,7 +221,7 @@ export default function MethodologyCard({
               </h4>
               <div className="flex flex-wrap gap-2">
                 {highFrequencyQuestions.map((q) => (
-                  <Badge key={q.id} variant="secondary" className="bg-white text-sky-600 border border-sky-200 text-xs max-w-[200px] truncate">
+                  <Badge key={q.id} variant="secondary" className="bg-card text-sky-600 border border-sky-200 text-xs max-w-[200px] truncate">
                     {q.text}
                   </Badge>
                 ))}

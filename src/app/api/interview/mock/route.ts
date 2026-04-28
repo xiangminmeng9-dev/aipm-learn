@@ -1,7 +1,59 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { generateText } from '@/lib/ai/claude';
 import { buildMockQuestionPrompt, MOCK_QUESTION_SYSTEM_PROMPT } from '@/lib/ai/prompts';
+
+// GET /api/interview/mock — 获取用户的模拟面试列表
+export async function GET(request: NextRequest) {
+  try {
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    let authenticatedUser = user;
+    if (!authenticatedUser) {
+      const authHeader = request.headers.get('Authorization');
+      if (authHeader?.startsWith('Bearer ')) {
+        const token = authHeader.slice(7);
+        const { data: { user: headerUser } } = await supabase.auth.getUser(token);
+        authenticatedUser = headerUser;
+      }
+    }
+
+    if (!authenticatedUser) {
+      return NextResponse.json({ error: '未登录' }, { status: 401 });
+    }
+
+    const serviceClient = createServiceClient();
+    const { data: mocks, error } = await serviceClient
+      .from('mock_interviews')
+      .select('id, type_id, total_questions, current_question, status, total_score, created_at, completed_at, question_types(name)')
+      .eq('user_id', authenticatedUser.id)
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    if (error) {
+      console.error('Get mock list error:', error);
+      return NextResponse.json({ error: '获取列表失败' }, { status: 500 });
+    }
+
+    const result = (mocks ?? []).map((m) => ({
+      id: m.id,
+      type_id: m.type_id,
+      type_name: (m.question_types as unknown as { name: string })?.name ?? '未知类型',
+      total_questions: m.total_questions,
+      current_question: m.current_question,
+      status: m.status,
+      total_score: m.total_score,
+      created_at: m.created_at,
+      completed_at: m.completed_at,
+    }));
+
+    return NextResponse.json({ mocks: result });
+  } catch (error) {
+    console.error('Get mock list error:', error);
+    return NextResponse.json({ error: '服务器内部错误' }, { status: 500 });
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {

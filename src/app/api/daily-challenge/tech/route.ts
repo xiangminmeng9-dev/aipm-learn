@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 
 export const maxDuration = 60;
 
@@ -47,14 +47,18 @@ export async function GET() {
       source_name: 'AI 技术日报',
     };
 
-    const { data: inserted } = await supabase
+    // Use service client to bypass RLS (no INSERT/UPDATE policy on daily_tech_cache)
+    const serviceClient = createServiceClient();
+    const { data: inserted } = await serviceClient
       .from('daily_tech_cache')
       .insert(defaultTech)
       .select()
       .single();
 
     // Async: try AI generation to upgrade
-    generateAndUpgradeTech(today).catch(() => {});
+    generateAndUpgradeTech(today).catch((err) => {
+      console.error('generateAndUpgradeTech failed:', err);
+    });
 
     return NextResponse.json({ tech: inserted || defaultTech, source: 'default' });
   } catch (err) {
@@ -70,13 +74,27 @@ export async function POST(request: NextRequest) {
     if (!user) return NextResponse.json({ error: '未登录' }, { status: 401 });
 
     const body = await request.json();
-    const { action, tech_date } = body as { action: 'bookmark' | 'unbookmark'; tech_date: string };
+    const { action, tech_date, tech_data } = body as {
+      action: 'bookmark' | 'unbookmark';
+      tech_date: string;
+      tech_data?: { title?: string; summary?: string; explanation?: string; impact?: string; tags?: string[]; source_url?: string };
+    };
 
     if (action === 'bookmark') {
       const { error } = await supabase
         .from('daily_tech_bookmarks')
-        .insert({ user_id: user.id, tech_date });
+        .insert({
+          user_id: user.id,
+          tech_date,
+          title: tech_data?.title || '未命名',
+          summary: tech_data?.summary || null,
+          explanation: tech_data?.explanation || null,
+          impact: tech_data?.impact || null,
+          tags: tech_data?.tags || [],
+          source_url: tech_data?.source_url || null,
+        });
       if (error && !error.message.includes('duplicate')) {
+        console.error('Bookmark insert error:', error);
         return NextResponse.json({ error: '收藏失败' }, { status: 500 });
       }
       return NextResponse.json({ bookmarked: true });
@@ -99,18 +117,31 @@ export async function POST(request: NextRequest) {
 
 async function generateAndUpgradeTech(date: string): Promise<void> {
   try {
+    const serviceClient = createServiceClient();
+
+    // Fetch existing titles to avoid duplicates
+    const { data: existing } = await serviceClient
+      .from('daily_tech_cache')
+      .select('title')
+      .order('date', { ascending: false })
+      .limit(30);
+
+    const existingTitles = (existing ?? []).map((e: { title: string }) => e.title).filter(Boolean);
+    const avoidList = existingTitles.length > 0
+      ? `\n\n以下标题已推送过，请勿重复或高度相似：\n${existingTitles.map((t: string) => `- ${t}`).join('\n')}`
+      : '';
+
     const { generateText } = await import('@/lib/ai/claude');
     const aiResult = await generateText(
-      `推荐一个今天AI领域最值得关注的技术动态。只输出JSON：{"title":"标题","summary":"50字摘要","explanation":"200字白话解读，对AI PM意味着什么","impact":"对AI PM的影响，100字","tags":["标签1","标签2","标签3"]}`,
-      { system: '你是AI技术观察者。只输出JSON，不要markdown代码块。', maxTokens: 500 }
+      `推荐一个今天AI领域最值得关注的技术动态，要求与之前推送的内容不重复，聚焦不同方向（如模型架构、应用场景、工具链、行业落地、开源动态等轮换）。只输出JSON：{"title":"标题","summary":"50字摘要","explanation":"200字白话解读，对AI PM意味着什么","impact":"对AI PM的影响，100字","tags":["标签1","标签2","标签3"]}${avoidList}`,
+      { system: '你是AI技术观察者。只输出JSON，不要markdown代码块。每天推送不同方向的技术动态，避免重复。', maxTokens: 500 }
     );
 
     const cleaned = aiResult.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     const parsed = JSON.parse(cleaned);
     if (!parsed.title) return;
 
-    const supabase = await createClient();
-    await supabase
+    const { error } = await serviceClient
       .from('daily_tech_cache')
       .update({
         title: parsed.title,
@@ -120,5 +151,11 @@ async function generateAndUpgradeTech(date: string): Promise<void> {
         tags: parsed.tags,
       })
       .eq('date', date);
-  } catch { /* silent */ }
+
+    if (error) {
+      console.error('Failed to update daily_tech_cache:', error);
+    }
+  } catch (err) {
+    console.error('generateAndUpgradeTech error:', err);
+  }
 }

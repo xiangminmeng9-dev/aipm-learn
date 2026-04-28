@@ -5,6 +5,7 @@ import Link from 'next/link';
 import MockInterviewFlow, { type MockInterviewResult } from '@/components/interview/MockInterviewFlow';
 import MockSummary from '@/components/interview/MockSummary';
 import { Button } from '@/components/ui/button';
+import { createClient } from '@/lib/supabase/client';
 
 interface MockDetailPageProps {
   params: Promise<{ id: string }>;
@@ -19,7 +20,7 @@ export default function MockDetailPage({ params }: MockDetailPageProps) {
   const [pageState, setPageState] = useState<PageState>({ phase: 'loading' });
 
   useEffect(() => {
-    params.then(({ id }) => {
+    params.then(async ({ id }) => {
       // 1. Check in-progress interview state (mock-interview-${id})
       try {
         const progressData = localStorage.getItem(`mock-interview-${id}`);
@@ -32,14 +33,20 @@ export default function MockDetailPage({ params }: MockDetailPageProps) {
         }
       } catch {}
 
-      // 2. Check completed interview result (mock-${id})
+      // 2. Get session for auth headers (used for all server API calls)
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      const authHeaders: Record<string, string> = {};
+      if (session) authHeaders['Authorization'] = `Bearer ${session.access_token}`;
+
+      // 3. Check completed interview result (mock-${id})
       try {
         const completedData = localStorage.getItem(`mock-${id}`);
         if (completedData) {
           const parsed = JSON.parse(completedData);
           if (parsed.completed) {
             // Try server summary first, fallback to local data
-            fetch(`/api/interview/mock/${id}/summary`)
+            fetch(`/api/interview/mock/${id}/summary`, { headers: authHeaders })
               .then((r) => r.ok ? r.json() : null)
               .then((serverSummary) => {
                 if (serverSummary) {
@@ -67,15 +74,15 @@ export default function MockDetailPage({ params }: MockDetailPageProps) {
         }
       } catch {}
 
-      // 3. Try server API (for authenticated users)
-      fetch(`/api/interview/mock/${id}/state`)
+      // 4. Try server API (for authenticated users)
+      fetch(`/api/interview/mock/${id}/state`, { headers: authHeaders })
         .then((r) => {
           if (r.status === 401) throw new Error('unauth');
           return r.json();
         })
         .then((data) => {
           if (data.status === 'completed') {
-            fetch(`/api/interview/mock/${id}/summary`)
+            fetch(`/api/interview/mock/${id}/summary`, { headers: authHeaders })
               .then((r) => r.json())
               .then((summaryData) => setPageState({ phase: 'summary', summary: summaryData }))
               .catch(() => setPageState({ phase: 'summary', summary: emptySummary(id) }));
@@ -102,7 +109,12 @@ export default function MockDetailPage({ params }: MockDetailPageProps) {
   const handleComplete = async (result: MockInterviewResult) => {
     // Try to get server summary first
     try {
-      const res = await fetch(`/api/interview/mock/${pageState.phase === 'interview' ? (pageState as { mockId: string }).mockId : ''}/summary`);
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      const authHeaders: Record<string, string> = {};
+      if (session) authHeaders['Authorization'] = `Bearer ${session.access_token}`;
+
+      const res = await fetch(`/api/interview/mock/${pageState.phase === 'interview' ? (pageState as { mockId: string }).mockId : ''}/summary`, { headers: authHeaders });
       if (res.ok) {
         const data = await res.json();
         setPageState({ phase: 'summary', summary: data });
@@ -153,7 +165,11 @@ export default function MockDetailPage({ params }: MockDetailPageProps) {
     return (
       <div className="p-8">
         <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-[#1F2937]">面试总结</h1>
+          <div className="flex items-center gap-3">
+            <Link href="/interview/mock" className="text-sm text-muted-foreground hover:text-foreground">← 返回</Link>
+            <span className="text-muted-foreground">|</span>
+            <h1 className="text-3xl font-bold text-foreground">面试总结</h1>
+          </div>
           <Link href="/interview/mock">
             <Button variant="outline" className="app-btn-outline">
               再来一次
@@ -168,8 +184,9 @@ export default function MockDetailPage({ params }: MockDetailPageProps) {
   return (
     <div className="p-8">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-[#1F2937]">模拟面试</h1>
-        <p className="mt-1 text-base text-[#6B7280]">认真作答，每题获得即时评价</p>
+        <Link href="/interview/mock" className="text-sm text-muted-foreground hover:text-foreground">← 返回</Link>
+        <h1 className="mt-2 text-3xl font-bold text-foreground">模拟面试</h1>
+        <p className="mt-1 text-base text-muted-foreground">认真作答，每题获得即时评价</p>
       </div>
 
       <MockInterviewFlow

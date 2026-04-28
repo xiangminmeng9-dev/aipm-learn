@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { description, level } = body;
+    const { description, level, prerequisites } = body;
 
     if (!description || description.trim().length < 5) {
       return NextResponse.json(
@@ -100,6 +100,7 @@ export async function POST(request: NextRequest) {
         source_description: description.trim(),
         job_targets: generated.job_targets ?? [],
         sort_order: nextSortOrder,
+        prerequisites: prerequisites ?? [],
       })
       .select()
       .single();

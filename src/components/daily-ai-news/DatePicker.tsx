@@ -78,28 +78,28 @@ export default function NewsDatePicker({ value, onChange, availableDates }: Prop
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen(!open)}
-        className="inline-flex items-center gap-2.5 rounded-xl border border-[#E5E7EB] bg-white px-5 py-3 text-base text-[#374151] transition hover:bg-[#F9FAFB] hover:border-indigo-200"
+        className="inline-flex items-center gap-2.5 rounded-xl border border-border bg-card px-5 py-3 text-base text-foreground transition hover:bg-muted hover:border-indigo-200"
       >
         <svg className="h-5 w-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
         </svg>
         <span className="font-medium">{currentLabel}</span>
-        <svg className={`h-4 w-4 text-[#9CA3AF] transition ${open ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg className={`h-4 w-4 text-muted-foreground transition ${open ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
         </svg>
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-2 w-96 rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-xl">
+        <div className="absolute right-0 top-full z-50 mt-2 w-96 rounded-2xl border border-border bg-card p-5 shadow-xl">
           {/* Month navigation */}
           <div className="flex items-center justify-between mb-4">
-            <button onClick={prevMonth} className="rounded-lg p-2 text-[#6B7280] hover:bg-[#F3F4F6] transition">
+            <button onClick={prevMonth} className="rounded-lg p-2 text-muted-foreground hover:bg-secondary transition">
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
               </svg>
             </button>
-            <span className="text-base font-semibold text-[#1F2937]">{viewYear}年{viewMonth + 1}月</span>
-            <button onClick={nextMonth} className="rounded-lg p-2 text-[#6B7280] hover:bg-[#F3F4F6] transition">
+            <span className="text-base font-semibold text-foreground">{viewYear}年{viewMonth + 1}月</span>
+            <button onClick={nextMonth} className="rounded-lg p-2 text-muted-foreground hover:bg-secondary transition">
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
               </svg>
@@ -109,7 +109,7 @@ export default function NewsDatePicker({ value, onChange, availableDates }: Prop
           {/* Weekday headers */}
           <div className="grid grid-cols-7 mb-2">
             {WEEKDAYS.map((w) => (
-              <div key={w} className="text-center text-sm font-medium text-[#9CA3AF] py-1.5">{w}</div>
+              <div key={w} className="text-center text-sm font-medium text-muted-foreground py-1.5">{w}</div>
             ))}
           </div>
 
@@ -132,8 +132,8 @@ export default function NewsDatePicker({ value, onChange, availableDates }: Prop
                       : isFuture
                         ? 'text-[#D1D5DB] cursor-not-allowed'
                         : hasData
-                          ? 'text-[#1F2937] hover:bg-indigo-50 font-medium'
-                          : 'text-[#6B7280] hover:bg-[#F3F4F6]'
+                          ? 'text-foreground hover:bg-indigo-50 font-medium'
+                          : 'text-muted-foreground hover:bg-secondary'
                   }`}
                 >
                   {day}
@@ -146,7 +146,7 @@ export default function NewsDatePicker({ value, onChange, availableDates }: Prop
           </div>
 
           {/* Legend */}
-          <div className="mt-4 flex items-center gap-4 text-sm text-[#9CA3AF]">
+          <div className="mt-4 flex items-center gap-4 text-sm text-muted-foreground">
             <span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-indigo-400" /> 有数据</span>
           </div>
         </div>

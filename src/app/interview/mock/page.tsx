@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { createClient } from '@/lib/supabase/client';
+import { cacheGet, cacheSet, cacheRemove, TTL } from '@/lib/cache';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -20,6 +22,16 @@ interface InProgressInterview {
   totalQuestions: number;
 }
 
+interface MockRecord {
+  id: string;
+  type_name: string;
+  total_questions: number;
+  current_question: number;
+  status: string;
+  total_score: number | null;
+  created_at: string;
+}
+
 export default function MockConfigPage() {
   const [types, setTypes] = useState<QuestionType[]>([]);
   const [selectedTypeId, setSelectedTypeId] = useState<string>('');
@@ -27,6 +39,7 @@ export default function MockConfigPage() {
   const [jdText, setJdText] = useState('');
   const [resumeText, setResumeText] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+  const [mockRecords, setMockRecords] = useState<MockRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [inProgress, setInProgress] = useState<InProgressInterview | null>(null);
 
@@ -48,6 +61,30 @@ export default function MockConfigPage() {
       setIsLoading(false);
     }
   };
+
+  // 获取模拟面试记录
+  const fetchRecords = async () => {
+    // Read from cache for instant display
+    const cached = cacheGet<MockRecord[]>('mock-records');
+    if (cached) setMockRecords(cached);
+
+    try {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const res = await fetch('/api/interview/mock', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const records = data.mocks || [];
+        setMockRecords(records);
+        cacheSet('mock-records', records, TTL.USER_DATA);
+      }
+    } catch { /* ignore */ }
+  };
+
+  useEffect(() => { fetchRecords(); }, []);
 
   const checkInProgress = () => {
     for (let i = 0; i < localStorage.length; i++) {
@@ -78,9 +115,14 @@ export default function MockConfigPage() {
 
     setIsCreating(true);
     try {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (session) headers['Authorization'] = `Bearer ${session.access_token}`;
+
       const res = await fetch('/api/interview/mock', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           type_id: selectedTypeId,
           total_questions: totalQuestions,
@@ -90,6 +132,8 @@ export default function MockConfigPage() {
       });
 
       if (res.ok) {
+        // Invalidate cache after creating a new mock interview
+        cacheRemove('mock-records');
         const data = await res.json();
         // 存储初始问题数据到 localStorage（持久化）和 sessionStorage（兼容）
         const initData = JSON.stringify({
@@ -115,8 +159,8 @@ export default function MockConfigPage() {
   return (
     <div className="p-8">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-[#1F2937]">模拟面试</h1>
-        <p className="mt-1 text-base text-[#6B7280]">选择类型和题数，开始模拟面试</p>
+        <h1 className="text-3xl font-bold text-foreground">模拟面试</h1>
+        <p className="mt-1 text-base text-muted-foreground">选择类型和题数，开始模拟面试</p>
       </div>
 
       {/* In-progress interview banner */}
@@ -145,9 +189,9 @@ export default function MockConfigPage() {
       ) : (
         <div className="space-y-6">
           {/* 问题类型选择 */}
-          <Card className="border-[#E5E7EB] bg-white">
+          <Card className="border-border bg-card">
             <CardHeader>
-              <CardTitle className="text-lg text-[#1F2937]">选择问题类型</CardTitle>
+              <CardTitle className="text-lg text-foreground">选择问题类型</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -158,12 +202,12 @@ export default function MockConfigPage() {
                     className={`rounded-lg border px-3 py-2 text-left text-base transition-colors ${
                       selectedTypeId === t.id
                         ? 'border-indigo-200 bg-indigo-50 text-indigo-600'
-                        : 'border-[#E5E7EB] bg-white text-[#9CA3AF] hover:border-[#D1D5DB]'
+                        : 'border-border bg-card text-muted-foreground hover:border-border'
                     }`}
                   >
                     <span className="font-medium">{t.name}</span>
                     {t.question_count > 0 && (
-                      <span className="ml-1 text-sm text-[#6B7280]">({t.question_count})</span>
+                      <span className="ml-1 text-sm text-muted-foreground">({t.question_count})</span>
                     )}
                   </button>
                 ))}
@@ -172,9 +216,9 @@ export default function MockConfigPage() {
           </Card>
 
           {/* 题数选择 */}
-          <Card className="border-[#E5E7EB] bg-white">
+          <Card className="border-border bg-card">
             <CardHeader>
-              <CardTitle className="text-lg text-[#1F2937]">题目数量</CardTitle>
+              <CardTitle className="text-lg text-foreground">题目数量</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex gap-3">
@@ -185,7 +229,7 @@ export default function MockConfigPage() {
                     className={`flex h-12 w-12 items-center justify-center rounded-lg border text-base font-medium transition-colors ${
                       totalQuestions === count
                         ? 'border-indigo-200 bg-indigo-50 text-indigo-600'
-                        : 'border-[#E5E7EB] bg-white text-[#9CA3AF] hover:border-[#D1D5DB]'
+                        : 'border-border bg-card text-muted-foreground hover:border-border'
                     }`}
                   >
                     {count}
@@ -196,27 +240,27 @@ export default function MockConfigPage() {
           </Card>
 
           {/* JD 和简历 */}
-          <Card className="border-[#E5E7EB] bg-white">
+          <Card className="border-border bg-card">
             <CardHeader>
-              <CardTitle className="text-lg text-[#1F2937]">背景信息（可选）</CardTitle>
+              <CardTitle className="text-lg text-foreground">背景信息（可选）</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div>
-                <label className="mb-1 block text-sm text-[#6B7280]">岗位 JD</label>
+                <label className="mb-1 block text-sm text-muted-foreground">岗位 JD</label>
                 <Textarea
                   value={jdText}
                   onChange={(e) => setJdText(e.target.value)}
                   placeholder="粘贴目标岗位的 JD..."
-                  className="min-h-[80px] resize-none border-[#E5E7EB] bg-white text-base text-[#1F2937]"
+                  className="min-h-[80px] resize-none border-border bg-card text-base text-foreground"
                 />
               </div>
               <div>
-                <label className="mb-1 block text-sm text-[#6B7280]">个人简历</label>
+                <label className="mb-1 block text-sm text-muted-foreground">个人简历</label>
                 <Textarea
                   value={resumeText}
                   onChange={(e) => setResumeText(e.target.value)}
                   placeholder="粘贴你的简历要点..."
-                  className="min-h-[80px] resize-none border-[#E5E7EB] bg-white text-base text-[#1F2937]"
+                  className="min-h-[80px] resize-none border-border bg-card text-base text-foreground"
                 />
               </div>
             </CardContent>
@@ -230,6 +274,52 @@ export default function MockConfigPage() {
           >
             {isCreating ? '创建中...' : '开始模拟面试'}
           </Button>
+
+          {/* 面试记录 */}
+          {mockRecords.length > 0 && (
+            <Card className="border-border bg-card">
+              <CardHeader>
+                <CardTitle className="text-lg text-foreground">面试记录</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {mockRecords.map((record) => (
+                    <Link
+                      key={record.id}
+                      href={`/interview/mock/${record.id}`}
+                      className="block rounded-lg border border-border bg-muted p-3 transition-colors hover:bg-secondary"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                            record.status === 'completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                          }`}>
+                            {record.status === 'completed' ? '已完成' : '进行中'}
+                          </span>
+                          <span className="text-sm font-medium text-foreground">{record.type_name}</span>
+                        </div>
+                        {record.total_score !== null && (
+                          <span className={`text-sm font-bold ${
+                            record.total_score >= 80 ? 'text-emerald-600' :
+                            record.total_score >= 60 ? 'text-amber-600' : 'text-rose-600'
+                          }`}>
+                            {record.total_score}分
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
+                        <span>{record.total_questions} 题</span>
+                        {record.status === 'in_progress' && (
+                          <span>当前第 {record.current_question} 题</span>
+                        )}
+                        <span>{new Date(record.created_at).toLocaleString('zh-CN')}</span>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
     </div>

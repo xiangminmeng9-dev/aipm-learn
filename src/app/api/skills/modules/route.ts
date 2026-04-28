@@ -189,7 +189,7 @@ export async function GET() {
         job_targets: m.job_targets as string[],
         level: m.level,
         level_name: m.level_name,
-        prerequisites: [] as string[],
+        prerequisites: (m as Record<string, unknown>).prerequisites as string[] ?? [],
         sort_order: m.sort_order,
         task_count: counts.total,
         completed_count: counts.completed,
@@ -227,6 +227,36 @@ export async function GET() {
         interview_weak_types: [],
         interview_methodology_count: 0,
         is_custom: true as const,
+      });
+    }
+
+    // 收藏的每日AI技术，作为虚拟模块展示
+    const { data: bookmarkedTech } = await supabase
+      .from('daily_tech_bookmarks')
+      .select('tech_date, title, summary, explanation, impact, tags')
+      .eq('user_id', user.id)
+      .order('tech_date', { ascending: false });
+
+    if (bookmarkedTech && bookmarkedTech.length > 0) {
+      allModules.push({
+        id: '__bookmarked_tech__',
+        slug: '',
+        name: '收藏技术',
+        description: '每日AI技术收藏，持续关注的前沿动态',
+        icon: '🔖',
+        job_targets: [],
+        level: 3,
+        level_name: '进阶专项',
+        prerequisites: [],
+        sort_order: 998,
+        task_count: bookmarkedTech.length,
+        completed_count: 0,
+        progress_percentage: 0,
+        is_unlocked: true,
+        interview_weak_types: [],
+        interview_methodology_count: 0,
+        is_custom: true as const,
+        bookmarked_tech: bookmarkedTech,
       });
     }
 

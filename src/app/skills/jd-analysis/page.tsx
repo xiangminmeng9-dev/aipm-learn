@@ -142,27 +142,27 @@ export default function JdAnalysisPage() {
   const displayResult = result || (showHistory && history.length > 0 ? history[0] : null);
 
   return (
-    <div className="flex h-full flex-col bg-[#F8F9FB]">
+    <div className="flex h-full flex-col bg-background">
       {/* Header */}
-      <div className="shrink-0 border-b border-[#E5E7EB] bg-white px-6 py-4">
-        <h1 className="text-lg font-semibold text-[#1F2937]">岗位分析</h1>
-        <p className="text-xs text-[#6B7280]">粘贴 JD 内容，AI 自动提取技能要求并匹配技能树</p>
+      <div className="shrink-0 border-b border-border bg-card px-6 py-4">
+        <h1 className="text-lg font-semibold text-foreground">岗位分析</h1>
+        <p className="text-xs text-muted-foreground">粘贴 JD 内容，AI 自动提取技能要求并匹配技能树</p>
       </div>
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-6 space-y-5">
         {/* JD Input */}
-        <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm">
-          <label className="mb-2 block text-sm font-medium text-[#374151]">粘贴岗位描述（JD）</label>
+        <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+          <label className="mb-2 block text-sm font-medium text-foreground">粘贴岗位描述（JD）</label>
           <textarea
             value={jdText}
             onChange={(e) => setJdText(e.target.value)}
             placeholder="请粘贴完整的岗位描述内容，包括职位要求、技能要求、工作职责等..."
-            className="w-full rounded-xl border-2 border-[#D1D5DB] bg-[#F9FAFB] px-4 py-3 text-sm text-[#1F2937] placeholder-[#9CA3AF] transition-colors focus:border-[#4F46E5] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#4F46E5]/20"
+            className="w-full rounded-xl border-2 border-border bg-muted px-4 py-3 text-sm text-foreground placeholder-muted-foreground transition-colors focus:border-indigo-500 focus:bg-card focus:outline-none focus:ring-2 focus:ring-[#4F46E5]/20"
             rows={8}
           />
           <div className="mt-4 flex items-center justify-between">
-            <span className="text-xs text-[#9CA3AF]">{jdText.length} 字</span>
+            <span className="text-xs text-muted-foreground">{jdText.length} 字</span>
             <button
               onClick={handleAnalyze}
               disabled={loading || !jdText.trim()}
@@ -187,7 +187,7 @@ export default function JdAnalysisPage() {
           <div className="mt-6">
             <button
               onClick={() => setShowHistory(!showHistory)}
-              className="flex items-center gap-2 text-sm font-medium text-[#4F46E5] hover:text-[#4338CA]"
+              className="flex items-center gap-2 text-sm font-medium text-primary hover:text-[#4338CA]"
             >
               <svg className={`h-4 w-4 transition-transform ${showHistory ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
@@ -201,14 +201,14 @@ export default function JdAnalysisPage() {
                     key={h.id}
                     onClick={() => { setResult(h); setJdText(h.jd_text || ''); }}
                     className={`w-full rounded-xl border px-4 py-3 text-left text-sm transition-colors ${
-                      result?.id === h.id ? 'border-[#4F46E5] bg-indigo-50' : 'border-[#E5E7EB] bg-white hover:bg-[#F9FAFB]'
+                      result?.id === h.id ? 'border-[#4F46E5] bg-indigo-50' : 'border-border bg-card hover:bg-muted'
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-medium text-[#1F2937]">{h.position_name}</span>
-                      <span className="text-xs text-[#9CA3AF]">{new Date(h.created_at).toLocaleDateString()}</span>
+                      <span className="font-medium text-foreground">{h.position_name}</span>
+                      <span className="text-xs text-muted-foreground">{new Date(h.created_at).toLocaleDateString()}</span>
                     </div>
-                    {h.company_name && <span className="text-xs text-[#6B7280]">{h.company_name}</span>}
+                    {h.company_name && <span className="text-xs text-muted-foreground">{h.company_name}</span>}
                   </button>
                 ))}
               </div>
@@ -220,42 +220,42 @@ export default function JdAnalysisPage() {
         {displayResult && (
           <div className="mt-8 space-y-6">
             {/* Header Card */}
-            <div className="rounded-2xl border border-[#E5E7EB] bg-white p-6 shadow-sm">
+            <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#4F46E5]/10 text-lg">📋</div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[#1F2937]">{displayResult.position_name}</h2>
-                  {displayResult.company_name && <p className="text-sm text-[#6B7280]">{displayResult.company_name}</p>}
+                  <h2 className="text-lg font-semibold text-foreground">{displayResult.position_name}</h2>
+                  {displayResult.company_name && <p className="text-sm text-muted-foreground">{displayResult.company_name}</p>}
                 </div>
               </div>
               {/* Show JD text if available */}
               {displayResult.jd_text && (
-                <div className="mt-4 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
+                <div className="mt-4 rounded-xl border border-border bg-muted p-4">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-medium text-[#6B7280]">岗位描述</span>
+                    <span className="text-xs font-medium text-muted-foreground">岗位描述</span>
                     <button
                       onClick={() => setJdText(displayResult.jd_text || '')}
-                      className="text-xs text-[#4F46E5] hover:text-[#4338CA]"
+                      className="text-xs text-primary hover:text-[#4338CA]"
                     >
                       加载到输入框
                     </button>
                   </div>
-                  <p className="text-xs text-[#6B7280] line-clamp-4 whitespace-pre-wrap">{displayResult.jd_text}</p>
+                  <p className="text-xs text-muted-foreground line-clamp-4 whitespace-pre-wrap">{displayResult.jd_text}</p>
                 </div>
               )}
             </div>
 
             {/* Extracted Skills */}
-            <div className="rounded-2xl border border-[#E5E7EB] bg-white p-6 shadow-sm">
-              <h3 className="mb-4 text-base font-semibold text-[#1F2937]">提取的技能要求</h3>
+            <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+              <h3 className="mb-4 text-base font-semibold text-foreground">提取的技能要求</h3>
               <div className="flex flex-wrap gap-2">
                 {displayResult.extracted_skills?.map((skill, i) => (
-                  <div key={i} className="flex items-center gap-1.5 rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] px-3 py-1.5">
-                    <span className="text-sm text-[#1F2937]">{skill.skill_name}</span>
+                  <div key={i} className="flex items-center gap-1.5 rounded-lg border border-border bg-muted px-3 py-1.5">
+                    <span className="text-sm text-foreground">{skill.skill_name}</span>
                     <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${importanceColors[skill.importance] || importanceColors.medium}`}>
                       {importanceLabels[skill.importance] || '中'}
                     </span>
-                    <span className="text-[10px] text-[#9CA3AF]">{skill.category}</span>
+                    <span className="text-[10px] text-muted-foreground">{skill.category}</span>
                   </div>
                 ))}
               </div>
@@ -263,17 +263,17 @@ export default function JdAnalysisPage() {
 
             {/* Skill Module Matches */}
             {displayResult.skill_module_matches && displayResult.skill_module_matches.length > 0 && (
-              <div className="rounded-2xl border border-[#E5E7EB] bg-white p-6 shadow-sm">
-                <h3 className="mb-4 text-base font-semibold text-[#1F2937]">技能模块匹配</h3>
+              <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+                <h3 className="mb-4 text-base font-semibold text-foreground">技能模块匹配</h3>
                 <div className="space-y-3">
                   {displayResult.skill_module_matches.map((match, i) => (
-                    <div key={i} className="flex items-center justify-between rounded-xl border border-[#E5E7EB] px-4 py-3">
+                    <div key={i} className="flex items-center justify-between rounded-xl border border-border px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <span className="text-sm font-medium text-[#1F2937]">{match.skill_name || match.module_name}</span>
+                        <span className="text-sm font-medium text-foreground">{match.skill_name || match.module_name}</span>
                         {match.skill_name && match.module_name && match.skill_name !== match.module_name && (
                           <>
-                            <span className="text-xs text-[#9CA3AF]">→</span>
-                            <span className="text-sm text-[#4F46E5]">{match.module_name}</span>
+                            <span className="text-xs text-muted-foreground">→</span>
+                            <span className="text-sm text-primary">{match.module_name}</span>
                           </>
                         )}
                       </div>
@@ -284,7 +284,7 @@ export default function JdAnalysisPage() {
                             style={{ width: `${Math.min(100, Math.max(0, match.match_score))}%` }}
                           />
                         </div>
-                        <span className="text-xs font-medium text-[#6B7280]">{match.match_score}%</span>
+                        <span className="text-xs font-medium text-muted-foreground">{match.match_score}%</span>
                       </div>
                     </div>
                   ))}
@@ -294,20 +294,20 @@ export default function JdAnalysisPage() {
 
             {/* Skill Gaps */}
             {displayResult.gaps && displayResult.gaps.length > 0 && (
-              <div className="rounded-2xl border border-[#E5E7EB] bg-white p-6 shadow-sm">
-                <h3 className="mb-4 text-base font-semibold text-[#1F2937]">技能差距</h3>
+              <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+                <h3 className="mb-4 text-base font-semibold text-foreground">技能差距</h3>
                 <div className="space-y-3">
                   {displayResult.gaps.map((gap, i) => (
                     <div key={i} className="rounded-xl border border-amber-200 bg-amber-50/50 px-4 py-3">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium text-[#1F2937]">{gap.skill_name}</span>
+                            <span className="text-sm font-medium text-foreground">{gap.skill_name}</span>
                             <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-700">{gap.category}</span>
                           </div>
-                          {gap.suggestion && <p className="mt-1 text-xs text-[#6B7280]">{gap.suggestion}</p>}
+                          {gap.suggestion && <p className="mt-1 text-xs text-muted-foreground">{gap.suggestion}</p>}
                           {gap.related_module_name && (
-                            <p className="mt-1 text-xs text-[#4F46E5]">相关模块：{gap.related_module_name}</p>
+                            <p className="mt-1 text-xs text-primary">相关模块：{gap.related_module_name}</p>
                           )}
                         </div>
                         <button

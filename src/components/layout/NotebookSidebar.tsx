@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 
 const navItems = [
   { label: '笔记', href: '/notebook', icon: '📝' },
@@ -13,12 +14,12 @@ export default function NotebookSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="flex w-60 flex-col border-r border-gray-200 bg-white">
+    <aside className="flex w-60 flex-col border-r border-border bg-card">
       <div className="p-5">
-        <Link href="/" className="text-xs text-gray-400 hover:text-gray-600 transition-colors">
+        <Link href="/" className="text-xs text-muted-foreground hover:text-muted-foreground transition-colors">
           ← 返回首页
         </Link>
-        <h2 className="mt-3 text-lg font-semibold text-gray-800">AI PM 笔记本</h2>
+        <h2 className="mt-3 text-lg font-semibold text-foreground">AI PM 笔记本</h2>
       </div>
 
       <nav className="flex-1 space-y-1 px-3">
@@ -34,7 +35,7 @@ export default function NotebookSidebar() {
               className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
                 isActive
                   ? 'bg-indigo-50 text-indigo-600 border border-indigo-200'
-                  : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700 border border-transparent'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground border border-transparent'
               }`}
             >
               <span>{item.icon}</span>
@@ -45,9 +46,12 @@ export default function NotebookSidebar() {
         })}
       </nav>
 
-      <div className="flex items-center gap-2 border-t border-gray-200 p-4 text-xs text-gray-400">
-        <span className="h-2 w-2 rounded-full bg-emerald-500" />
-        在线
+      <div className="flex items-center justify-between border-t border-border p-4">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span className="h-2 w-2 rounded-full bg-emerald-500" />
+          在线
+        </div>
+        <ThemeToggle compact />
       </div>
     </aside>
   );

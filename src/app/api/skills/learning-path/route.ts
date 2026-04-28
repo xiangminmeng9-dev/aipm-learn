@@ -1,5 +1,57 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
+
+// GET /api/skills/learning-path — 获取已保存的学习路径
+export async function GET() {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: '请先登录' }, { status: 401 });
+
+    const serviceClient = createServiceClient();
+    const { data: paths, error } = await serviceClient
+      .from('learning_paths')
+      .select('id, target_position, current_level, time_budget, jd_text, path_data, created_at, updated_at')
+      .eq('user_id', user.id)
+      .order('updated_at', { ascending: false });
+
+    if (error) {
+      console.error('Get learning paths error:', error);
+      return NextResponse.json({ error: '获取失败' }, { status: 500 });
+    }
+
+    return NextResponse.json({ paths: paths || [] });
+  } catch (err) {
+    console.error('Get learning paths error:', err);
+    return NextResponse.json({ error: '获取失败' }, { status: 500 });
+  }
+}
+
+// DELETE /api/skills/learning-path?id=xxx
+export async function DELETE(request: NextRequest) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: '请先登录' }, { status: 401 });
+
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+    if (!id) return NextResponse.json({ error: '缺少 id' }, { status: 400 });
+
+    const serviceClient = createServiceClient();
+    const { error } = await serviceClient
+      .from('learning_paths')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id);
+
+    if (error) return NextResponse.json({ error: '删除失败' }, { status: 500 });
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error('Delete learning path error:', err);
+    return NextResponse.json({ error: '删除失败' }, { status: 500 });
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -7,7 +59,7 @@ export async function POST(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: '请先登录' }, { status: 401 });
 
-    const { target_position, current_level, time_budget } = await request.json();
+    const { target_position, current_level, time_budget, jd_text } = await request.json();
     if (!target_position) return NextResponse.json({ error: '请输入目标岗位' }, { status: 400 });
 
     // Fetch existing skill modules for matching
@@ -26,11 +78,11 @@ export async function POST(request: NextRequest) {
 - 目标岗位：${target_position}
 - 当前水平：${current_level || '初级'}
 - 时间预算：${time_budget || '3个月'}
-
+${jd_text ? `\n目标岗位 JD：\n${jd_text}\n` : ''}
 现有技能树模块（slug|名称|层级）：
 ${moduleNames || '暂无'}
 
-请生成学习路径，每个阶段包含模块。如果模块名称与现有技能树匹配，标记 matched_module_slug；如果不匹配，标记为 null（将自动补充到技能树）。
+${jd_text ? '请根据 JD 内容精准规划学习路径，重点覆盖 JD 中要求的技能和经验，确保学习路径与岗位需求高度匹配。' : '请生成学习路径，覆盖该岗位所需的核心技能。'}每个阶段包含模块。如果模块名称与现有技能树匹配，标记 matched_module_slug；如果不匹配，标记为 null（将自动补充到技能树）。
 
 严格按以下 JSON 格式输出（不要加 markdown 代码块）：
 {
@@ -116,7 +168,22 @@ ${moduleNames || '暂无'}
 
     const progressMap = new Map((progress || []).map(p => [p.task_id, p.status]));
 
-    return NextResponse.json({ path, progressMap: Object.fromEntries(progressMap) });
+    // Save path to database
+    const serviceClient = createServiceClient();
+    const { data: savedPath } = await serviceClient
+      .from('learning_paths')
+      .insert({
+        user_id: user.id,
+        target_position,
+        current_level: current_level || '初级',
+        time_budget: time_budget || '3个月',
+        jd_text: jd_text || '',
+        path_data: path,
+      })
+      .select('id')
+      .single();
+
+    return NextResponse.json({ path, progressMap: Object.fromEntries(progressMap), id: savedPath?.id });
   } catch (err) {
     console.error('Generate learning path error:', err);
     return NextResponse.json({ error: '生成失败' }, { status: 500 });

@@ -29,7 +29,7 @@ function GlassButton({
     emerald: 'bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-600 border-emerald-200/60',
     amber: 'bg-amber-500/15 hover:bg-amber-500/25 text-amber-600 border-amber-200/60',
     purple: 'bg-purple-500/15 hover:bg-purple-500/25 text-purple-600 border-purple-200/60',
-    gray: 'bg-gray-100 hover:bg-gray-200/80 text-gray-600 border-gray-200',
+    gray: 'bg-secondary hover:bg-gray-200/80 text-muted-foreground border-border',
   };
   const sizeClass = size === 'sm' ? 'px-3 py-1.5 text-xs' : 'px-4 py-2 text-sm';
 
@@ -117,7 +117,7 @@ export default function AIAnalysisPage() {
       {/* Analysis controls */}
       <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-500">分析范围:</span>
+          <span className="text-xs text-muted-foreground">分析范围:</span>
           {(['both', 'notes', 'tasks'] as const).map((tab) => {
             const labels = { both: '📊 全部', notes: '📝 笔记', tasks: '✅ 任务' };
             return (
@@ -125,7 +125,7 @@ export default function AIAnalysisPage() {
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={`rounded-lg px-3 py-1.5 text-xs font-medium border transition-all ${
-                  activeTab === tab ? 'bg-purple-500/15 text-purple-600 border-purple-200/60' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
+                  activeTab === tab ? 'bg-purple-500/15 text-purple-600 border-purple-200/60' : 'bg-muted text-muted-foreground border-border hover:bg-secondary'
                 }`}
               >
                 {labels[tab]}
@@ -149,7 +149,7 @@ export default function AIAnalysisPage() {
             className="flex flex-col items-center justify-center py-20"
           >
             <div className="h-10 w-10 animate-spin rounded-full border-2 border-purple-500 border-t-transparent" />
-            <p className="mt-4 text-sm text-gray-400">AI 正在分析你的笔记和任务...</p>
+            <p className="mt-4 text-sm text-muted-foreground">AI 正在分析你的笔记和任务...</p>
           </motion.div>
         ) : analysis ? (
           <motion.div
@@ -157,7 +157,7 @@ export default function AIAnalysisPage() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="rounded-2xl border border-gray-200 bg-white p-6"
+            className="rounded-2xl border border-border bg-card p-6"
           >
             <div className="prose prose-sm max-w-none">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{analysis}</ReactMarkdown>
@@ -171,8 +171,8 @@ export default function AIAnalysisPage() {
             className="py-20 text-center"
           >
             <p className="text-4xl mb-4">🧠</p>
-            <p className="text-sm text-gray-500">点击「开始分析」获取 AI 对你笔记和任务的智能总结</p>
-            <p className="mt-2 text-xs text-gray-400">分析内容包括：工作模式洞察、时间分配建议、优先级优化、风险预警</p>
+            <p className="text-sm text-muted-foreground">点击「开始分析」获取 AI 对你笔记和任务的智能总结</p>
+            <p className="mt-2 text-xs text-muted-foreground">分析内容包括：工作模式洞察、时间分配建议、优先级优化、风险预警</p>
           </motion.div>
         )}
       </AnimatePresence>

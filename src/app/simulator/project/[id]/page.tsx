@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
+import { PROJECT_SCENARIOS } from '@/lib/project-scenarios';
 import Markdown from '@/components/ui/markdown';
 
 export default function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -77,39 +78,37 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
   if (!project) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex items-center justify-center py-12">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-teal-500 border-t-transparent" />
       </div>
     );
   }
 
   const deliverables = project.deliverables || [];
+  const scenario = PROJECT_SCENARIOS.find(s => s.id === project.scenario_id);
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#F8F9FB]">
-      <header className="sticky top-0 z-40 border-b border-gray-200 bg-white/80 backdrop-blur">
-        <div className="flex items-center justify-between px-6 py-3">
+    <div className="flex h-[calc(100vh)] flex-col">
+      <header className="shrink-0 border-b border-border bg-card px-6 py-3">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link href="/simulator/project" className="text-sm text-gray-500 hover:text-gray-900">
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-              </svg>
-            </Link>
-            <h1 className="text-base font-bold text-gray-900">{project.title}</h1>
+            <Link href="/simulator/project" className="text-sm text-teal-600 hover:underline">← 返回列表</Link>
+            <span className="text-muted-foreground">|</span>
+            <h1 className="text-base font-bold text-foreground">{project.title}</h1>
           </div>
         </div>
       </header>
 
-      <div className="flex flex-1">
+      <div className="flex flex-1 overflow-hidden">
         {/* Deliverables sidebar */}
-        <div className="hidden w-64 shrink-0 border-r border-gray-200 bg-white lg:block">
+        <div className="hidden w-64 shrink-0 border-r border-border bg-card lg:block">
           <div className="p-4">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3">项目交付物</h3>
+            <h3 className="text-sm font-semibold text-foreground mb-3">项目交付物</h3>
             <div className="space-y-2">
               {deliverables.map((d: any, i: number) => (
-                <div key={i} className="rounded-xl border border-gray-100 bg-gray-50 p-3">
-                  <div className="text-sm font-medium text-gray-800">{d.name}</div>
-                  <div className="text-xs text-gray-500 mt-0.5">{d.description}</div>
+                <div key={i} className="rounded-xl border border-border bg-muted p-3">
+                  <div className="text-sm font-medium text-foreground">{d.name}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">{d.description}</div>
                 </div>
               ))}
             </div>
@@ -120,7 +119,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         <div className="flex flex-1 flex-col">
           <div className="flex-1 space-y-4 overflow-y-auto p-4">
             {messages.length === 0 && (
-              <div className="py-12 text-center text-sm text-gray-400">
+              <div className="py-12 text-center text-sm text-muted-foreground">
                 开始和评审团队对话，逐步完成每个交付物...
               </div>
             )}
@@ -130,7 +129,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-teal-100 text-sm">🔍</div>
                 )}
                 <div className={`max-w-[75%] rounded-2xl px-4 py-3 ${
-                  msg.role === 'user' ? 'bg-indigo-600 text-white' : 'border border-gray-200 bg-white text-gray-800'
+                  msg.role === 'user' ? 'bg-indigo-600 text-white' : 'border border-border bg-card text-foreground'
                 }`}>
                   {msg.role === 'assistant' ? (
                     <div className="prose prose-sm max-w-none">
@@ -145,7 +144,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             {isStreaming && messages[messages.length - 1]?.role === 'user' && (
               <div className="flex gap-3">
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-teal-100 text-sm">🔍</div>
-                <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3">
+                <div className="rounded-2xl border border-border bg-card px-4 py-3">
                   <div className="flex gap-1">
                     <span className="h-2 w-2 animate-bounce rounded-full bg-gray-400" style={{ animationDelay: '0ms' }} />
                     <span className="h-2 w-2 animate-bounce rounded-full bg-gray-400" style={{ animationDelay: '150ms' }} />
@@ -157,14 +156,14 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             <div ref={messagesEndRef} />
           </div>
 
-          <div className="shrink-0 border-t border-gray-200 bg-white p-4">
+          <div className="shrink-0 border-t border-border bg-card p-4">
             <div className="flex gap-2">
               <textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="提交你的交付物或与评审团队讨论..."
                 rows={3}
-                className="flex-1 resize-none rounded-xl border border-gray-300 bg-gray-50 px-4 py-2.5 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                className="flex-1 resize-none rounded-xl border border-border bg-muted px-4 py-2.5 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
                 disabled={isStreaming}
                 onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) sendMessage(); }}
               />

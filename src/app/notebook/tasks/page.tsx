@@ -25,7 +25,7 @@ function localDateStr(d: Date = new Date()): string {
 /* ──────────────────────────── Config ──────────────────────────── */
 
 const STATUS_CONFIG: Record<string, { label: string; icon: string; color: string; bg: string; border: string; barGradient: string }> = {
-  todo: { label: '待办', icon: '○', color: 'text-gray-500', bg: 'bg-gray-100', border: 'border-gray-200', barGradient: 'from-indigo-400 to-violet-400' },
+  todo: { label: '待办', icon: '○', color: 'text-muted-foreground', bg: 'bg-secondary', border: 'border-border', barGradient: 'from-indigo-400 to-violet-400' },
   in_progress: { label: '进行中', icon: '◐', color: 'text-sky-600', bg: 'bg-sky-50', border: 'border-sky-200', barGradient: 'from-sky-400 to-blue-400' },
   done: { label: '已完成', icon: '●', color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200', barGradient: 'from-emerald-400 to-teal-400' },
 };
@@ -141,7 +141,7 @@ function GlassButton({
     emerald: 'bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-600 border-emerald-200/60',
     amber: 'bg-amber-500/15 hover:bg-amber-500/25 text-amber-600 border-amber-200/60',
     purple: 'bg-purple-500/15 hover:bg-purple-500/25 text-purple-600 border-purple-200/60',
-    gray: 'bg-gray-100 hover:bg-gray-200/80 text-gray-600 border-gray-200',
+    gray: 'bg-secondary hover:bg-gray-200/80 text-muted-foreground border-border',
   };
   const sizeClass = size === 'sm' ? 'px-3 py-1.5 text-xs' : 'px-4 py-2 text-sm';
 
@@ -249,7 +249,7 @@ function TimelineTaskBar({
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners} data-task-bar className={isDragging ? 'opacity-60' : ''}>
       <div
-        className={`group relative h-full cursor-pointer overflow-hidden rounded-xl border ${sc.border} bg-white shadow-sm transition-all duration-200 hover:shadow-md ${isDone ? 'opacity-60' : ''}`}
+        className={`group relative h-full cursor-pointer overflow-hidden rounded-xl border ${sc.border} bg-card shadow-sm transition-all duration-200 hover:shadow-md ${isDone ? 'opacity-60' : ''}`}
         onClick={(e) => { e.stopPropagation(); if (!justResized.current) onOpen(); }}
       >
         {/* Gradient color bar at left */}
@@ -266,13 +266,13 @@ function TimelineTaskBar({
                 onStatusChange(next[task.status]);
               }}
               className={`flex-shrink-0 flex h-4 w-4 items-center justify-center rounded-full border-2 transition-all ${
-                isDone ? 'border-emerald-400 bg-emerald-400 text-white' : task.status === 'in_progress' ? 'border-sky-400 bg-sky-50' : 'border-gray-300 bg-white'
+                isDone ? 'border-emerald-400 bg-emerald-400 text-white' : task.status === 'in_progress' ? 'border-sky-400 bg-sky-50' : 'border-border bg-card'
               }`}
             >
               {isDone && <svg className="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
               {task.status === 'in_progress' && <div className="h-1.5 w-1.5 rounded-full bg-sky-400" />}
             </button>
-            <span className={`truncate text-xs font-semibold ${isDone ? 'text-gray-400 line-through' : 'text-gray-800'}`}>
+            <span className={`truncate text-xs font-semibold ${isDone ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
               {task.title}
             </span>
           </div>
@@ -281,10 +281,10 @@ function TimelineTaskBar({
           {!isCompact && (
             <div className="mt-0.5 flex items-center gap-2 pl-5.5">
               {task.start_time && (
-                <span className="text-[10px] text-gray-400">{task.start_time}</span>
+                <span className="text-[10px] text-muted-foreground">{task.start_time}</span>
               )}
               {task.duration && (
-                <span className="text-[10px] text-gray-400">· {task.duration}</span>
+                <span className="text-[10px] text-muted-foreground">· {task.duration}</span>
               )}
               {task.from_template && (
                 <span className="rounded bg-purple-50 px-1 py-0 text-[9px] font-medium text-purple-500">模板</span>
@@ -345,44 +345,44 @@ function TaskEditor({
         initial={{ y: 30, scale: 0.95 }}
         animate={{ y: 0, scale: 1 }}
         exit={{ y: 30, scale: 0.95 }}
-        className="relative z-10 w-full max-w-md overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl"
+        className="relative z-10 w-full max-w-md overflow-hidden rounded-2xl border border-border bg-card shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Accent bar */}
         <div className={`h-1.5 w-full bg-gradient-to-r ${sc.barGradient}`} />
 
-        <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+        <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <div className="flex items-center gap-3">
             <span className={`rounded-lg px-2.5 py-1 text-xs font-semibold ${sc.color} ${sc.bg} border ${sc.border}`}>{sc.label}</span>
-            <h2 className="text-lg font-bold text-gray-800">{title || '未命名任务'}</h2>
+            <h2 className="text-lg font-bold text-foreground">{title || '未命名任务'}</h2>
           </div>
           <GlassButton onClick={onClose} color="gray">关闭</GlassButton>
         </div>
         <div className="space-y-4 p-6 max-h-[60vh] overflow-y-auto">
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-gray-500">任务标题</label>
-            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="任务标题..." className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-indigo-300" />
+            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">任务标题</label>
+            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="任务标题..." className="w-full rounded-xl border border-border bg-muted px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-indigo-300" />
           </div>
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-gray-500">描述</label>
-            <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="任务描述..." rows={3} className="w-full resize-none rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:border-indigo-300" />
+            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">描述</label>
+            <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="任务描述..." rows={3} className="w-full resize-none rounded-xl border border-border bg-muted px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-indigo-300" />
           </div>
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-gray-500">预计时长</label>
+            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">预计时长</label>
             <div className="flex flex-wrap gap-1.5">
               {startTime && (
-                <span className="rounded-lg bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-600 border border-gray-200">{startTime} 开始</span>
+                <span className="rounded-lg bg-secondary px-3 py-1.5 text-xs font-medium text-muted-foreground border border-border">{startTime} 开始</span>
               )}
               <button
                 onClick={() => setDuration('')}
-                className={`rounded-lg px-3 py-1.5 text-xs font-medium border transition-all ${!duration ? 'bg-gray-800 text-white border-gray-800' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'}`}
+                className={`rounded-lg px-3 py-1.5 text-xs font-medium border transition-all ${!duration ? 'bg-gray-800 text-white border-gray-800' : 'bg-muted text-muted-foreground border-border hover:bg-secondary'}`}
               >清除</button>
               {DURATION_OPTIONS.map((d) => (
                 <button
                   key={d}
                   onClick={() => setDuration(duration === d ? '' : d)}
                   className={`rounded-lg px-3 py-1.5 text-xs font-medium border transition-all ${
-                    duration === d ? 'bg-indigo-500/15 text-indigo-600 border-indigo-200/60' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
+                    duration === d ? 'bg-indigo-500/15 text-indigo-600 border-indigo-200/60' : 'bg-muted text-muted-foreground border-border hover:bg-secondary'
                   }`}
                 >
                   {d}
@@ -391,13 +391,13 @@ function TaskEditor({
             </div>
           </div>
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-gray-500">状态</label>
+            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">状态</label>
             <div className="flex items-center gap-2">
               {(['todo', 'in_progress', 'done'] as const).map((s) => {
                 const cfg = STATUS_CONFIG[s];
                 const active = status === s;
                 return (
-                  <button key={s} onClick={() => setStatus(s)} className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${active ? `${cfg.color} ${cfg.bg} border ${cfg.border}` : 'text-gray-400 hover:text-gray-600 border border-transparent'}`}>
+                  <button key={s} onClick={() => setStatus(s)} className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${active ? `${cfg.color} ${cfg.bg} border ${cfg.border}` : 'text-muted-foreground hover:text-muted-foreground border border-transparent'}`}>
                     <span className={`h-2 w-2 rounded-full ${s === 'todo' ? 'bg-gray-300' : s === 'in_progress' ? 'bg-sky-400' : 'bg-emerald-400'}`} />
                     {cfg.label}
                   </button>
@@ -406,7 +406,7 @@ function TaskEditor({
             </div>
           </div>
         </div>
-        <div className="flex items-center justify-between gap-2 border-t border-gray-100 px-6 py-3">
+        <div className="flex items-center justify-between gap-2 border-t border-border px-6 py-3">
           {task.id !== '__new__' ? (
             <GlassButton onClick={() => onDelete(task.id)} color="rose">删除</GlassButton>
           ) : <div />}
@@ -650,7 +650,7 @@ export default function DailyTasksPage() {
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <GlassButton onClick={() => changeDate(-1)} color="gray">←</GlassButton>
-          <input type="date" value={selectedDate} onChange={(e) => { setSelectedDate(e.target.value); setIsLoading(true); }} className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700" />
+          <input type="date" value={selectedDate} onChange={(e) => { setSelectedDate(e.target.value); setIsLoading(true); }} className="rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium text-foreground" />
           {!isToday && <GlassButton onClick={() => { setSelectedDate(localDateStr()); setIsLoading(true); }} color="emerald">今天</GlassButton>}
           <GlassButton onClick={() => changeDate(1)} color="gray">→</GlassButton>
         </div>
@@ -658,15 +658,15 @@ export default function DailyTasksPage() {
           <GlassButton onClick={() => setShowTemplates(!showTemplates)} color={showTemplates ? 'purple' : 'gray'}>📋 AI PM 模板</GlassButton>
           <div className="flex items-center gap-2">
             <div className="text-right">
-              <p className="text-[10px] text-gray-400">完成进度</p>
-              <p className="text-sm font-semibold text-gray-700">{doneCount}/{totalCount}</p>
+              <p className="text-[10px] text-muted-foreground">完成进度</p>
+              <p className="text-sm font-semibold text-foreground">{doneCount}/{totalCount}</p>
             </div>
             <div className="relative h-9 w-9">
               <svg className="h-9 w-9 -rotate-90" viewBox="0 0 36 36">
                 <circle cx="18" cy="18" r="14" fill="none" stroke="#e5e7eb" strokeWidth="3" />
                 <circle cx="18" cy="18" r="14" fill="none" stroke={progressPct === 100 ? '#22c55e' : '#6366f1'} strokeWidth="3" strokeDasharray={`${progressPct * 0.88} 88`} strokeLinecap="round" />
               </svg>
-              <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-gray-600">{progressPct}%</span>
+              <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-muted-foreground">{progressPct}%</span>
             </div>
           </div>
         </div>
@@ -691,14 +691,14 @@ export default function DailyTasksPage() {
                         if (exists) return;
                         handleAddTask(tpl.title, tpl.description, tpl.start_time, tpl.duration, true);
                       }}
-                      className={`flex flex-col items-start gap-1 rounded-xl border p-2.5 text-left transition-all ${exists ? 'cursor-default border-emerald-100 bg-emerald-50/50' : 'border-gray-200 bg-white hover:border-purple-300 hover:bg-purple-50/50 active:scale-95'}`}
+                      className={`flex flex-col items-start gap-1 rounded-xl border p-2.5 text-left transition-all ${exists ? 'cursor-default border-emerald-100 bg-emerald-50/50' : 'border-border bg-card hover:border-purple-300 hover:bg-purple-50/50 active:scale-95'}`}
                     >
                       <div className="flex items-center gap-1.5">
                         <span className="text-sm">{tpl.icon}</span>
-                        <span className="text-xs font-medium text-gray-700">{tpl.title}</span>
+                        <span className="text-xs font-medium text-foreground">{tpl.title}</span>
                         {exists && <span className="text-[10px] text-emerald-500">✓</span>}
                       </div>
-                      <div className="flex items-center gap-2 text-[10px] text-gray-400">
+                      <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
                         <span>{tpl.start_time}</span>
                         <span>· {tpl.duration}</span>
                       </div>
@@ -712,15 +712,15 @@ export default function DailyTasksPage() {
       </AnimatePresence>
 
       {/* Timeline */}
-      <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
+      <div className="rounded-2xl border border-border bg-card overflow-hidden">
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <div className="flex">
             {/* Hour labels column */}
-            <div className="flex-shrink-0 w-14 border-r border-gray-100" style={{ height: `${TIMELINE_END * HOUR_HEIGHT}px` }}>
+            <div className="flex-shrink-0 w-14 border-r border-border" style={{ height: `${TIMELINE_END * HOUR_HEIGHT}px` }}>
               {Array.from({ length: TIMELINE_END + 1 }, (_, h) => (
                 <div
                   key={h}
-                  className="flex items-start justify-end pr-2 text-[10px] text-gray-400 font-medium"
+                  className="flex items-start justify-end pr-2 text-[10px] text-muted-foreground font-medium"
                   style={{ height: `${HOUR_HEIGHT}px` }}
                 >
                   <span className="-mt-1.5">{h}:00</span>
@@ -741,7 +741,7 @@ export default function DailyTasksPage() {
               {Array.from({ length: TIMELINE_END + 1 }, (_, h) => (
                 <div
                   key={h}
-                  className="absolute left-0 right-0 border-t border-gray-100"
+                  className="absolute left-0 right-0 border-t border-border"
                   style={{ top: `${h * HOUR_HEIGHT}px` }}
                 />
               ))}
@@ -820,7 +820,7 @@ export default function DailyTasksPage() {
               return (
                 <div
                   key={task.id}
-                  className={`group relative cursor-pointer overflow-hidden rounded-xl border ${sc.border} bg-white p-3 transition-all hover:shadow-md ${isDone ? 'opacity-60' : ''}`}
+                  className={`group relative cursor-pointer overflow-hidden rounded-xl border ${sc.border} bg-card p-3 transition-all hover:shadow-md ${isDone ? 'opacity-60' : ''}`}
                   onClick={() => setEditingTask(task)}
                 >
                   <div className={`absolute left-0 top-0 h-full w-1 bg-gradient-to-b ${sc.barGradient}`} />
@@ -833,15 +833,15 @@ export default function DailyTasksPage() {
                           handleStatusChange(task.id, next[task.status]);
                         }}
                         className={`flex-shrink-0 flex h-4 w-4 items-center justify-center rounded-full border-2 transition-all ${
-                          isDone ? 'border-emerald-400 bg-emerald-400 text-white' : task.status === 'in_progress' ? 'border-sky-400 bg-sky-50' : 'border-gray-300 bg-white'
+                          isDone ? 'border-emerald-400 bg-emerald-400 text-white' : task.status === 'in_progress' ? 'border-sky-400 bg-sky-50' : 'border-border bg-card'
                         }`}
                       >
                         {isDone && <svg className="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
                         {task.status === 'in_progress' && <div className="h-1.5 w-1.5 rounded-full bg-sky-400" />}
                       </button>
-                      <span className={`truncate text-xs font-semibold ${isDone ? 'text-gray-400 line-through' : 'text-gray-800'}`}>{task.title}</span>
+                      <span className={`truncate text-xs font-semibold ${isDone ? 'text-muted-foreground line-through' : 'text-foreground'}`}>{task.title}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-[10px] text-gray-400 pl-5.5">
+                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground pl-5.5">
                       {task.duration && <span>{task.duration}</span>}
                       {task.from_template && <span className="rounded bg-purple-50 px-1 py-0 text-[9px] font-medium text-purple-500">模板</span>}
                     </div>
@@ -860,8 +860,8 @@ export default function DailyTasksPage() {
       {/* Empty state hint */}
       {tasks.length === 0 && (
         <div className="mt-4 py-8 text-center">
-          <p className="text-sm text-gray-400">暂无任务</p>
-          <p className="mt-1 text-xs text-gray-300">点击时间轴空白处添加任务，或使用「📋 AI PM 模板」快速生成</p>
+          <p className="text-sm text-muted-foreground">暂无任务</p>
+          <p className="mt-1 text-xs text-muted-foreground">点击时间轴空白处添加任务，或使用「📋 AI PM 模板」快速生成</p>
         </div>
       )}
 

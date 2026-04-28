@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
+import { cacheGet, cacheSet, TTL } from '@/lib/cache';
 
 export default function DailyChallengePage() {
   const [challenge, setChallenge] = useState<{ id: string; question: string; category: string; difficulty: string; hint: string; perfect_answer: string } | null>(null);
@@ -15,7 +16,31 @@ export default function DailyChallengePage() {
   const [startTime] = useState(Date.now());
   const lastQuestionRef = useRef('');
 
+  const parseFeedback = (fb: unknown) => {
+    if (!fb) return;
+    try {
+      const obj = typeof fb === 'string' ? JSON.parse(fb) : fb;
+      if (obj && typeof obj === 'object') setEvaluation(obj);
+    } catch { /* ignore */ }
+  };
+
   const fetchData = useCallback(async (poll = false) => {
+    // Show cached data first for instant display
+    if (!poll) {
+      const cached = cacheGet<{ challenge: any; submission: any }>('daily-challenge-today');
+      if (cached?.challenge) {
+        setChallenge(cached.challenge);
+        if (cached.submission) {
+          setSubmission(cached.submission);
+          try { setEvaluation(JSON.parse(cached.submission.feedback)); } catch { /* ignore */ }
+        }
+      }
+      const cachedStreak = cacheGet<{ streak: number; history: string[] }>('daily-challenge-streak');
+      if (cachedStreak) {
+        setStreak(cachedStreak.streak);
+        setHistory(cachedStreak.history);
+      }
+    }
     try {
       const [todayRes, streakRes] = await Promise.all([
         fetch('/api/daily-challenge/today'),
@@ -31,11 +56,13 @@ export default function DailyChallengePage() {
           setSubmission(data.submission);
           try { setEvaluation(JSON.parse(data.submission.feedback)); } catch { /* ignore */ }
         }
+        cacheSet('daily-challenge-today', { challenge: data.challenge, submission: data.submission }, TTL.DAILY);
       }
       if (streakRes.ok) {
         const data = await streakRes.json();
         setStreak(data.streak);
         setHistory(data.history);
+        cacheSet('daily-challenge-streak', { streak: data.streak, history: data.history }, TTL.DAILY);
       }
     } catch { /* ignore */ }
   }, []);
@@ -50,7 +77,7 @@ export default function DailyChallengePage() {
   }, [isUpgrading, fetchData]);
 
   const handleSubmit = async () => {
-    if (!challenge || !answer.trim() || isSubmitting) return;
+    if (!challenge?.id || !answer.trim() || isSubmitting) return;
     setIsSubmitting(true);
     try {
       const res = await fetch('/api/daily-challenge/submit', {
@@ -62,8 +89,15 @@ export default function DailyChallengePage() {
         const data = await res.json();
         setEvaluation(data.evaluation);
         setSubmission({ score: data.evaluation?.total_score || 0, feedback: '' });
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        console.error('Submit failed:', res.status, errData);
+        alert(`评分失败: ${errData.error || '请稍后重试'}`);
       }
-    } catch { /* ignore */ } finally { setIsSubmitting(false); }
+    } catch (err) {
+      console.error('Submit error:', err);
+      alert('网络错误，请重试');
+    } finally { setIsSubmitting(false); }
   };
 
   const diffColor = challenge?.difficulty === 'easy' ? 'text-emerald-600' : challenge?.difficulty === 'hard' ? 'text-rose-600' : 'text-amber-600';
@@ -83,12 +117,12 @@ export default function DailyChallengePage() {
       </div>
 
       {!challenge ? (
-        <div className="rounded-2xl border border-gray-200 bg-white p-12 text-center">
+        <div className="rounded-2xl border border-border bg-card p-12 text-center">
           <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-amber-500 border-t-transparent" />
-          <p className="mt-4 text-sm text-gray-500">正在加载今日挑战...</p>
+          <p className="mt-4 text-sm text-muted-foreground">正在加载今日挑战...</p>
         </div>
       ) : (
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
           {isUpgrading && (
             <div className="mb-3 flex items-center gap-2 rounded-lg bg-indigo-50 px-3 py-2">
               <div className="h-3 w-3 animate-spin rounded-full border border-indigo-500 border-t-transparent" />
@@ -99,9 +133,9 @@ export default function DailyChallengePage() {
             <span className="rounded-lg bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">{challenge.category}</span>
             <span className={`text-xs font-medium ${diffColor}`}>{diffLabel}</span>
           </div>
-          <h2 className="text-lg font-bold text-gray-900">{challenge.question}</h2>
+          <h2 className="text-lg font-bold text-foreground">{challenge.question}</h2>
           {challenge.hint && (
-            <p className="mt-2 text-sm text-gray-500">💡 提示：{challenge.hint}</p>
+            <p className="mt-2 text-sm text-muted-foreground">💡 提示：{challenge.hint}</p>
           )}
 
           {submission ? (
@@ -109,7 +143,7 @@ export default function DailyChallengePage() {
               <div className={`rounded-xl border p-4 ${(evaluation?.total_score ?? 0) >= 80 ? 'border-emerald-200 bg-emerald-50' : (evaluation?.total_score ?? 0) >= 60 ? 'border-amber-200 bg-amber-50' : 'border-rose-200 bg-rose-50'}`}>
                 <div className="flex items-center gap-3">
                   <span className="text-3xl font-bold">{evaluation?.total_score || 0}</span>
-                  <span className="text-sm text-gray-600">/ 100 分</span>
+                  <span className="text-sm text-muted-foreground">/ 100 分</span>
                 </div>
                 {evaluation?.overall_comment && <p className="mt-2 text-sm">{evaluation.overall_comment}</p>}
               </div>
@@ -117,17 +151,17 @@ export default function DailyChallengePage() {
                 <div className="space-y-2">
                   {evaluation.scores.map((s, i) => (
                     <div key={i} className="flex items-center gap-3">
-                      <span className="w-20 text-xs font-medium text-gray-600">{s.dimension}</span>
-                      <div className="flex-1 rounded-full bg-gray-100 h-2">
+                      <span className="w-20 text-xs font-medium text-muted-foreground">{s.dimension}</span>
+                      <div className="flex-1 rounded-full bg-secondary h-2">
                         <div className="rounded-full bg-amber-500 h-2" style={{ width: `${s.score}%` }} />
                       </div>
-                      <span className="text-xs font-medium text-gray-700">{s.score}</span>
+                      <span className="text-xs font-medium text-foreground">{s.score}</span>
                     </div>
                   ))}
                 </div>
               )}
               {evaluation?.improvement && (
-                <div className="rounded-xl bg-gray-50 p-3 text-sm text-gray-600">
+                <div className="rounded-xl bg-muted p-3 text-sm text-muted-foreground">
                   <span className="font-medium">改进建议：</span>{evaluation.improvement}
                 </div>
               )}
@@ -137,7 +171,7 @@ export default function DailyChallengePage() {
                   <p className="mt-1 text-sm text-amber-700 whitespace-pre-line">{challenge.perfect_answer}</p>
                 </div>
               )}
-              <p className="text-center text-sm text-gray-400">✅ 今日挑战已完成，明天再来！</p>
+              <p className="text-center text-sm text-muted-foreground">✅ 今日挑战已完成，明天再来！</p>
             </div>
           ) : (
             <div className="mt-6 space-y-3">
@@ -146,7 +180,7 @@ export default function DailyChallengePage() {
                 onChange={(e) => setAnswer(e.target.value)}
                 placeholder="输入你的回答..."
                 rows={8}
-                className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                className="w-full rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground placeholder-muted-foreground focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
               />
               <button
                 onClick={handleSubmit}
@@ -162,8 +196,11 @@ export default function DailyChallengePage() {
 
       {/* Mini calendar */}
       {history.length > 0 && (
-        <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-4">
-          <h3 className="mb-2 text-sm font-semibold text-gray-700">打卡记录</h3>
+        <div className="mt-6 rounded-2xl border border-border bg-card p-4">
+          <div className="mb-2 flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-foreground">打卡记录</h3>
+            <Link href="/daily-challenge/history" className="text-xs text-amber-600 hover:text-amber-700">查看全部记录 →</Link>
+          </div>
           <div className="flex flex-wrap gap-1.5">
             {Array.from({ length: 30 }).map((_, i) => {
               const d = new Date();
@@ -174,7 +211,7 @@ export default function DailyChallengePage() {
                 <div
                   key={i}
                   className={`h-5 w-5 rounded-sm text-[8px] flex items-center justify-center ${
-                    done ? 'bg-amber-400 text-white' : 'bg-gray-100 text-gray-400'
+                    done ? 'bg-amber-400 text-white' : 'bg-secondary text-muted-foreground'
                   }`}
                   title={ds}
                 >

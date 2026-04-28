@@ -40,13 +40,13 @@ export default function AnswerEvaluation({
   const scoreLabelColor = score >= 80 ? 'text-emerald-700' : score >= 60 ? 'text-amber-700' : 'text-rose-700';
 
   return (
-    <Card className="border-[#E5E7EB] bg-white">
+    <Card className="border-border bg-card">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base text-[#1F2937]">答题评价</CardTitle>
+          <CardTitle className="text-base text-foreground">答题评价</CardTitle>
           <div className={`flex items-center gap-2 rounded-full px-3 py-1 ${scoreBg}`}>
             <span className={`text-2xl font-bold ${scoreColor}`}>{score}</span>
-            <span className="text-xs text-[#6B7280]">/100</span>
+            <span className="text-xs text-muted-foreground">/100</span>
             <span className={`text-xs font-medium ${scoreLabelColor}`}>{scoreLabel}</span>
           </div>
         </div>
@@ -63,19 +63,19 @@ export default function AnswerEvaluation({
                 const colors = DIMENSION_COLORS[name] || DEFAULT_COLORS;
                 const pct = Math.min(100, Math.max(0, dim.score));
                 return (
-                  <div key={name} className="rounded-lg border border-[#E5E7EB] p-3">
+                  <div key={name} className="rounded-lg border border-border p-3">
                     <div className="flex items-center justify-between">
                       <span className={`text-sm font-medium ${colors.text}`}>{name}</span>
-                      <span className="text-sm font-bold text-[#1F2937]">{dim.score}<span className="text-xs text-[#9CA3AF]">/100</span></span>
+                      <span className="text-sm font-bold text-foreground">{dim.score}<span className="text-xs text-muted-foreground">/100</span></span>
                     </div>
-                    <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-[#F3F4F6]">
+                    <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-secondary">
                       <div
                         className={`h-full rounded-full transition-all duration-500 ${colors.bar}`}
                         style={{ width: `${pct}%` }}
                       />
                     </div>
                     {dim.comment && (
-                      <p className="mt-1.5 text-xs text-[#6B7280]">{dim.comment}</p>
+                      <p className="mt-1.5 text-xs text-muted-foreground">{dim.comment}</p>
                     )}
                   </div>
                 );
@@ -90,7 +90,7 @@ export default function AnswerEvaluation({
             <span className="mb-2 inline-block rounded-full bg-sky-50 px-2.5 py-0.5 text-xs font-medium text-sky-700">
               总体评价
             </span>
-            <div className="mt-2 text-sm text-[#374151]">{feedback}</div>
+            <div className="mt-2 text-sm text-foreground">{feedback}</div>
           </div>
         )}
 
@@ -102,7 +102,7 @@ export default function AnswerEvaluation({
             </span>
             <div className="mt-2 space-y-1">
               {keyPoints.map((point, i) => (
-                <div key={i} className="flex items-start gap-2 text-sm text-[#374151]">
+                <div key={i} className="flex items-start gap-2 text-sm text-foreground">
                   <span className="mt-0.5 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100 text-[10px] font-bold text-emerald-600">
                     {i + 1}
                   </span>

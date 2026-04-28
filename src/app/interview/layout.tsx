@@ -4,7 +4,7 @@ export default function InterviewLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex h-screen">
       <Sidebar />
-      <main className="flex-1 overflow-y-auto bg-[#F5F7FA]">{children}</main>
+      <main className="flex-1 overflow-y-auto bg-background">{children}</main>
     </div>
   );
 }

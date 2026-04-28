@@ -31,24 +31,24 @@ export default function CodingPromptsPage() {
   };
 
   return (
-    <div className="flex h-full flex-col bg-[#F8F9FB]">
+    <div className="flex h-full flex-col bg-background">
       {/* Header */}
-      <div className="shrink-0 border-b border-[#E5E7EB] bg-white px-6 py-4">
-        <h1 className="text-lg font-semibold text-[#1F2937]">AI Coding 提示词范例</h1>
-        <p className="text-xs text-[#6B7280]">精选完整项目级 AI Coding 提示词，覆盖系统设计、AI 应用、前后端开发等场景</p>
+      <div className="shrink-0 border-b border-border bg-card px-6 py-4">
+        <h1 className="text-lg font-semibold text-foreground">AI Coding 提示词范例</h1>
+        <p className="text-xs text-muted-foreground">精选完整项目级 AI Coding 提示词，覆盖系统设计、AI 应用、前后端开发等场景</p>
         <div className="mt-3">
           <input
             type="text"
             placeholder="搜索提示词、标签..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-lg border border-[#D1D5DB] bg-[#F9FAFB] px-3 py-2 text-xs text-[#1F2937] placeholder-[#9CA3AF] focus:border-[#4F46E5] focus:outline-none focus:ring-1 focus:ring-[#4F46E5]/20"
+            className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-xs text-foreground placeholder-[#9CA3AF] focus:border-[#4F46E5] focus:outline-none focus:ring-1 focus:ring-[#4F46E5]/20"
           />
         </div>
         <div className="mt-3 flex flex-wrap gap-1.5">
           <button
             onClick={() => setSelectedCategory(null)}
-            className={`rounded-md px-2.5 py-1 text-[11px] font-medium transition ${!selectedCategory ? 'bg-[#4F46E5] text-white' : 'bg-[#F3F4F6] text-[#6B7280] hover:bg-indigo-50 hover:text-indigo-600'}`}
+            className={`rounded-md px-2.5 py-1 text-[11px] font-medium transition ${!selectedCategory ? 'bg-[#4F46E5] text-white' : 'bg-secondary text-muted-foreground hover:bg-indigo-50 hover:text-indigo-600'}`}
           >
             全部
           </button>
@@ -56,15 +56,15 @@ export default function CodingPromptsPage() {
             <button
               key={cat.id}
               onClick={() => setSelectedCategory(selectedCategory === cat.id ? null : cat.id)}
-              className={`rounded-md px-2.5 py-1 text-[11px] font-medium transition ${selectedCategory === cat.id ? 'bg-[#4F46E5] text-white' : 'bg-[#F3F4F6] text-[#6B7280] hover:bg-indigo-50 hover:text-indigo-600'}`}
+              className={`rounded-md px-2.5 py-1 text-[11px] font-medium transition ${selectedCategory === cat.id ? 'bg-[#4F46E5] text-white' : 'bg-secondary text-muted-foreground hover:bg-indigo-50 hover:text-indigo-600'}`}
             >
               {cat.icon} {cat.label}
             </button>
           ))}
-          <span className="mx-1 border-l border-[#E5E7EB]" />
+          <span className="mx-1 border-l border-border" />
           <button
             onClick={() => setSelectedDifficulty(null)}
-            className={`rounded-md px-2.5 py-1 text-[11px] font-medium transition ${!selectedDifficulty ? 'bg-[#1F2937] text-white' : 'bg-[#F3F4F6] text-[#6B7280] hover:bg-[#F9FAFB]'}`}
+            className={`rounded-md px-2.5 py-1 text-[11px] font-medium transition ${!selectedDifficulty ? 'bg-[#1F2937] text-white' : 'bg-secondary text-muted-foreground hover:bg-muted'}`}
           >
             所有难度
           </button>
@@ -72,7 +72,7 @@ export default function CodingPromptsPage() {
             <button
               key={key}
               onClick={() => setSelectedDifficulty(selectedDifficulty === key ? null : key)}
-              className={`rounded-md px-2.5 py-1 text-[11px] font-medium transition ${selectedDifficulty === key ? `${cfg.bg} ${cfg.color} font-semibold` : 'bg-[#F3F4F6] text-[#6B7280] hover:bg-[#F9FAFB]'}`}
+              className={`rounded-md px-2.5 py-1 text-[11px] font-medium transition ${selectedDifficulty === key ? `${cfg.bg} ${cfg.color} font-semibold` : 'bg-secondary text-muted-foreground hover:bg-muted'}`}
             >
               {cfg.label}
             </button>
@@ -82,9 +82,9 @@ export default function CodingPromptsPage() {
 
       {/* Grid */}
       <div className="flex-1 overflow-y-auto p-6">
-        <div className="mb-3 text-[11px] text-[#9CA3AF]">共 {filtered.length} 个提示词</div>
+        <div className="mb-3 text-[11px] text-muted-foreground">共 {filtered.length} 个提示词</div>
         {filtered.length === 0 ? (
-          <div className="flex items-center justify-center py-20 text-sm text-[#9CA3AF]">没有找到匹配的提示词</div>
+          <div className="flex items-center justify-center py-20 text-sm text-muted-foreground">没有找到匹配的提示词</div>
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {filtered.map((prompt) => (
@@ -121,16 +121,16 @@ function PromptCard({
   const cat = PROMPT_CATEGORIES.find((c) => c.id === prompt.category);
 
   return (
-    <div className="group flex flex-col rounded-xl border border-[#E5E7EB] bg-white transition hover:border-indigo-200 hover:shadow-sm">
+    <div className="group flex flex-col rounded-xl border border-border bg-card transition hover:border-indigo-200 hover:shadow-sm">
       <div className="flex flex-1 flex-col p-4">
         {/* Header */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1">
             <div className="flex items-center gap-1.5">
               <span className="text-xs">{cat?.icon}</span>
-              <h3 className="text-sm font-semibold text-[#1F2937] group-hover:text-indigo-600 transition line-clamp-2">{prompt.title}</h3>
+              <h3 className="text-sm font-semibold text-foreground group-hover:text-indigo-600 transition line-clamp-2">{prompt.title}</h3>
             </div>
-            <p className="mt-1 text-[11px] text-[#6B7280] line-clamp-2">{prompt.description}</p>
+            <p className="mt-1 text-[11px] text-muted-foreground line-clamp-2">{prompt.description}</p>
           </div>
           <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium ${diff.bg} ${diff.color}`}>{diff.label}</span>
         </div>
@@ -138,15 +138,15 @@ function PromptCard({
         {/* Tags */}
         <div className="mt-2 flex flex-wrap gap-1">
           {prompt.tags.slice(0, 4).map((tag) => (
-            <span key={tag} className="rounded bg-[#F3F4F6] px-1.5 py-0.5 text-[10px] text-[#6B7280]">{tag}</span>
+            <span key={tag} className="rounded bg-secondary px-1.5 py-0.5 text-[10px] text-muted-foreground">{tag}</span>
           ))}
           {prompt.source && (
-            <span className="rounded bg-[#4F46E5]/5 px-1.5 py-0.5 text-[10px] text-[#4F46E5]">{prompt.source}</span>
+            <span className="rounded bg-[#4F46E5]/5 px-1.5 py-0.5 text-[10px] text-primary">{prompt.source}</span>
           )}
         </div>
 
         {/* Expand toggle */}
-        <button onClick={onToggle} className="mt-2 text-[11px] font-medium text-[#4F46E5] hover:text-[#4338CA] transition self-start">
+        <button onClick={onToggle} className="mt-2 text-[11px] font-medium text-primary hover:text-[#4338CA] transition self-start">
           {expanded ? '收起 ▲' : '展开提示词 ▼'}
         </button>
 
@@ -167,7 +167,7 @@ function PromptCard({
 
         {/* Source link */}
         {prompt.sourceUrl && (
-          <a href={prompt.sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-2 text-[10px] text-[#9CA3AF] hover:text-[#4F46E5] self-start">
+          <a href={prompt.sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-2 text-[10px] text-muted-foreground hover:text-primary self-start">
             来源 ↗
           </a>
         )}

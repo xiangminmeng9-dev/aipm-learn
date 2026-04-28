@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import type { DailyAiNewsArticle, DailyAiNewsDigest } from '@/types';
+import { cacheGet, cacheSet, TTL } from '@/lib/cache';
 
 function getTodayShanghai(): string {
   return new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Shanghai' });
@@ -26,12 +27,20 @@ export default function DailyAiNewsPage() {
 
   const fetchData = useCallback(async (d: string) => {
     setLoading(true);
+    // Read from cache for instant display
+    const cached = cacheGet<{ articles: DailyAiNewsArticle[]; digest: DailyAiNewsDigest | null }>(`daily-ai-news:${d}`);
+    if (cached) {
+      setArticles(cached.articles);
+      setDigest(cached.digest);
+      setLoading(false);
+    }
     try {
       const res = await fetch(`/api/daily-ai-news?date=${d}`);
       if (res.ok) {
         const data = await res.json();
         setArticles(data.articles ?? []);
         setDigest(data.digest ?? null);
+        cacheSet(`daily-ai-news:${d}`, { articles: data.articles ?? [], digest: data.digest ?? null }, TTL.RSS);
       }
     } finally {
       setLoading(false);
@@ -75,13 +84,13 @@ export default function DailyAiNewsPage() {
   }
 
   return (
-    <div className="flex h-full flex-col bg-[#F8F9FB]">
+    <div className="flex h-full flex-col bg-background">
       {/* Header */}
-      <div className="shrink-0 border-b border-[#E5E7EB] bg-white px-6 py-4">
+      <div className="shrink-0 border-b border-border bg-card px-6 py-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-semibold text-[#1F2937]">每日 AI 大事</h1>
-            <p className="text-xs text-[#6B7280]">全网 AI 动态，AI 自动生成摘要与趋势洞察</p>
+            <h1 className="text-lg font-semibold text-foreground">每日 AI 大事</h1>
+            <p className="text-xs text-muted-foreground">全网 AI 动态，AI 自动生成摘要与趋势洞察</p>
           </div>
           <button
             onClick={handleRefresh}
@@ -97,9 +106,9 @@ export default function DailyAiNewsPage() {
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="rounded-lg border border-[#D1D5DB] bg-[#F9FAFB] px-3 py-1.5 text-xs text-[#1F2937] focus:border-[#4F46E5] focus:outline-none"
+            className="rounded-lg border border-border bg-muted px-3 py-1.5 text-xs text-foreground focus:border-[#4F46E5] focus:outline-none"
           />
-          <span className="text-xs text-[#9CA3AF]">{articles.length} 篇文章</span>
+          <span className="text-xs text-muted-foreground">{articles.length} 篇文章</span>
         </div>
       </div>
 
@@ -116,12 +125,12 @@ export default function DailyAiNewsPage() {
               <div className="rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50/50 to-white p-5">
                 <div className="flex items-center gap-2 mb-3">
                   <span className="text-base">🤖</span>
-                  <h2 className="text-sm font-semibold text-[#1F2937]">AI 每日摘要</h2>
+                  <h2 className="text-sm font-semibold text-foreground">AI 每日摘要</h2>
                   <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-medium text-indigo-600">
                     {digest?.article_count ?? 0} 篇
                   </span>
                 </div>
-                <div className="text-sm leading-relaxed text-[#374151] whitespace-pre-wrap">{digestContent}</div>
+                <div className="text-sm leading-relaxed text-foreground whitespace-pre-wrap">{digestContent}</div>
               </div>
             )}
 
@@ -143,15 +152,15 @@ export default function DailyAiNewsPage() {
                   } catch { /* plain text */ }
 
                   return (
-                    <div key={article.id} className="group flex flex-col rounded-xl border border-[#E5E7EB] bg-white transition hover:border-indigo-200 hover:shadow-sm">
+                    <div key={article.id} className="group flex flex-col rounded-xl border border-border bg-card transition hover:border-indigo-200 hover:shadow-sm">
                       <div className="flex flex-1 flex-col p-4">
-                        <h3 className="text-sm font-medium leading-snug text-[#1F2937] group-hover:text-indigo-600 transition line-clamp-2">
+                        <h3 className="text-sm font-medium leading-snug text-foreground group-hover:text-indigo-600 transition line-clamp-2">
                           {article.url ? (
                             <a href={article.url} target="_blank" rel="noopener noreferrer">{article.title}</a>
                           ) : article.title}
                         </h3>
-                        <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px] text-[#9CA3AF]">
-                          <span className="rounded bg-[#F3F4F6] px-1.5 py-0.5">{article.source}</span>
+                        <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+                          <span className="rounded bg-secondary px-1.5 py-0.5">{article.source}</span>
                           {article.published_at && <span>{timeAgo(article.published_at)}</span>}
                         </div>
                         {tags.length > 0 && (
@@ -162,12 +171,12 @@ export default function DailyAiNewsPage() {
                           </div>
                         )}
                         {explanation && (
-                          <p className="mt-2 text-xs leading-relaxed text-[#6B7280] line-clamp-3">{explanation}</p>
+                          <p className="mt-2 text-xs leading-relaxed text-muted-foreground line-clamp-3">{explanation}</p>
                         )}
                         {impact && (
                           <div className="mt-2 rounded-lg bg-amber-50/60 p-2">
                             <p className="text-[10px] font-medium text-amber-700">对 PM 的意义</p>
-                            <p className="mt-0.5 text-xs text-[#374151] line-clamp-2">{impact}</p>
+                            <p className="mt-0.5 text-xs text-foreground line-clamp-2">{impact}</p>
                           </div>
                         )}
                       </div>
@@ -176,9 +185,9 @@ export default function DailyAiNewsPage() {
                 })}
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center py-20 text-sm text-[#9CA3AF]">
+              <div className="flex flex-col items-center justify-center py-20 text-sm text-muted-foreground">
                 <p>暂无新闻数据</p>
-                <button onClick={handleRefresh} className="mt-2 text-xs text-[#4F46E5] hover:underline">点击刷新</button>
+                <button onClick={handleRefresh} className="mt-2 text-xs text-primary hover:underline">点击刷新</button>
               </div>
             )}
           </div>

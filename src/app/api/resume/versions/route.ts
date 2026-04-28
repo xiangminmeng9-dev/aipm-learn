@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
     const {
@@ -12,9 +12,28 @@ export async function GET() {
       return NextResponse.json({ error: '未登录', code: 'UNAUTHORIZED' }, { status: 401 });
     }
 
+    const { searchParams } = new URL(request.url);
+    const singleId = searchParams.get('id');
+
+    if (singleId) {
+      // Fetch single version with full content
+      const { data: version, error } = await supabase
+        .from('resume_versions')
+        .select('id, style_type, company_name, position_name, changes_summary, modified_resume, original_resume_text, jd_text, created_at')
+        .eq('id', singleId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (error || !version) {
+        return NextResponse.json({ error: '版本不存在', code: 'NOT_FOUND' }, { status: 404 });
+      }
+      return NextResponse.json({ version });
+    }
+
+    // List versions with full content for expand view
     const { data: versions, error } = await supabase
       .from('resume_versions')
-      .select('id, style_type, company_name, position_name, changes_summary, created_at')
+      .select('id, style_type, company_name, position_name, changes_summary, modified_resume, original_resume_text, jd_text, created_at')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(20);

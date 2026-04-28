@@ -115,13 +115,13 @@ export default function ResourcesManagePage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-4xl font-semibold text-[#1F2937]">资源管理</h1>
-          <p className="mt-2 text-lg text-[#6B7280]">管理学习资源与文件夹</p>
+          <h1 className="text-4xl font-semibold text-foreground">资源管理</h1>
+          <p className="mt-2 text-lg text-muted-foreground">管理学习资源与文件夹</p>
         </div>
         <div className="flex gap-3">
           <button
             onClick={() => { setAddType('folder'); setAddTitle(''); setShowAddDialog(true); }}
-            className="rounded-xl border border-[#E5E7EB] bg-white px-4 py-2.5 text-base font-medium text-[#374151] transition hover:bg-[#F9FAFB]"
+            className="rounded-xl border border-border bg-card px-4 py-2.5 text-base font-medium text-foreground transition hover:bg-muted"
           >
             📁 新建文件夹
           </button>
@@ -138,11 +138,11 @@ export default function ResourcesManagePage() {
       <div className="flex items-center gap-1.5 text-base">
         {breadcrumb.map((b, i) => (
           <span key={i} className="flex items-center gap-1.5">
-            {i > 0 && <span className="text-[#9CA3AF]">/</span>}
+            {i > 0 && <span className="text-muted-foreground">/</span>}
             {i === breadcrumb.length - 1 ? (
-              <span className="font-medium text-[#1F2937]">{b.title}</span>
+              <span className="font-medium text-foreground">{b.title}</span>
             ) : (
-              <button onClick={() => navigateToFolder(b.id)} className="text-[#6B7280] hover:text-indigo-600 transition">
+              <button onClick={() => navigateToFolder(b.id)} className="text-muted-foreground hover:text-indigo-600 transition">
                 {b.title}
               </button>
             )}
@@ -152,37 +152,37 @@ export default function ResourcesManagePage() {
 
       {/* Search */}
       <div className="relative">
-        <svg className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9CA3AF]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
         </svg>
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="搜索资源..."
-          className="w-full rounded-xl border border-[#E5E7EB] bg-white py-2.5 pl-10 pr-4 text-base text-[#1F2937] placeholder-[#9CA3AF] outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+          className="w-full rounded-xl border border-border bg-card py-2.5 pl-10 pr-4 text-base text-foreground placeholder-[#9CA3AF] outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
         />
       </div>
 
       {/* AI PM Learning Directions */}
-      <Card className="border-[#E5E7EB] bg-white">
+      <Card className="border-border bg-card">
         <CardHeader>
-          <CardTitle className="text-xl text-[#1F2937]">AI PM 学习方向快速创建</CardTitle>
+          <CardTitle className="text-xl text-foreground">AI PM 学习方向快速创建</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {AI_PM_DIRECTIONS.map((dir) => (
-              <div key={dir.id} className="rounded-xl border border-[#E5E7EB] p-4 transition hover:border-indigo-200 hover:shadow-sm">
+              <div key={dir.id} className="rounded-xl border border-border p-4 transition hover:border-indigo-200 hover:shadow-sm">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="text-xl">{dir.icon}</span>
                     <div>
-                      <div className="text-base font-medium text-[#1F2937]">{dir.label}</div>
-                      <div className="text-sm text-[#9CA3AF]">{dir.description}</div>
+                      <div className="text-base font-medium text-foreground">{dir.label}</div>
+                      <div className="text-sm text-muted-foreground">{dir.description}</div>
                     </div>
                   </div>
                   <button
                     onClick={() => setExpandedDirection(expandedDirection === dir.id ? null : dir.id)}
-                    className="rounded-lg p-1.5 text-[#9CA3AF] transition hover:bg-[#F3F4F6] hover:text-[#374151]"
+                    className="rounded-lg p-1.5 text-muted-foreground transition hover:bg-secondary hover:text-foreground"
                   >
                     <svg className={`h-4 w-4 transition ${expandedDirection === dir.id ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
@@ -192,10 +192,10 @@ export default function ResourcesManagePage() {
                 {expandedDirection === dir.id && (
                   <div className="mt-3 space-y-2">
                     {dir.templates.map((tpl, ti) => (
-                      <div key={ti} className="flex items-center justify-between rounded-lg bg-[#F9FAFB] px-3 py-2">
+                      <div key={ti} className="flex items-center justify-between rounded-lg bg-muted px-3 py-2">
                         <div className="flex items-center gap-2 min-w-0">
                           <span className="text-base">{TYPE_ICONS[tpl.type]}</span>
-                          <span className="truncate text-base text-[#374151]">{tpl.title}</span>
+                          <span className="truncate text-base text-foreground">{tpl.title}</span>
                         </div>
                         <button
                           onClick={() => addSingleTemplate(tpl)}
@@ -224,7 +224,7 @@ export default function ResourcesManagePage() {
       {/* Folders */}
       {folders.length > 0 && (
         <div>
-          <h3 className="mb-3 text-base font-medium text-[#6B7280]">文件夹</h3>
+          <h3 className="mb-3 text-base font-medium text-muted-foreground">文件夹</h3>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {folders.map((f) => {
               const childCount = resources.filter((r) => r.parent_id === f.id).length;
@@ -232,18 +232,18 @@ export default function ResourcesManagePage() {
                 <div
                   key={f.id}
                   onClick={() => navigateToFolder(f.id, f.title)}
-                  className="group flex cursor-pointer items-center justify-between rounded-xl border border-[#E5E7EB] bg-white p-4 transition hover:border-amber-200 hover:shadow-sm"
+                  className="group flex cursor-pointer items-center justify-between rounded-xl border border-border bg-card p-4 transition hover:border-amber-200 hover:shadow-sm"
                 >
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">📁</span>
                     <div>
-                      <div className="text-base font-medium text-[#1F2937]">{f.title}</div>
-                      <div className="text-sm text-[#9CA3AF]">{childCount} 个项目</div>
+                      <div className="text-base font-medium text-foreground">{f.title}</div>
+                      <div className="text-sm text-muted-foreground">{childCount} 个项目</div>
                     </div>
                   </div>
                   <button
                     onClick={(e) => { e.stopPropagation(); doDelete(f.id); }}
-                    className="rounded-lg p-1.5 text-[#9CA3AF] opacity-0 transition group-hover:opacity-100 hover:bg-red-50 hover:text-red-500"
+                    className="rounded-lg p-1.5 text-muted-foreground opacity-0 transition group-hover:opacity-100 hover:bg-red-50 hover:text-red-500"
                   >
                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
@@ -259,19 +259,19 @@ export default function ResourcesManagePage() {
       {/* Resources */}
       {files.length > 0 ? (
         <div>
-          <h3 className="mb-3 text-base font-medium text-[#6B7280]">资源</h3>
+          <h3 className="mb-3 text-base font-medium text-muted-foreground">资源</h3>
           <div className="space-y-2">
             {files.map((r) => (
               <div
                 key={r.id}
-                className="group flex items-center justify-between rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 transition hover:border-indigo-100 hover:shadow-sm"
+                className="group flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3 transition hover:border-indigo-100 hover:shadow-sm"
               >
                 <div className="flex items-center gap-3 min-w-0 flex-1">
                   <span className={`inline-flex items-center rounded-lg border px-2.5 py-1 text-sm font-medium ${TYPE_COLORS[r.type] ?? TYPE_COLORS.link}`}>
                     {TYPE_ICONS[r.type] ?? '🔗'} {r.type === 'link' ? '链接' : r.type === 'video' ? '视频' : r.type === 'doc' ? '文档' : '链接'}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-base font-medium text-[#1F2937]">
+                    <div className="truncate text-base font-medium text-foreground">
                       {r.url ? (
                         <a href={r.url} target="_blank" rel="noopener noreferrer" className="hover:text-indigo-600 transition">
                           {r.title}
@@ -280,7 +280,7 @@ export default function ResourcesManagePage() {
                         r.title
                       )}
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-[#9CA3AF]">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       {r.source && <span>{r.source}</span>}
                       <span>{new Date(r.created_at).toLocaleDateString('zh-CN')}</span>
                     </div>
@@ -292,7 +292,7 @@ export default function ResourcesManagePage() {
                       href={r.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="rounded-lg p-2 text-[#9CA3AF] transition hover:bg-indigo-50 hover:text-indigo-600"
+                      className="rounded-lg p-2 text-muted-foreground transition hover:bg-indigo-50 hover:text-indigo-600"
                     >
                       <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
@@ -301,7 +301,7 @@ export default function ResourcesManagePage() {
                   )}
                   <button
                     onClick={() => doDelete(r.id)}
-                    className="rounded-lg p-2 text-[#9CA3AF] opacity-0 transition group-hover:opacity-100 hover:bg-red-50 hover:text-red-500"
+                    className="rounded-lg p-2 text-muted-foreground opacity-0 transition group-hover:opacity-100 hover:bg-red-50 hover:text-red-500"
                   >
                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
@@ -313,17 +313,17 @@ export default function ResourcesManagePage() {
           </div>
         </div>
       ) : folders.length === 0 ? (
-        <div className="rounded-2xl border border-[#E5E7EB] bg-white py-16 text-center">
-          <p className="text-lg text-[#6B7280]">暂无资源</p>
-          <p className="mt-1 text-base text-[#9CA3AF]">点击上方按钮添加资源或新建文件夹</p>
+        <div className="rounded-2xl border border-border bg-card py-16 text-center">
+          <p className="text-lg text-muted-foreground">暂无资源</p>
+          <p className="mt-1 text-base text-muted-foreground">点击上方按钮添加资源或新建文件夹</p>
         </div>
       ) : null}
 
       {/* Add Dialog */}
       {showAddDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowAddDialog(false)}>
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-xl font-semibold text-[#1F2937]">
+          <div className="w-full max-w-md rounded-2xl bg-card p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-xl font-semibold text-foreground">
               {addType === 'folder' ? '新建文件夹' : '添加资源'}
             </h3>
             <div className="mt-4 space-y-4">
@@ -336,7 +336,7 @@ export default function ResourcesManagePage() {
                       className={`rounded-lg border px-3 py-1.5 text-base font-medium transition ${
                         addType === t.value
                           ? 'border-indigo-300 bg-indigo-50 text-indigo-600'
-                          : 'border-[#E5E7EB] text-[#6B7280] hover:bg-[#F9FAFB]'
+                          : 'border-border text-muted-foreground hover:bg-muted'
                       }`}
                     >
                       {t.icon} {t.label}
@@ -345,44 +345,44 @@ export default function ResourcesManagePage() {
                 </div>
               )}
               <div>
-                <label className="mb-1 block text-base font-medium text-[#374151]">
+                <label className="mb-1 block text-base font-medium text-foreground">
                   {addType === 'folder' ? '文件夹名称' : '标题'}
                 </label>
                 <input
                   value={addTitle}
                   onChange={(e) => setAddTitle(e.target.value)}
                   placeholder={addType === 'folder' ? '输入文件夹名称' : '输入资源标题'}
-                  className="w-full rounded-xl border border-[#E5E7EB] px-3 py-2.5 text-base text-[#1F2937] placeholder-[#9CA3AF] outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                  className="w-full rounded-xl border border-border px-3 py-2.5 text-base text-foreground placeholder-[#9CA3AF] outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
                 />
               </div>
               {addType !== 'folder' && (
                 <>
                   <div>
-                    <label className="mb-1 block text-base font-medium text-[#374151]">链接</label>
+                    <label className="mb-1 block text-base font-medium text-foreground">链接</label>
                     <input
                       value={addUrl}
                       onChange={(e) => setAddUrl(e.target.value)}
                       placeholder="https://..."
-                      className="w-full rounded-xl border border-[#E5E7EB] px-3 py-2.5 text-base text-[#1F2937] placeholder-[#9CA3AF] outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                      className="w-full rounded-xl border border-border px-3 py-2.5 text-base text-foreground placeholder-[#9CA3AF] outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-base font-medium text-[#374151]">来源</label>
+                    <label className="mb-1 block text-base font-medium text-foreground">来源</label>
                     <input
                       value={addSource}
                       onChange={(e) => setAddSource(e.target.value)}
                       placeholder="如：知乎、B站、Coursera"
-                      className="w-full rounded-xl border border-[#E5E7EB] px-3 py-2.5 text-base text-[#1F2937] placeholder-[#9CA3AF] outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                      className="w-full rounded-xl border border-border px-3 py-2.5 text-base text-foreground placeholder-[#9CA3AF] outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-base font-medium text-[#374151]">备注</label>
+                    <label className="mb-1 block text-base font-medium text-foreground">备注</label>
                     <textarea
                       value={addNotes}
                       onChange={(e) => setAddNotes(e.target.value)}
                       placeholder="可选备注..."
                       rows={2}
-                      className="w-full rounded-xl border border-[#E5E7EB] px-3 py-2.5 text-base text-[#1F2937] placeholder-[#9CA3AF] outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                      className="w-full rounded-xl border border-border px-3 py-2.5 text-base text-foreground placeholder-[#9CA3AF] outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
                     />
                   </div>
                 </>
@@ -390,7 +390,7 @@ export default function ResourcesManagePage() {
               <div className="flex gap-3 pt-2">
                 <button
                   onClick={() => setShowAddDialog(false)}
-                  className="flex-1 rounded-xl border border-[#E5E7EB] py-2.5 text-base font-medium text-[#374151] transition hover:bg-[#F9FAFB]"
+                  className="flex-1 rounded-xl border border-border py-2.5 text-base font-medium text-foreground transition hover:bg-muted"
                 >
                   取消
                 </button>

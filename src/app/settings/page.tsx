@@ -5,6 +5,8 @@ import Link from 'next/link';
 
 type Protocol = 'anthropic' | 'openai';
 
+import { ThemeToggle } from '@/components/ui/theme-toggle';
+
 export default function SettingsPage() {
   const [protocol, setProtocol] = useState<Protocol>('anthropic');
   const [baseUrl, setBaseUrl] = useState('');
@@ -118,38 +120,63 @@ export default function SettingsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F8F9FB]">
+      <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#F8F9FB]">
-      <header className="sticky top-0 z-40 border-b border-gray-200 bg-white/80 backdrop-blur">
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-40 border-b border-border bg-card/80 backdrop-blur">
         <div className="flex items-center gap-4 px-8 py-4 md:px-12">
           <Link
             href="/"
-            className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
+            className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
             </svg>
             返回首页
           </Link>
-          <span className="text-gray-300">|</span>
+          <span className="text-muted-foreground">|</span>
           <div>
-            <h1 className="text-lg font-bold text-gray-900">设置</h1>
-            <p className="text-xs text-gray-500">自定义你使用的 AI 模型</p>
+            <h1 className="text-lg font-bold text-foreground">设置</h1>
+            <p className="text-xs text-muted-foreground">自定义你使用的 AI 模型</p>
           </div>
         </div>
       </header>
 
       <div className="mx-auto max-w-3xl px-8 py-8">
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+        {/* 学习数据看板 */}
+        <div className="mb-6 rounded-2xl border border-border bg-card p-6 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-base font-semibold text-foreground">学习数据看板</h2>
+              <p className="mt-1 text-xs text-muted-foreground">学习时长、面试次数、技能覆盖度、进步曲线</p>
+            </div>
+            <Link
+              href="/settings/dashboard"
+              className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+            >
+              查看看板
+            </Link>
+          </div>
+        </div>
+
+        {/* 外观设置 */}
+        <div className="mb-6 rounded-2xl border border-border bg-card p-6 shadow-sm">
+          <div className="mb-4">
+            <h2 className="text-base font-semibold text-foreground">外观设置</h2>
+            <p className="mt-1 text-xs text-muted-foreground">选择浅色、深色或跟随系统偏好</p>
+          </div>
+          <ThemeToggle />
+        </div>
+
+        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
           <div className="mb-6">
-            <h2 className="text-base font-semibold text-gray-900">AI 模型配置</h2>
-            <p className="mt-1 text-xs text-gray-500">
+            <h2 className="text-base font-semibold text-foreground">AI 模型配置</h2>
+            <p className="mt-1 text-xs text-muted-foreground">
               {hasConfig
                 ? '当前平台 AI 功能将使用你的自定义模型。'
                 : '平台默认使用系统内置模型。可在下方配置你自己的模型，支持 Anthropic / OpenAI 兼容协议。'}
@@ -158,13 +185,13 @@ export default function SettingsPage() {
 
           {/* Presets */}
           <div className="mb-6">
-            <label className="mb-2 block text-xs font-medium text-gray-600">快速填入（可选）</label>
+            <label className="mb-2 block text-xs font-medium text-muted-foreground">快速填入（可选）</label>
             <div className="flex flex-wrap gap-2">
               {presets.map((p) => (
                 <button
                   key={p.name}
                   onClick={() => applyPreset(p)}
-                  className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs text-gray-600 transition-colors hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600"
+                  className="rounded-lg border border-border bg-muted px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600"
                 >
                   {p.name}
                 </button>
@@ -174,57 +201,57 @@ export default function SettingsPage() {
 
           <div className="space-y-4">
             <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">协议</label>
+              <label className="mb-2 block text-sm font-medium text-foreground">协议</label>
               <div className="flex gap-2">
                 <button
                   onClick={() => setProtocol('anthropic')}
                   className={`flex-1 rounded-xl border-2 px-4 py-3 text-sm transition-colors ${
                     protocol === 'anthropic'
                       ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                      : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                      : 'border-border bg-card text-muted-foreground hover:border-border'
                   }`}
                 >
                   <div className="font-semibold">Anthropic Messages</div>
-                  <div className="mt-0.5 text-xs text-gray-500">Claude / Anthropic 兼容</div>
+                  <div className="mt-0.5 text-xs text-muted-foreground">Claude / Anthropic 兼容</div>
                 </button>
                 <button
                   onClick={() => setProtocol('openai')}
                   className={`flex-1 rounded-xl border-2 px-4 py-3 text-sm transition-colors ${
                     protocol === 'openai'
                       ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                      : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                      : 'border-border bg-card text-muted-foreground hover:border-border'
                   }`}
                 >
                   <div className="font-semibold">OpenAI Chat Completions</div>
-                  <div className="mt-0.5 text-xs text-gray-500">GPT / DeepSeek / Kimi / Qwen 等</div>
+                  <div className="mt-0.5 text-xs text-muted-foreground">GPT / DeepSeek / Kimi / Qwen 等</div>
                 </button>
               </div>
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">Base URL</label>
+              <label className="mb-2 block text-sm font-medium text-foreground">Base URL</label>
               <input
                 value={baseUrl}
                 onChange={(e) => setBaseUrl(e.target.value)}
                 placeholder={protocol === 'anthropic' ? 'https://api.anthropic.com（留空走官方默认）' : 'https://api.openai.com/v1'}
-                className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
               />
-              <p className="mt-1 text-xs text-gray-400">OpenAI 协议请填写到 `/v1` 级别</p>
+              <p className="mt-1 text-xs text-muted-foreground">OpenAI 协议请填写到 `/v1` 级别</p>
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">API Key</label>
+              <label className="mb-2 block text-sm font-medium text-foreground">API Key</label>
               <div className="relative">
                 <input
                   type={showKey ? 'text' : 'password'}
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
                   placeholder="sk-..."
-                  className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 pr-20 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="w-full rounded-xl border border-border bg-card px-4 py-2.5 pr-20 text-sm text-foreground placeholder-muted-foreground focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 />
                 <button
                   onClick={() => setShowKey(!showKey)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-muted-foreground"
                 >
                   {showKey ? '隐藏' : '显示'}
                 </button>
@@ -232,12 +259,12 @@ export default function SettingsPage() {
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">模型 ID</label>
+              <label className="mb-2 block text-sm font-medium text-foreground">模型 ID</label>
               <input
                 value={model}
                 onChange={(e) => setModel(e.target.value)}
                 placeholder={protocol === 'anthropic' ? 'claude-sonnet-4-5' : 'gpt-4o'}
-                className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
               />
             </div>
           </div>
@@ -256,7 +283,7 @@ export default function SettingsPage() {
             <button
               onClick={handleReset}
               disabled={isSaving || !hasConfig}
-              className="rounded-xl border border-gray-200 px-4 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-40"
+              className="rounded-xl border border-border px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted disabled:opacity-40"
             >
               恢复默认
             </button>

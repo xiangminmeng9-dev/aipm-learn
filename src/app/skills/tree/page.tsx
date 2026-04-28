@@ -2,9 +2,12 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { cacheGet, cacheSet, TTL } from '@/lib/cache';
 import SkillModuleCard from '@/components/skills/SkillModuleCard';
 import CustomModuleDialog from '@/components/skills/CustomModuleDialog';
 import SkillTreeChart from '@/components/skills/SkillTreeChart';
+import SkillRadarChart from '@/components/skills/SkillRadarChart';
+import KnowledgeGraph from '@/components/skills/KnowledgeGraph';
 import { buildSkillGraphData } from '@/components/skills/SkillTreeLayout';
 import type { SkillModuleWithProgress } from '@/types';
 
@@ -16,25 +19,43 @@ const LEVEL_CONFIG: Record<number, { name: string; color: string; bg: string; de
 };
 
 type ModuleWithCustom = SkillModuleWithProgress & { is_custom?: boolean };
-type ViewMode = 'tree' | 'cards';
+type ViewMode = 'tree' | 'cards' | 'graph';
 
 export default function SkillsTreePage() {
   const [modules, setModules] = useState<ModuleWithCustom[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [dialogLevel, setDialogLevel] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('tree');
+  const [interviewAvgScore, setInterviewAvgScore] = useState<number>(0);
   const router = useRouter();
 
   const fetchModules = () => {
+    // Read from cache for instant display
+    const cached = cacheGet<ModuleWithCustom[]>('skill-modules');
+    if (cached) {
+      setModules(cached);
+      setIsLoading(false);
+    }
     fetch('/api/skills/modules')
       .then((r) => r.json())
-      .then((data) => setModules(data.modules ?? []))
+      .then((data) => {
+        const mods = data.modules ?? [];
+        setModules(mods);
+        cacheSet('skill-modules', mods, TTL.USER_DATA);
+      })
       .catch(() => {})
       .finally(() => setIsLoading(false));
   };
 
   useEffect(() => {
     fetchModules();
+    // Fetch interview average score for radar chart
+    fetch('/api/interview/stats')
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (data?.averageScore) setInterviewAvgScore(Math.round(data.averageScore));
+      })
+      .catch(() => {});
   }, []);
 
   const handleDeleteCustomModule = async (id: string) => {
@@ -49,6 +70,8 @@ export default function SkillsTreePage() {
     (moduleId: string, isCustom: boolean) => {
       if (moduleId === '__jd_gaps__') {
         router.push('/skills/jd-gaps');
+      } else if (moduleId === '__bookmarked_tech__') {
+        router.push('/skills/bookmarked-tech');
       } else {
         router.push(isCustom ? `/skills/custom-module/${moduleId}` : `/skills/module/${moduleId}`);
       }
@@ -74,16 +97,16 @@ export default function SkillsTreePage() {
       {/* Header */}
       <div className="mb-6 flex items-start justify-between">
         <div>
-          <h1 className="text-3xl font-semibold text-[#1F2937]">AI PM 技能树</h1>
-          <p className="mt-2 text-base text-[#6B7280]">从零基础到 AI 产品经理，循序渐进的学习路径</p>
+          <h1 className="text-3xl font-semibold text-foreground">AI PM 技能树</h1>
+          <p className="mt-2 text-base text-muted-foreground">从零基础到 AI 产品经理，循序渐进的学习路径</p>
         </div>
         <div className="flex items-center gap-2">
           {/* View toggle */}
-          <div className="flex rounded-lg border border-[#E5E7EB] bg-white p-0.5">
+          <div className="flex rounded-lg border border-border bg-card p-0.5">
             <button
               onClick={() => setViewMode('tree')}
               className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                viewMode === 'tree' ? 'bg-indigo-50 text-indigo-600' : 'text-[#6B7280] hover:text-[#1F2937]'
+                viewMode === 'tree' ? 'bg-indigo-50 text-indigo-600' : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -95,7 +118,7 @@ export default function SkillsTreePage() {
             <button
               onClick={() => setViewMode('cards')}
               className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                viewMode === 'cards' ? 'bg-indigo-50 text-indigo-600' : 'text-[#6B7280] hover:text-[#1F2937]'
+                viewMode === 'cards' ? 'bg-indigo-50 text-indigo-600' : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -103,11 +126,22 @@ export default function SkillsTreePage() {
               </svg>
               卡片
             </button>
+            <button
+              onClick={() => setViewMode('graph')}
+              className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                viewMode === 'graph' ? 'bg-indigo-50 text-indigo-600' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-9L21 3m0 0L16.5 7.5M21 3h-13.5" />
+              </svg>
+              知识图谱
+            </button>
           </div>
           {/* Add custom module */}
           <button
             onClick={() => setDialogLevel(1)}
-            className="flex items-center gap-1.5 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5 text-xs font-medium text-[#6B7280] transition-colors hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-600"
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-600"
           >
             <span>+</span>
             添加技能
@@ -121,24 +155,27 @@ export default function SkillsTreePage() {
         </div>
       ) : (
         <>
-          {/* Overall progress */}
+          {/* Overall progress + Radar */}
           {modules.length > 0 && (
-            <div className="mb-6 rounded-2xl border border-[#E5E7EB] bg-white p-6">
-              <div className="flex items-center justify-between text-base">
-                <span className="text-[#6B7280]">
-                  整体进度：{totalCompleted}/{totalTasks} 任务完成
-                </span>
-                <span className="font-semibold text-indigo-600">{overallPct}%</span>
+            <div className="mb-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="rounded-2xl border border-border bg-card p-6">
+                <div className="flex items-center justify-between text-base">
+                  <span className="text-muted-foreground">
+                    整体进度：{totalCompleted}/{totalTasks} 任务完成
+                  </span>
+                  <span className="font-semibold text-indigo-600">{overallPct}%</span>
+                </div>
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#E5E7EB]">
+                  <div className="h-full rounded-full progress-gradient transition-all" style={{ width: `${overallPct}%` }} />
+                </div>
               </div>
-              <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#E5E7EB]">
-                <div className="h-full rounded-full progress-gradient transition-all" style={{ width: `${overallPct}%` }} />
-              </div>
+              <SkillRadarChart modules={modules} interviewAvgScore={interviewAvgScore} />
             </div>
           )}
 
           {/* Tree view */}
           {viewMode === 'tree' && modules.length > 0 && (
-            <div className="rounded-2xl border border-[#E5E7EB] bg-white p-4">
+            <div className="rounded-2xl border border-border bg-card p-4">
               <SkillTreeChart data={graphData} onNodeClick={handleNodeClick} />
             </div>
           )}
@@ -154,7 +191,7 @@ export default function SkillsTreePage() {
                     </div>
                     <div>
                       <h2 className={`text-lg font-semibold ${config.color}`}>{config.name}</h2>
-                      <p className="text-sm text-[#6B7280]">{config.desc}</p>
+                      <p className="text-sm text-muted-foreground">{config.desc}</p>
                     </div>
                   </div>
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -168,7 +205,7 @@ export default function SkillsTreePage() {
                     ))}
                     <button
                       onClick={() => setDialogLevel(level)}
-                      className="flex min-h-[140px] items-center justify-center rounded-2xl border-2 border-dashed border-[#D1D5DB] bg-transparent p-5 text-[#6B7280] transition-all hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-600"
+                      className="flex min-h-[140px] items-center justify-center rounded-2xl border-2 border-dashed border-border bg-transparent p-5 text-muted-foreground transition-all hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-600"
                     >
                       <div className="text-center">
                         <span className="block text-2xl">+</span>
@@ -179,6 +216,11 @@ export default function SkillsTreePage() {
                 </div>
               ))}
             </div>
+          )}
+
+          {/* Knowledge graph view */}
+          {viewMode === 'graph' && (
+            <KnowledgeGraph modules={modules} />
           )}
         </>
       )}

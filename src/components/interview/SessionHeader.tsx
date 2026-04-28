@@ -58,7 +58,7 @@ export default function SessionHeader({
         {/* Edit Button */}
         <button
           onClick={() => setIsEditing(true)}
-          className="inline-flex items-center gap-1 rounded-full bg-[#F3F4F6] px-2.5 py-1 text-xs font-medium text-[#6B7280] transition hover:bg-indigo-50 hover:text-indigo-600"
+          className="inline-flex items-center gap-1 rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-muted-foreground transition hover:bg-indigo-50 hover:text-indigo-600"
         >
           <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
@@ -70,27 +70,27 @@ export default function SessionHeader({
   }
 
   return (
-    <div className="mt-3 space-y-3 rounded-xl border border-[#E5E7EB] bg-white p-4">
+    <div className="mt-3 space-y-3 rounded-xl border border-border bg-card p-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-[#1F2937]">编辑背景信息</h3>
-        <button onClick={handleCancel} className="text-xs text-[#9CA3AF] hover:text-[#6B7280]">取消</button>
+        <h3 className="text-sm font-semibold text-foreground">编辑背景信息</h3>
+        <button onClick={handleCancel} className="text-xs text-muted-foreground hover:text-muted-foreground">取消</button>
       </div>
       <div>
-        <label className="mb-1 block text-xs font-medium text-[#6B7280]">岗位 JD</label>
+        <label className="mb-1 block text-xs font-medium text-muted-foreground">岗位 JD</label>
         <Textarea
           value={jd}
           onChange={(e) => setJd(e.target.value)}
           placeholder="粘贴目标岗位的 JD..."
-          className="min-h-[80px] resize-none border-[#E5E7EB] bg-[#F9FAFB] text-sm text-[#1F2937]"
+          className="min-h-[80px] resize-none border-border bg-muted text-sm text-foreground"
         />
       </div>
       <div>
-        <label className="mb-1 block text-xs font-medium text-[#6B7280]">个人简历</label>
+        <label className="mb-1 block text-xs font-medium text-muted-foreground">个人简历</label>
         <Textarea
           value={resume}
           onChange={(e) => setResume(e.target.value)}
           placeholder="粘贴你的简历要点..."
-          className="min-h-[80px] resize-none border-[#E5E7EB] bg-[#F9FAFB] text-sm text-[#1F2937]"
+          className="min-h-[80px] resize-none border-border bg-muted text-sm text-foreground"
         />
       </div>
       <Button

@@ -47,14 +47,17 @@ const topShelf: BookItem[] = [
     title: 'Skills',
     titleEn: 'Skill Tree',
     label: 'AI PM 技能学习',
-    description: '技能树总览 · 岗位分析 · 学习进度追踪',
+    description: '技能树总览 · 岗位分析 · 学习路径 · JD差距分析 · 收藏技术',
     detail:
-      '技能树模块提供系统化的 AI PM 技能学习路径。通过可视化技能树、岗位 JD 分析和自定义学习模块，精准定位技能差距，高效提升核心竞争力。',
+      '技能树模块提供系统化的 AI PM 技能学习路径。通过可视化技能树、岗位 JD 分析、学习路径规划、JD 差距分析和收藏技术，精准定位技能差距，高效提升核心竞争力。',
     href: '/skills/tree',
     theme: 'skills',
     subFeatures: [
       { label: '技能树总览', href: '/skills/tree' },
       { label: '岗位分析', href: '/skills/jd-analysis' },
+      { label: '学习路径', href: '/skills/learning-path' },
+      { label: 'JD差距分析', href: '/skills/jd-gaps' },
+      { label: '收藏技术', href: '/skills/bookmarked-tech' },
     ],
   },
   {
@@ -78,13 +81,15 @@ const topShelf: BookItem[] = [
     title: 'Simulator',
     titleEn: 'AI PM Simulator',
     label: 'AI PM 模拟工作流',
-    description: '需求澄清 · 竞品分析 · 算法沟通 · 产品设计 · 评测验收 · 日报周报 · 1v1沟通 · 数据看板',
+    description: '需求澄清 · 竞品分析 · 算法沟通 · 产品设计 · 评测验收 · 日报周报 · 1v1沟通 · 数据看板 · 项目实战沙盒',
     detail:
-      'AI PM 模拟工作流程让你沉浸式体验大厂 AI 产品经理的日常。15 个核心阶段覆盖项目全流程和专项技能训练：从需求澄清、竞品分析到评测验收，再到日报周报、1v1 沟通、PRD 沙盒、数据看板、跨部门协作，每个阶段都有 AI 扮演的真实角色与你互动。',
+      'AI PM 模拟工作流程让你沉浸式体验大厂 AI 产品经理的日常。15 个核心阶段覆盖项目全流程和专项技能训练：从需求澄清、竞品分析到评测验收，再到日报周报、1v1 沟通、PRD 沙盒、数据看板、跨部门协作，每个阶段都有 AI 扮演的真实角色与你互动。项目实战沙盒让你在真实项目场景中综合运用所有技能。',
     href: '/simulator',
     theme: 'simulator',
     subFeatures: [
       { label: '模拟工作流', href: '/simulator' },
+      { label: '项目实战沙盒', href: '/simulator/project' },
+      { label: 'Boss 1V1', href: '/simulator/boss-1v1' },
     ],
   },
 ];
@@ -148,14 +153,15 @@ const bottomShelf: BookItem[] = [
     title: 'Challenge',
     titleEn: 'Daily Challenge',
     label: '每日挑战',
-    description: '每日场景题 · 知识闪卡 · 每日 AI 技术 · 打卡追踪',
+    description: '每日场景题 · 知识闪卡 · 错题本 · 每日 AI 技术 · 打卡追踪',
     detail:
-      '每日挑战帮你养成每天学习的好习惯。每天推送一道真实 AI PM 场景题，限时作答后 AI 评分并给出改进建议；知识闪卡用间隔重复算法帮你高效记忆 AI PM 核心知识；每日 AI 技术用白话解读一个 AI 技术知识点，让你跟上技术发展；连续打卡追踪激励你持续进步。',
+      '每日挑战帮你养成每天学习的好习惯。每天推送一道真实 AI PM 场景题，限时作答后 AI 评分并给出改进建议；知识闪卡用间隔重复算法帮你高效记忆 AI PM 核心知识；错题本自动分类低分题目支持重做；每日 AI 技术用白话解读一个 AI 技术知识点；连续打卡追踪激励你持续进步。',
     href: '/daily-challenge',
     theme: 'daily-challenge',
     subFeatures: [
       { label: '今日挑战', href: '/daily-challenge' },
       { label: '知识闪卡', href: '/daily-challenge/flashcards' },
+      { label: '错题本', href: '/daily-challenge/wrong' },
       { label: '每日 AI 技术', href: '/daily-challenge/tech' },
     ],
   },
@@ -357,7 +363,7 @@ function DetailModal({ book, onClose }: { book: BookItem; onClose: () => void })
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.9, y: 20 }}
         transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-        className="relative z-10 w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl"
+        className="relative z-10 w-full max-w-lg overflow-hidden rounded-2xl bg-card shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="relative h-56 w-full overflow-hidden">
@@ -376,15 +382,15 @@ function DetailModal({ book, onClose }: { book: BookItem; onClose: () => void })
           </button>
         </div>
         <div className="p-6">
-          <p className="mb-6 text-sm leading-relaxed text-gray-600">{book.detail}</p>
+          <p className="mb-6 text-sm leading-relaxed text-muted-foreground">{book.detail}</p>
           <div className="mb-6">
-            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400">功能模块</h3>
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">功能模块</h3>
             <div className="flex flex-wrap gap-2">
               {book.subFeatures.map((sub) => (
                 <Link
                   key={sub.href}
                   href={sub.href}
-                  className="rounded-lg bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-indigo-50 hover:text-indigo-600"
+                  className="rounded-lg bg-secondary px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-950 dark:hover:text-indigo-400"
                 >
                   {sub.label}
                 </Link>
@@ -441,7 +447,7 @@ function EditionCard({
     >
       <div
         className={`relative cursor-pointer overflow-hidden rounded-[4px] transition-shadow duration-300 ${
-          highlighted ? 'ring-2 ring-indigo-500 ring-offset-4 ring-offset-[#e5e5e7]' : ''
+          highlighted ? 'ring-2 ring-indigo-500 ring-offset-4 ring-offset-background' : ''
         }`}
         style={{
           aspectRatio: '1 / 1',
@@ -472,13 +478,13 @@ function EditionCard({
         >
           <Link
             href={book.href}
-            className="rounded-full bg-white px-5 py-1.5 text-xs font-bold text-gray-900 shadow-lg transition-transform hover:scale-105"
+            className="rounded-full bg-card px-5 py-1.5 text-xs font-bold text-foreground shadow-lg transition-transform hover:scale-105"
           >
             Open
           </Link>
           <button
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDetails(); }}
-            className="rounded-full bg-white px-5 py-1.5 text-xs font-bold text-gray-900 shadow-lg transition-transform hover:scale-105"
+            className="rounded-full bg-card px-5 py-1.5 text-xs font-bold text-foreground shadow-lg transition-transform hover:scale-105"
           >
             Details
           </button>
@@ -531,7 +537,7 @@ function FloatingShelf({
         initial={{ scaleX: 0.3, opacity: 0 }}
         animate={inView ? { scaleX: 1, opacity: 1 } : {}}
         transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-        className="relative mx-auto h-[10px] rounded-[1px]"
+        className="relative mx-auto h-[10px] rounded-[1px] dark:hidden"
         style={{
           width: '94%',
           background: 'linear-gradient(180deg, #ffffff 0%, #f5f5f7 55%, #d4d4d6 100%)',
@@ -548,7 +554,7 @@ function FloatingShelf({
       </motion.div>
       {/* cast shadow under shelf */}
       <div
-        className="mx-auto mt-1 h-3 rounded-[50%]"
+        className="mx-auto mt-1 h-3 rounded-[50%] dark:hidden"
         style={{
           width: '82%',
           background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.14) 0%, transparent 70%)',
@@ -576,10 +582,10 @@ export default function HomePage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col" style={{ background: 'linear-gradient(180deg, #efefef 0%, #e5e5e7 60%, #dcdcde 100%)' }}>
+    <div className="flex min-h-screen flex-col bg-background">
       {/* Wall texture */}
       <div
-        className="pointer-events-none fixed inset-0 opacity-[0.35]"
+        className="pointer-events-none fixed inset-0 opacity-[0.35] dark:opacity-0"
         style={{
           backgroundImage:
             'radial-gradient(circle at 20% 10%, rgba(255,255,255,0.8) 0%, transparent 40%), radial-gradient(circle at 80% 60%, rgba(0,0,0,0.04) 0%, transparent 50%)',
@@ -587,7 +593,7 @@ export default function HomePage() {
       />
 
       {/* ── Nav ── */}
-      <header className="sticky top-0 z-50 border-b border-gray-200 bg-white">
+      <header className="sticky top-0 z-50 border-b border-border bg-card">
         <div
           className="flex h-16 items-center justify-between"
           style={{
@@ -595,20 +601,20 @@ export default function HomePage() {
             paddingRight: 'max(16px, calc((100vw - 1600px) / 4 + 8px))',
           }}
         >
-          <Link href="/" className="shrink-0 text-xl font-bold tracking-tight text-gray-900">AI PM 学习平台</Link>
+          <Link href="/" className="shrink-0 text-xl font-bold tracking-tight text-foreground">AI PM 学习平台</Link>
           <div className="flex items-center gap-2">
             <nav className="flex items-center gap-1">
               {allBooks.map((feature) => (
                 <div key={feature.id} className="relative" onMouseEnter={() => setActiveDropdown(feature.id)} onMouseLeave={() => setActiveDropdown(null)}>
-                  <Link href={feature.href} className="flex items-center gap-1 rounded-lg px-4 py-2 text-sm font-medium text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900">
+                  <Link href={feature.href} className="flex items-center gap-1 rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">
                     {feature.title}
                     <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
                   </Link>
                   {activeDropdown === feature.id && (
                     <div className="absolute left-0 top-full pt-1">
-                      <div className="w-48 rounded-xl border border-gray-200 bg-white py-2 shadow-lg">
+                      <div className="w-48 rounded-xl border border-border bg-card py-2 shadow-lg">
                         {feature.subFeatures.map((sub) => (
-                          <Link key={sub.href} href={sub.href} className="block px-4 py-2.5 text-sm text-gray-500 transition-colors hover:bg-indigo-50 hover:text-indigo-600">{sub.label}</Link>
+                          <Link key={sub.href} href={sub.href} className="block px-4 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-950 dark:hover:text-indigo-400">{sub.label}</Link>
                         ))}
                       </div>
                     </div>
@@ -616,7 +622,7 @@ export default function HomePage() {
                 </div>
               ))}
             </nav>
-            <div className="ml-3 border-l border-gray-200 pl-3">
+            <div className="ml-3 border-l border-border pl-3">
               <UserMenu />
             </div>
           </div>
@@ -632,10 +638,10 @@ export default function HomePage() {
           transition={{ duration: 0.6, ease: 'easeOut' }}
           className="mb-10 w-full max-w-[1200px] px-2 md:mb-16"
         >
-          <h1 className="text-[32px] font-medium leading-tight tracking-tight text-gray-900 md:text-[44px]">
+          <h1 className="text-[32px] font-medium leading-tight tracking-tight text-foreground md:text-[44px]">
             AI PM 学习平台
           </h1>
-          <p className="mt-1 text-sm text-gray-500 md:text-base">
+          <p className="mt-1 text-sm text-muted-foreground md:text-base">
             Everything you need to become an AI PM.<br />Curated every season.
           </p>
         </motion.div>
@@ -647,7 +653,7 @@ export default function HomePage() {
         </div>
 
         {/* Timeline index (Shopify-style bottom strip) */}
-        <div className="mt-20 w-full max-w-[1100px] border-t border-gray-300 pt-6">
+        <div className="mt-20 w-full max-w-[1100px] border-t border-border pt-6">
           <div className="flex flex-wrap items-start justify-center gap-x-10 gap-y-3">
             {allBooks.map((b, i) => {
               const isActive = highlightedId === b.id;
@@ -662,10 +668,10 @@ export default function HomePage() {
                   onMouseLeave={handleFooterLeave}
                   className="group flex flex-col items-start text-left transition-colors"
                 >
-                  <span className={`text-[10px] font-medium tracking-wider transition-colors ${isActive ? 'text-indigo-600' : 'text-gray-400 group-hover:text-gray-600'}`}>
+                  <span className={`text-[10px] font-medium tracking-wider transition-colors ${isActive ? 'text-indigo-600' : 'text-muted-foreground group-hover:text-foreground'}`}>
                     2026 · {i < 3 ? 'Spring' : 'Summer'}
                   </span>
-                  <span className={`text-sm font-semibold transition-colors ${isActive ? 'text-indigo-700' : 'text-gray-700 group-hover:text-gray-900'}`}>
+                  <span className={`text-sm font-semibold transition-colors ${isActive ? 'text-indigo-700' : 'text-foreground group-hover:text-foreground'}`}>
                     {b.titleEn}
                   </span>
                 </motion.button>
@@ -676,9 +682,9 @@ export default function HomePage() {
       </main>
 
       {/* ── Footer ── */}
-      <footer className="border-t border-gray-200 bg-white">
+      <footer className="border-t border-border bg-card">
         <div className="mx-auto flex max-w-[1280px] flex-col items-center gap-4 px-6 py-6">
-          <p className="text-center text-xs font-medium italic text-gray-400">
+          <p className="text-center text-xs font-medium italic text-muted-foreground">
             Meng Xiangmin will definitely join a major internet company, and his life will surely be a success.
           </p>
         </div>
