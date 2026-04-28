@@ -296,7 +296,10 @@ function buildStages(scenarioId: string, scenarioTitle: string, domain: string):
       ],
       passCriteria: '跨部门沟通模拟必须展示：1. 与至少 3 个不同部门角色的有效沟通（用对方术语）；2. 至少一个成功解决的冲突（含具体妥协方案）；3. 经协商的时间线或范围调整（保留核心目标）；4. 跨部门沟通纪要（含各方对齐结论）；5. 清晰的行动项（含负责人和截止日期）。',
     },
-  ] as SimulatorStageConfig[]).map(stage => ({ ...stage, systemPrompt: stage.systemPrompt + chatRules }));
+  ];
+
+  // Append chat rules to each stage's systemPrompt
+  return stages.map(stage => ({ ...stage, systemPrompt: stage.systemPrompt + chatRules }));
 }
 
 export const SIMULATOR_SCENARIOS: SimulatorScenario[] = [
