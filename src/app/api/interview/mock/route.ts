@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
       if (typeData) {
         typeName = typeData.name;
       } else {
-        typeId = null;
+        typeId = undefined;
       }
     }
 
