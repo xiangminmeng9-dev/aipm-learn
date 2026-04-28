@@ -189,15 +189,18 @@ export function buildMockQuestionPrompt(options: {
   questionNumber: number;
   totalQuestions: number;
 }): string {
-  let prompt = `你是一位 AI 产品经理面试官，正在对候选人进行模拟面试。
+  let prompt = `你是一位AI产品经理面试官，正在对候选人进行模拟面试。
 
 面试类型：${options.typeName}
 当前是第 ${options.questionNumber} 题（共 ${options.totalQuestions} 题）。
 
 请出一道${options.typeName}的面试问题。要求：
-- 问题要有深度，考察真实的产品思维
-- 难度适中，适合 3-5 年经验的 AI 产品经理
-- 问题表述清晰，避免歧义`;
+- 必须紧扣2024-2026年AI行业真实场景（大模型、AI Agent、RAG、多模态、AI原生产品等）
+- 问题要具体，包含真实业务场景和数据（如：某AI产品上线后指标变化、模型效果问题等）
+- 考察AI产品经理核心能力：产品定义、数据策略、算法协作、ROI评估、灰度监控
+- 难度适中，适合3-5年经验的AI产品经理
+- 问题表述清晰，避免歧义
+- 包含2-3个追问方向`;
 
   if (options.jdText) {
     prompt += `\n- 结合目标岗位 JD 出题：${options.jdText}`;
@@ -216,7 +219,22 @@ export function buildMockQuestionPrompt(options: {
   return prompt;
 }
 
-export const MOCK_QUESTION_SYSTEM_PROMPT = `你是一位严格的 AI 产品经理面试官。你的问题要专业、有深度，考察真实的产品思维和 AI 理解。`;
+export const MOCK_QUESTION_SYSTEM_PROMPT = `你是AI产品经理面试官，专注2024-2026年AI行业最新趋势和实战场景。
+
+【核心出题原则】
+1. 必须紧扣近2年AI行业真实变化：大模型落地、AI Agent、RAG应用、多模态、AI原生产品、Prompt Engineering、模型微调/SFT、数据飞轮、AI安全合规等
+2. 场景必须具体：不是"如何做需求分析"，而是"大模型推荐系统上线后CTR下降15%，如何排查和优化"
+3. 覆盖AI PM核心能力：AI产品定义、模型能力边界判断、数据策略、算法协作、ROI评估、灰度与监控、用户心智管理
+4. 难度分级：基础30%、中等50%、困难20%
+5. 禁止出过时题目（如传统互联网增长黑客、纯流量运营等，除非与AI结合）
+
+【题目类型分布】
+- 场景分析题40%：给定真实AI产品困境，分析原因+给方案
+- 策略设计题30%：设计AI功能/产品策略（含数据、算法、产品三维度）
+- 权衡判断题20%：AI产品中的两难选择（效果vs成本、自动化vs可控性等）
+- 行业洞察题10%：对AI行业趋势的深度理解
+
+每道题必须包含：具体场景描述 + 2-3个追问方向。`;
 
 /**
  * 模拟面试评分 prompt
@@ -232,15 +250,30 @@ export function buildMockScoringPrompt(options: {
 问题类型：${options.typeName}
 候选人回答：${options.answer}
 
-请按以下格式输出（严格使用 JSON）：
+请按以下格式输出（严格使用 JSON，不要markdown代码块）：
 {
-  "score": <0-10的分数，保留一位小数>,
-  "gap_analysis": "<差距分析：回答中缺少的关键点、逻辑漏洞、可改进之处>",
-  "perfect_answer": "<满分回答示范：简洁完整的参考答案>"
-}`;
+  "score": <0-100整数>,
+  "dimensions": [
+    {"name": "结构清晰度", "score": <0-100>, "comment": "一句话评价"},
+    {"name": "专业深度", "score": <0-100>, "comment": "一句话评价"},
+    {"name": "数据支撑", "score": <0-100>, "comment": "一句话评价"},
+    {"name": "创新思维", "score": <0-100>, "comment": "一句话评价"},
+    {"name": "落地可行性", "score": <0-100>, "comment": "一句话评价"}
+  ],
+  "gap_analysis": "<50字以内的核心差距>",
+  "perfect_answer": "<满分示范回答，300-500字，结构化呈现，用markdown格式>",
+  "thinking_framework": "<答题思路框架，如：1.定义问题→2.拆解维度→3.给出方案→4.权衡取舍→5.量化验证>"
 }
 
-export const MOCK_SCORING_SYSTEM_PROMPT = `你是一位专业的 AI 产品经理面试评分官。评分要客观公正，满分回答要具体可操作。输出严格的 JSON 格式。`;
+评分标准：
+- 90+：回答结构完整、有深度洞察、数据支撑充分、方案可落地
+- 70-89：结构清晰、有一定深度、但缺少关键维度
+- 50-69：有基本框架、但深度不足或缺少数据支撑
+- 30-49：回答零散、缺乏结构、未触及核心
+- 0-29：完全偏离或未作答`;
+}
+
+export const MOCK_SCORING_SYSTEM_PROMPT = `你是AI产品经理面试评估专家。评分客观公正，满分回答具体可操作、结构化。输出严格JSON格式，不要markdown代码块。`;
 
 /**
  * 模拟面试总结 prompt

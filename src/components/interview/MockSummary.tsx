@@ -37,7 +37,7 @@ export default function MockSummary({ summary }: MockSummaryProps) {
         : 'text-[#ff3b30]';
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-2xl space-y-6">
       {/* 总分 */}
       <Card className="border-border bg-card">
         <CardContent className="flex items-center justify-center py-8">
@@ -60,28 +60,20 @@ export default function MockSummary({ summary }: MockSummaryProps) {
         <CardContent>
           <div className="space-y-3">
             {summary.answers.map((a) => (
-              <div key={a.number} className="flex items-start gap-3">
-                <span className="shrink-0 text-base text-muted-foreground">#{a.number}</span>
-                <div className="flex-1 min-w-0">
-                  <p className="truncate text-base text-muted-foreground">{a.question}</p>
+              <div key={a.number} className="rounded-lg border border-border p-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-foreground">#{a.number}</span>
+                  {a.is_skipped ? (
+                    <Badge variant="secondary" className="bg-muted text-muted-foreground">跳过</Badge>
+                  ) : (
+                    <span className={`text-sm font-bold ${
+                      (a.score ?? 0) >= 90 ? 'text-green-600' :
+                      (a.score ?? 0) >= 70 ? 'text-blue-600' :
+                      (a.score ?? 0) >= 50 ? 'text-yellow-600' : 'text-red-600'
+                    }`}>{a.score}</span>
+                  )}
                 </div>
-                {a.is_skipped ? (
-                  <Badge variant="secondary" className="shrink-0 bg-[#E5E7EB] text-muted-foreground">
-                    跳过
-                  </Badge>
-                ) : (
-                  <span
-                    className={`shrink-0 text-base font-medium ${
-                      (a.score ?? 0) >= 8
-                        ? 'text-green-600'
-                        : (a.score ?? 0) >= 6
-                          ? 'text-indigo-600'
-                          : 'text-[#ff3b30]'
-                    }`}
-                  >
-                    {a.score}
-                  </span>
-                )}
+                <p className="mt-1 text-sm text-muted-foreground">{a.question}</p>
               </div>
             ))}
           </div>
@@ -89,21 +81,21 @@ export default function MockSummary({ summary }: MockSummaryProps) {
       </Card>
 
       {/* 强项和弱项 */}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="space-y-4">
         <Card className="border-border bg-card">
           <CardHeader>
             <CardTitle className="text-lg text-green-600">强项</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="whitespace-pre-wrap text-base text-muted-foreground">{summary.strengths}</p>
+            <p className="whitespace-pre-wrap text-sm text-muted-foreground">{summary.strengths}</p>
           </CardContent>
         </Card>
         <Card className="border-border bg-card">
           <CardHeader>
-            <CardTitle className="text-lg text-[#ff3b30]">弱项</CardTitle>
+            <CardTitle className="text-lg text-red-600">弱项</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="whitespace-pre-wrap text-base text-muted-foreground">{summary.weaknesses}</p>
+            <p className="whitespace-pre-wrap text-sm text-muted-foreground">{summary.weaknesses}</p>
           </CardContent>
         </Card>
       </div>
@@ -111,10 +103,10 @@ export default function MockSummary({ summary }: MockSummaryProps) {
       {/* 改进建议 */}
       <Card className="border-border bg-card">
         <CardHeader>
-          <CardTitle className="text-lg text-indigo-600">改进建议</CardTitle>
+          <CardTitle className="text-lg text-foreground">改进建议</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="whitespace-pre-wrap text-base text-muted-foreground">{summary.suggestions}</p>
+          <p className="whitespace-pre-wrap text-sm text-muted-foreground">{summary.suggestions}</p>
         </CardContent>
       </Card>
 
@@ -133,7 +125,7 @@ export default function MockSummary({ summary }: MockSummaryProps) {
                   className="block rounded-lg border border-border p-3 transition-colors hover:border-indigo-300"
                 >
                   <div className="flex items-center justify-between">
-                    <p className="text-base font-medium text-foreground">{mod.module_name}</p>
+                    <p className="text-sm font-medium text-foreground">{mod.module_name}</p>
                     <span className="text-sm text-indigo-600">去学习 →</span>
                   </div>
                   {mod.recommended_tasks.length > 0 && (
@@ -142,7 +134,7 @@ export default function MockSummary({ summary }: MockSummaryProps) {
                         <Badge
                           key={task.task_id}
                           variant="secondary"
-                          className="bg-[#E5E7EB] text-sm text-muted-foreground"
+                          className="bg-muted text-xs text-muted-foreground"
                         >
                           {task.task_name}
                         </Badge>

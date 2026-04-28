@@ -18,6 +18,8 @@ interface Evaluation {
   score: number;
   gap_analysis: string;
   perfect_answer: string;
+  thinking_framework?: string;
+  dimensions?: { name: string; score: number; comment: string }[];
 }
 
 interface AnswerRecord {
@@ -261,6 +263,8 @@ export default function MockInterviewFlow({
           score={evaluation.score}
           gapAnalysis={evaluation.gap_analysis}
           perfectAnswer={evaluation.perfect_answer}
+          thinkingFramework={evaluation.thinking_framework}
+          dimensions={evaluation.dimensions}
         />
       )}
 
