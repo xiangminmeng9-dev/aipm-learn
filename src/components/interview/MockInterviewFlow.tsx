@@ -5,6 +5,39 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { createClient } from '@/lib/supabase/client';
 
+/** Render evaluation text with **xxx** → colored bold headings */
+function StructuredEvalText({ text }: { text: string }) {
+  // Split by **xxx** patterns
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+
+  return (
+    <div className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
+      {parts.map((part, i) => {
+        const boldMatch = part.match(/^\*\*(.+)\*\*$/);
+        if (boldMatch) {
+          const label = boldMatch[1].replace(/[：:]$/, '');
+          const color = getSectionColor(label);
+          return (
+            <span key={i} className={`font-bold ${color}`}>
+              {boldMatch[1]}
+            </span>
+          );
+        }
+        return <span key={i}>{part}</span>;
+      })}
+    </div>
+  );
+}
+
+function getSectionColor(label: string): string {
+  if (label.includes('得分')) return 'text-indigo-600';
+  if (label.includes('差距')) return 'text-amber-600';
+  if (label.includes('维度')) return 'text-blue-600';
+  if (label.includes('思路')) return 'text-purple-600';
+  if (label.includes('满分')) return 'text-emerald-600';
+  return 'text-foreground';
+}
+
 interface MockInterviewFlowProps {
   mockId: string;
   initialQuestion?: { number: number; text: string };
@@ -51,6 +84,7 @@ export default function MockInterviewFlow({
   const [answers, setAnswers] = useState<AnswerRecord[]>([]);
   const [totalScore, setTotalScore] = useState(0);
   const [expandedHistory, setExpandedHistory] = useState<number | null>(null);
+  const [showRetry, setShowRetry] = useState(false);
 
   // Streaming evaluation state
   const [streamingText, setStreamingText] = useState('');
@@ -262,6 +296,14 @@ export default function MockInterviewFlow({
     onComplete({ mockId, totalQuestions: totalQ || totalQuestions || 0, totalScore, answers: [...answers, evaluationRef.current ? evaluationRef.current : undefined].filter(Boolean) as AnswerRecord[] });
   };
 
+  const handleRetry = () => {
+    setStreamingText('');
+    setStreamingScore(null);
+    setShowRetry(false);
+    evaluationRef.current = null;
+    // Don't advance question, let user re-answer
+  };
+
   const progress = (currentQuestion.number / (totalQ || totalQuestions || 1)) * 100;
 
   return (
@@ -324,7 +366,7 @@ export default function MockInterviewFlow({
                   )}
                   {a.evaluation_text && (
                     <div className="rounded-xl border border-border bg-card p-4">
-                      <div className="text-sm text-foreground whitespace-pre-wrap">{a.evaluation_text}</div>
+                      <StructuredEvalText text={a.evaluation_text} />
                     </div>
                   )}
                 </div>
@@ -343,7 +385,6 @@ export default function MockInterviewFlow({
       {/* Streaming evaluation display */}
       {streamingText && (
         <div className="rounded-xl border border-border bg-card p-5">
-          {/* Score badge at top */}
           {streamingScore != null && (
             <div className="mb-3 flex items-center gap-2">
               <span className={`text-xl font-bold ${
@@ -358,8 +399,7 @@ export default function MockInterviewFlow({
               }`}>{streamingScore >= 90 ? '优秀' : streamingScore >= 70 ? '良好' : streamingScore >= 50 ? '及格' : '需加强'}</span>
             </div>
           )}
-          {/* Streaming text — natural language evaluation */}
-          <div className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{streamingText}</div>
+          <StructuredEvalText text={streamingText} />
           {isSubmitting && !streamingScore && (
             <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
               <div className="h-3 w-3 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
@@ -399,6 +439,15 @@ export default function MockInterviewFlow({
         </div>
       ) : (
         <div className="flex gap-2">
+          {!showRetry && streamingScore != null && !isLast && (
+            <Button
+              variant="outline"
+              onClick={handleRetry}
+              className="border-amber-300 text-amber-600 hover:bg-amber-50"
+            >
+              重新作答
+            </Button>
+          )}
           {isLast ? (
             <Button
               onClick={handleComplete}
