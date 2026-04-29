@@ -27,10 +27,7 @@ interface AnswerRecord {
   question: string;
   answer?: string;
   is_skipped: boolean;
-  evaluation?: {
-    score: number;
-    gap_analysis: string;
-  };
+  evaluation?: Evaluation;
 }
 
 export interface MockInterviewResult {
@@ -54,8 +51,8 @@ export default function MockInterviewFlow({
   const [totalQ, setTotalQ] = useState(totalQuestions ?? 0);
   const [answers, setAnswers] = useState<AnswerRecord[]>([]);
   const [totalScore, setTotalScore] = useState(0);
+  const [expandedHistory, setExpandedHistory] = useState<number | null>(null);
 
-  // Restore previous answers from server on mount
   useEffect(() => {
     async function restoreHistory() {
       try {
@@ -64,29 +61,24 @@ export default function MockInterviewFlow({
         const headers: Record<string, string> = {};
         if (session) headers['Authorization'] = `Bearer ${session.access_token}`;
 
-        // 1. Get mock interview state (status, current_question, total_questions)
         const stateRes = await fetch(`/api/interview/mock/${mockId}/state`, { headers });
         if (!stateRes.ok) return;
         const stateData = await stateRes.json();
 
         if (stateData.status === 'completed') {
-          // Interview already completed — trigger onComplete
           onComplete({ mockId, totalQuestions: stateData.total_questions || 0, totalScore: 0, answers: [] });
           return;
         }
 
         if (stateData.total_questions) setTotalQ(stateData.total_questions);
 
-        // 2. Get all existing answers
         const answersRes = await fetch(`/api/interview/mock/${mockId}/answers`, { headers });
         if (!answersRes.ok) return;
         const answersData = await answersRes.json();
 
         if (answersData.answers && answersData.answers.length > 0) {
-          // Separate answered and unanswered
           const answered: AnswerRecord[] = [];
           let currentQ = { number: 1, text: '加载中...' };
-          let currentEval: Evaluation | null = null;
 
           for (const a of answersData.answers) {
             const record: AnswerRecord = {
@@ -97,14 +89,15 @@ export default function MockInterviewFlow({
               evaluation: a.score != null ? {
                 score: a.score as number,
                 gap_analysis: (a.gap_analysis as string) || '',
+                perfect_answer: (a.perfect_answer as string) || '',
+                thinking_framework: (a.thinking_framework as string) || undefined,
+                dimensions: (a.dimensions as { name: string; score: number; comment: string }[]) || undefined,
               } : undefined,
             };
 
-            // If this answer has been answered or skipped, add to history
             if (a.user_answer || a.is_skipped || a.answered_at) {
               answered.push(record);
             } else {
-              // This is the current unanswered question
               currentQ = { number: a.question_number, text: a.question_text };
             }
           }
@@ -112,34 +105,28 @@ export default function MockInterviewFlow({
           setAnswers(answered);
           setCurrentQuestion(currentQ);
 
-          // Restore evaluation for the current question if it was already answered
-          // (e.g., user answered but hasn't clicked "next" yet)
           const currentAnswered = answersData.answers.find(
             (a: Record<string, unknown>) =>
               a.question_number === currentQ.number && (a.user_answer || a.is_skipped || a.answered_at)
           );
           if (currentAnswered && currentAnswered.score != null) {
-            currentEval = {
+            setEvaluation({
               score: currentAnswered.score as number,
               gap_analysis: (currentAnswered.gap_analysis as string) || '',
               perfect_answer: (currentAnswered.perfect_answer as string) || '',
               thinking_framework: (currentAnswered.thinking_framework as string) || undefined,
               dimensions: (currentAnswered.dimensions as { name: string; score: number; comment: string }[]) || undefined,
-            };
-            setEvaluation(currentEval);
+            });
           }
 
-          // Calculate total score
           const scored = answered.filter(a => a.evaluation);
           const sum = scored.reduce((s, a) => s + (a.evaluation?.score ?? 0), 0);
           setTotalScore(scored.length > 0 ? Math.round(sum / scored.length) : 0);
 
-          // If we're on the last question and it's been answered, mark as last
           if (stateData.total_questions && currentQ.number >= stateData.total_questions && answered.length >= stateData.total_questions) {
             setIsLast(true);
           }
         } else if (stateData.current_question) {
-          // No answers in DB but state says we have a current question
           setCurrentQuestion(stateData.current_question);
         }
       } catch { /* ignore */ }
@@ -171,7 +158,6 @@ export default function MockInterviewFlow({
         return;
       }
 
-      // Accumulate the answer
       const newAnswer: AnswerRecord = {
         number: currentQuestion.number,
         question: currentQuestion.text,
@@ -180,11 +166,13 @@ export default function MockInterviewFlow({
         evaluation: data.evaluation ? {
           score: data.evaluation.score,
           gap_analysis: data.evaluation.gap_analysis,
+          perfect_answer: data.evaluation.perfect_answer,
+          thinking_framework: data.evaluation.thinking_framework,
+          dimensions: data.evaluation.dimensions,
         } : undefined,
       };
       setAnswers(prev => [...prev, newAnswer]);
 
-      // Update total score
       const allScored = [...answers, newAnswer].filter(a => a.evaluation);
       const sum = allScored.reduce((s, a) => s + (a.evaluation?.score ?? 0), 0);
       setTotalScore(allScored.length > 0 ? Math.round(sum / allScored.length) : 0);
@@ -205,13 +193,14 @@ export default function MockInterviewFlow({
   const handleNext = () => {
     setAnswer('');
     setEvaluation(null);
+    setExpandedHistory(null);
   };
 
   const progress = (currentQuestion.number / (totalQ || totalQuestions || 1)) * 100;
 
   return (
-    <div className="space-y-6">
-      {/* 进度条 */}
+    <div className="space-y-5">
+      {/* Progress bar */}
       <div className="space-y-2">
         <div className="flex items-center justify-between text-sm">
           <span className="text-muted-foreground">
@@ -219,7 +208,7 @@ export default function MockInterviewFlow({
           </span>
           <span className="text-muted-foreground">{Math.round(progress)}%</span>
         </div>
-        <div className="h-2 overflow-hidden rounded-full bg-[#E5E7EB]">
+        <div className="h-2 overflow-hidden rounded-full bg-gray-100">
           <div
             className="h-full rounded-full bg-indigo-500 transition-all duration-300"
             style={{ width: `${progress}%` }}
@@ -227,39 +216,83 @@ export default function MockInterviewFlow({
         </div>
       </div>
 
-      {/* Previous answers history */}
+      {/* History — clickable to expand */}
       {answers.length > 0 && (
         <div className="space-y-2">
-          <h3 className="text-xs font-medium text-muted-foreground">已完成的问答</h3>
+          <h3 className="text-xs font-medium text-muted-foreground">历史问答（点击回顾）</h3>
           {answers.map((a) => (
-            <div key={a.number} className={`rounded-lg border p-3 text-sm ${
-              a.is_skipped ? 'border-border bg-muted' : 'border-indigo-100 bg-indigo-50/50'
-            }`}>
-              <div className="flex items-center justify-between">
-                <span className="font-medium text-foreground">第{a.number}题</span>
-                {a.evaluation && (
-                  <span className={`text-xs font-medium ${
-                    a.evaluation.score >= 80 ? 'text-emerald-600' :
-                    a.evaluation.score >= 60 ? 'text-amber-600' : 'text-rose-600'
-                  }`}>
-                    {a.evaluation.score}分
+            <div key={a.number} className="rounded-xl border border-border bg-card overflow-hidden">
+              {/* Header — always visible */}
+              <button
+                className="w-full flex items-center justify-between p-3 text-left hover:bg-muted/50 transition-colors"
+                onClick={() => setExpandedHistory(expandedHistory === a.number ? null : a.number)}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-600">
+                    {a.number}
                   </span>
-                )}
-                {a.is_skipped && <span className="text-xs text-muted-foreground">已跳过</span>}
-              </div>
-              <p className="mt-1 text-muted-foreground line-clamp-1">{a.question}</p>
+                  <span className="text-sm text-foreground line-clamp-1 max-w-[300px]">{a.question}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {a.is_skipped ? (
+                    <span className="text-xs text-muted-foreground">已跳过</span>
+                  ) : a.evaluation ? (
+                    <span className={`text-sm font-bold ${
+                      a.evaluation.score >= 90 ? 'text-emerald-600' :
+                      a.evaluation.score >= 70 ? 'text-blue-600' :
+                      a.evaluation.score >= 50 ? 'text-amber-600' : 'text-rose-600'
+                    }`}>
+                      {a.evaluation.score}分
+                    </span>
+                  ) : null}
+                  <svg className={`h-4 w-4 text-muted-foreground transition-transform ${expandedHistory === a.number ? 'rotate-180' : ''}`}
+                    fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </button>
+
+              {/* Expanded content */}
+              {expandedHistory === a.number && (
+                <div className="border-t border-border p-4 space-y-4">
+                  {/* Question */}
+                  <div>
+                    <h4 className="text-xs font-semibold text-muted-foreground mb-1">面试问题</h4>
+                    <p className="text-sm text-foreground">{a.question}</p>
+                  </div>
+
+                  {/* User answer */}
+                  {a.answer && (
+                    <div>
+                      <h4 className="text-xs font-semibold text-muted-foreground mb-1">你的回答</h4>
+                      <div className="rounded-lg bg-muted/50 p-3 text-sm text-foreground whitespace-pre-wrap">{a.answer}</div>
+                    </div>
+                  )}
+
+                  {/* Evaluation */}
+                  {a.evaluation && (
+                    <AnswerEvaluation
+                      score={a.evaluation.score}
+                      gapAnalysis={a.evaluation.gap_analysis}
+                      perfectAnswer={a.evaluation.perfect_answer}
+                      thinkingFramework={a.evaluation.thinking_framework}
+                      dimensions={a.evaluation.dimensions}
+                    />
+                  )}
+                </div>
+              )}
             </div>
           ))}
         </div>
       )}
 
-      {/* 当前问题 */}
-      <div className="rounded-xl border border-border bg-card p-6">
-        <h3 className="mb-2 text-xs text-muted-foreground">面试问题</h3>
-        <p className="text-lg text-foreground">{currentQuestion.text}</p>
+      {/* Current question */}
+      <div className="rounded-xl border-2 border-indigo-200 bg-indigo-50/30 p-5">
+        <h3 className="mb-2 text-xs font-semibold text-indigo-600">当前问题</h3>
+        <p className="text-lg font-medium text-foreground">{currentQuestion.text}</p>
       </div>
 
-      {/* 评价展示 */}
+      {/* Evaluation for current question */}
       {evaluation && (
         <AnswerEvaluation
           score={evaluation.score}
@@ -270,7 +303,7 @@ export default function MockInterviewFlow({
         />
       )}
 
-      {/* 回答输入或下一题按钮 */}
+      {/* Answer input or next button */}
       {!evaluation ? (
         <div className="space-y-3">
           <Textarea
