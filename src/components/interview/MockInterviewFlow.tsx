@@ -38,6 +38,28 @@ function getSectionColor(label: string): string {
   return 'text-foreground';
 }
 
+/** Build natural language evaluation text from structured DB fields */
+function buildEvalText(data: {
+  score: number;
+  gap_analysis: string;
+  perfect_answer: string;
+  thinking_framework: string;
+  dimensions: { name: string; score: number; comment: string }[];
+}): string {
+  const parts: string[] = [];
+  parts.push(`**得分：** ${data.score}分`);
+  if (data.gap_analysis) parts.push(`\n**差距分析：** ${data.gap_analysis}`);
+  if (data.dimensions && data.dimensions.length > 0) {
+    parts.push('\n**维度评分：**');
+    for (const d of data.dimensions) {
+      parts.push(`- ${d.name}：${d.score}分 — ${d.comment}`);
+    }
+  }
+  if (data.thinking_framework) parts.push(`\n**回答思路：** ${data.thinking_framework}`);
+  if (data.perfect_answer) parts.push(`\n**满分回答：** ${data.perfect_answer}`);
+  return parts.join('\n');
+}
+
 interface MockInterviewFlowProps {
   mockId: string;
   initialQuestion?: { number: number; text: string };
@@ -131,6 +153,13 @@ export default function MockInterviewFlow({
                 thinking_framework: (a.thinking_framework as string) || undefined,
                 dimensions: (a.dimensions as { name: string; score: number; comment: string }[]) || undefined,
               } : undefined,
+              evaluation_text: a.score != null ? buildEvalText({
+                score: a.score as number,
+                gap_analysis: (a.gap_analysis as string) || '',
+                perfect_answer: (a.perfect_answer as string) || '',
+                thinking_framework: (a.thinking_framework as string) || '',
+                dimensions: (a.dimensions as { name: string; score: number; comment: string }[]) || [],
+              }) : undefined,
             };
 
             if (a.user_answer || a.is_skipped || a.answered_at) {
@@ -368,6 +397,22 @@ export default function MockInterviewFlow({
                     <div className="rounded-xl border border-border bg-card p-4">
                       <StructuredEvalText text={a.evaluation_text} />
                     </div>
+                  )}
+                  {!a.is_skipped && !streamingText && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setExpandedHistory(null);
+                        setCurrentQuestion({ number: a.number, text: a.question });
+                        setAnswer('');
+                        setStreamingText('');
+                        setStreamingScore(null);
+                      }}
+                      className="border-amber-300 text-amber-600 hover:bg-amber-50"
+                    >
+                      重新作答此题
+                    </Button>
                   )}
                 </div>
               )}
