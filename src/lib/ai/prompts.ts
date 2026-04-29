@@ -250,20 +250,22 @@ export function buildMockScoringPrompt(options: {
 问题类型：${options.typeName}
 候选人回答：${options.answer}
 
-请按以下格式输出（严格使用 JSON，不要markdown代码块）：
-{
-  "score": <0-100整数>,
-  "dimensions": [
-    {"name": "结构清晰度", "score": <0-100>, "comment": "一句话评价"},
-    {"name": "专业深度", "score": <0-100>, "comment": "一句话评价"},
-    {"name": "数据支撑", "score": <0-100>, "comment": "一句话评价"},
-    {"name": "创新思维", "score": <0-100>, "comment": "一句话评价"},
-    {"name": "落地可行性", "score": <0-100>, "comment": "一句话评价"}
-  ],
-  "gap_analysis": "<50字以内的核心差距>",
-  "perfect_answer": "<满分示范回答，300-500字，结构化呈现，用markdown格式>",
-  "thinking_framework": "<答题思路框架，如：1.定义问题→2.拆解维度→3.给出方案→4.权衡取舍→5.量化验证>"
-}
+请按以下结构化格式输出（自然语言，不要JSON，不要markdown代码块）：
+
+**得分：** XX分
+
+**差距分析：** 你的回答在哪些方面存在不足，具体说明差距在哪里（2-3句话）
+
+**维度评分：**
+- 结构清晰度：XX分 — 一句话评价
+- 专业深度：XX分 — 一句话评价
+- 数据支撑：XX分 — 一句话评价
+- 创新思维：XX分 — 一句话评价
+- 落地可行性：XX分 — 一句话评价
+
+**回答思路：** 这类问题的解题框架，如：1.定义问题→2.拆解维度→3.给出方案→4.权衡取舍→5.量化验证
+
+**满分回答：** 给出一个结构化的满分示范回答（300-500字），用要点列表呈现
 
 评分标准：
 - 90+：回答结构完整、有深度洞察、数据支撑充分、方案可落地
@@ -273,7 +275,7 @@ export function buildMockScoringPrompt(options: {
 - 0-29：完全偏离或未作答`;
 }
 
-export const MOCK_SCORING_SYSTEM_PROMPT = `你是AI产品经理面试评估专家。评分客观公正，满分回答具体可操作、结构化。输出严格JSON格式，不要markdown代码块。`;
+export const MOCK_SCORING_SYSTEM_PROMPT = `你是AI产品经理面试评估专家。评分客观公正，满分回答具体可操作、结构化。用自然语言结构化输出，不要JSON格式，不要markdown代码块包裹。`;
 
 /**
  * 模拟面试总结 prompt

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
-import { generateText } from '@/lib/ai/claude';
+import { streamChatResponse, generateText } from '@/lib/ai/claude';
 import {
   buildMockScoringPrompt,
   buildMockQuestionPrompt,
@@ -13,7 +13,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-    // Fallback: try Authorization header
     let authenticatedUser = user;
     if (!authenticatedUser) {
       const authHeader = request.headers.get('Authorization');
@@ -33,7 +32,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const { answer, skip } = body as { answer?: string; skip?: boolean };
     const serviceClient = createServiceClient();
 
-    // 获取模拟面试信息
     const { data: mockInterview } = await serviceClient
       .from('mock_interviews')
       .select('id, type_id, current_question, total_questions, status, jd_text, resume_text')
@@ -49,7 +47,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: '面试已结束', code: 'VALIDATION_ERROR' }, { status: 400 });
     }
 
-    // 获取当前题目
     const { data: currentAnswer } = await serviceClient
       .from('interview_answers')
       .select('id, question_number, question_text')
@@ -71,134 +68,110 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       );
     }
 
-    // 评分（非跳过时）
-    let evaluation: {
-      score: number;
-      gap_analysis: string;
-      perfect_answer: string;
-      thinking_framework?: string;
-      dimensions?: { name: string; score: number; comment: string }[];
-    } = { score: 0, gap_analysis: '已跳过', perfect_answer: '已跳过' };
-
-    if (!isSkipped) {
-      const { data: typeData } = await supabase
-        .from('question_types')
-        .select('name')
-        .eq('id', mockInterview.type_id)
-        .single();
-
-      const scoringPrompt = buildMockScoringPrompt({
-        question: currentAnswer.question_text,
-        answer: answerText,
-        typeName: typeData?.name ?? '综合',
-      });
-
-      const scoringResult = await generateText(scoringPrompt, {
-        model: 'sonnet',
-        system: MOCK_SCORING_SYSTEM_PROMPT,
-        maxTokens: 2048,
-      });
-
-      try {
-        evaluation = JSON.parse(scoringResult.trim());
-      } catch {
-        evaluation = {
-          score: 0,
-          gap_analysis: scoringResult.trim(),
-          perfect_answer: '',
-        };
-      }
-    }
-
-    // Update current answer
-    await serviceClient
-      .from('interview_answers')
-      .update({
-        user_answer: isSkipped ? null : answerText,
-        score: isSkipped ? null : evaluation.score,
-        gap_analysis: evaluation.gap_analysis,
-        perfect_answer: evaluation.perfect_answer,
-        thinking_framework: evaluation.thinking_framework ?? null,
-        dimensions: evaluation.dimensions ?? null,
-        is_skipped: isSkipped,
-        answered_at: new Date().toISOString(),
-      })
-      .eq('id', currentAnswer.id);
-
-    const isLast = mockInterview.current_question >= mockInterview.total_questions;
-
-    if (isLast) {
-      // 面试结束
+    // Skipped — return immediately
+    if (isSkipped) {
       await serviceClient
-        .from('mock_interviews')
+        .from('interview_answers')
         .update({
-          status: 'completed',
-          completed_at: new Date().toISOString(),
+          user_answer: null,
+          score: null,
+          gap_analysis: '已跳过',
+          perfect_answer: '已跳过',
+          is_skipped: true,
+          answered_at: new Date().toISOString(),
         })
-        .eq('id', mockId);
+        .eq('id', currentAnswer.id);
 
-      // 面试结束后异步触发方法论更新
-      triggerMethodologyUpdate(authenticatedUser.id, mockInterview.type_id).catch(() => {});
+      const isLast = mockInterview.current_question >= mockInterview.total_questions;
+      if (isLast) {
+        await serviceClient.from('mock_interviews').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', mockId);
+        return NextResponse.json({ evaluation_text: '已跳过', is_last: true, next_question: null });
+      }
 
-      return NextResponse.json({
-        evaluation,
-        next_question: null,
-        is_last: true,
-      });
+      // Generate next question
+      const nextQ = await generateNextQuestion(serviceClient, mockInterview, mockId);
+      return NextResponse.json({ evaluation_text: '已跳过', is_last: false, next_question: nextQ });
     }
 
-    // 生成下一题
-    const nextQuestionNumber = mockInterview.current_question + 1;
-
-    const { data: typeData } = await serviceClient
+    // ── Stream evaluation via SSE ──
+    const { data: typeData } = await supabase
       .from('question_types')
-      .select('id, name')
+      .select('name')
       .eq('id', mockInterview.type_id)
       .single();
 
-    // 获取已出题目
-    const { data: previousAnswers } = await serviceClient
-      .from('interview_answers')
-      .select('question_text')
-      .eq('mock_interview_id', mockId);
-
-    const questionPrompt = buildMockQuestionPrompt({
+    const scoringPrompt = buildMockScoringPrompt({
+      question: currentAnswer.question_text,
+      answer: answerText,
       typeName: typeData?.name ?? '综合',
-      jdText: mockInterview.jd_text,
-      resumeText: mockInterview.resume_text,
-      previousQuestions: previousAnswers?.map((a) => a.question_text) ?? [],
-      questionNumber: nextQuestionNumber,
-      totalQuestions: mockInterview.total_questions,
     });
 
-    const nextQuestionText = await generateText(questionPrompt, {
-      model: 'sonnet',
-      system: MOCK_QUESTION_SYSTEM_PROMPT,
-      maxTokens: 512,
-    });
+    // Collect full text while streaming
+    let fullEvaluationText = '';
 
-    // 保存下一题
-    await serviceClient.from('interview_answers').insert({
-      mock_interview_id: mockId,
-      question_number: nextQuestionNumber,
-      question_text: nextQuestionText.trim(),
-      question_type_id: mockInterview.type_id,
-      is_skipped: false,
-    });
+    const stream = streamChatResponse(
+      [{ role: 'user', content: scoringPrompt }],
+      { model: 'sonnet', system: MOCK_SCORING_SYSTEM_PROMPT, maxTokens: 2048 }
+    );
 
-    // 更新当前题号
-    await serviceClient
-      .from('mock_interviews')
-      .update({ current_question: nextQuestionNumber })
-      .eq('id', mockId);
+    const encoder = new TextEncoder();
+    const readable = new ReadableStream({
+      async start(controller) {
+        try {
+          for await (const chunk of stream) {
+            fullEvaluationText += chunk;
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'text', content: chunk })}\n\n`));
+          }
 
-    return NextResponse.json({
-      evaluation,
-      next_question: {
-        number: nextQuestionNumber,
-        text: nextQuestionText.trim(),
+          // Parse score from the natural language output
+          const score = parseScoreFromText(fullEvaluationText);
+          const dimensions = parseDimensionsFromText(fullEvaluationText);
+          const gapAnalysis = parseSectionFromText(fullEvaluationText, '差距分析');
+          const perfectAnswer = parseSectionFromText(fullEvaluationText, '满分回答');
+          const thinkingFramework = parseSectionFromText(fullEvaluationText, '回答思路');
+
+          // Save to DB
+          await serviceClient
+            .from('interview_answers')
+            .update({
+              user_answer: answerText,
+              score,
+              gap_analysis: gapAnalysis || fullEvaluationText,
+              perfect_answer: perfectAnswer,
+              thinking_framework: thinkingFramework,
+              dimensions: dimensions,
+              is_skipped: false,
+              answered_at: new Date().toISOString(),
+            })
+            .eq('id', currentAnswer.id);
+
+          const isLast = mockInterview.current_question >= mockInterview.total_questions;
+
+          if (isLast) {
+            await serviceClient.from('mock_interviews').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', mockId);
+            triggerMethodologyUpdate(authenticatedUser.id, mockInterview.type_id).catch(() => {});
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'done', is_last: true, next_question: null, score })}\n\n`));
+          } else {
+            // Generate next question (non-streaming, fast)
+            const nextQ = await generateNextQuestion(serviceClient, mockInterview, mockId);
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'done', is_last: false, next_question: nextQ, score })}\n\n`));
+          }
+
+          controller.close();
+        } catch (err) {
+          console.error('Stream error:', err);
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'error', message: '评分出错' })}\n\n`));
+          controller.close();
+        }
       },
-      is_last: false,
+    });
+
+    return new Response(readable, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      },
     });
   } catch (error) {
     console.error('Answer API error:', error);
@@ -206,16 +179,91 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
 }
 
-/**
- * 异步触发方法论更新
- */
+/** Parse score from natural language like "**得分：** 85分" */
+function parseScoreFromText(text: string): number {
+  const match = text.match(/得分[：:]\s*\*{0,2}\s*(\d+)\s*分/);
+  if (match) return parseInt(match[1], 10);
+  // Fallback: any number followed by 分
+  const fallback = text.match(/(\d+)\s*分/);
+  return fallback ? parseInt(fallback[1], 10) : 0;
+}
+
+/** Parse dimensions from text like "- 结构清晰度：80分 — 评价" */
+function parseDimensionsFromText(text: string): { name: string; score: number; comment: string }[] | null {
+  const dims: { name: string; score: number; comment: string }[] = [];
+  const lines = text.split('\n');
+  for (const line of lines) {
+    const match = line.match(/[-•]\s*(.+?)[：:]\s*(\d+)\s*分\s*[—\-–]\s*(.+)/);
+    if (match) {
+      dims.push({ name: match[1].trim(), score: parseInt(match[2], 10), comment: match[3].trim() });
+    }
+  }
+  return dims.length > 0 ? dims : null;
+}
+
+/** Parse a named section from the text */
+function parseSectionFromText(text: string, sectionName: string): string {
+  // Match "**差距分析：** content" or "**满分回答：** content"
+  const regex = new RegExp(`\\*{0,2}${sectionName}[：:]\\*{0,2}\\s*([\\s\\S]*?)(?=\\*{2}(?:得分|差距|维度|回答|满分)|$)`, 'i');
+  const match = text.match(regex);
+  if (match) return match[1].trim();
+  return '';
+}
+
+/** Generate next question */
+async function generateNextQuestion(
+  serviceClient: ReturnType<typeof createServiceClient>,
+  mockInterview: { id: string; type_id: string; current_question: number; total_questions: number; jd_text: string | null; resume_text: string | null },
+  mockId: string,
+): Promise<{ number: number; text: string }> {
+  const nextQuestionNumber = mockInterview.current_question + 1;
+  const { data: typeData } = await serviceClient
+    .from('question_types')
+    .select('id, name')
+    .eq('id', mockInterview.type_id)
+    .single();
+
+  const { data: previousAnswers } = await serviceClient
+    .from('interview_answers')
+    .select('question_text')
+    .eq('mock_interview_id', mockId);
+
+  const questionPrompt = buildMockQuestionPrompt({
+    typeName: typeData?.name ?? '综合',
+    jdText: mockInterview.jd_text,
+    resumeText: mockInterview.resume_text,
+    previousQuestions: previousAnswers?.map((a) => a.question_text) ?? [],
+    questionNumber: nextQuestionNumber,
+    totalQuestions: mockInterview.total_questions,
+  });
+
+  const nextQuestionText = await generateText(questionPrompt, {
+    model: 'sonnet',
+    system: MOCK_QUESTION_SYSTEM_PROMPT,
+    maxTokens: 512,
+  });
+
+  await serviceClient.from('interview_answers').insert({
+    mock_interview_id: mockId,
+    question_number: nextQuestionNumber,
+    question_text: nextQuestionText.trim(),
+    question_type_id: mockInterview.type_id,
+    is_skipped: false,
+  });
+
+  await serviceClient
+    .from('mock_interviews')
+    .update({ current_question: nextQuestionNumber })
+    .eq('id', mockId);
+
+  return { number: nextQuestionNumber, text: nextQuestionText.trim() };
+}
+
 async function triggerMethodologyUpdate(userId: string, typeId: string): Promise<void> {
   try {
     const { createClient } = await import('@/lib/supabase/server');
     const { generateOrUpdateMethodology } = await import('@/app/api/interview/methodology/route');
     const supabase = await createClient();
     await generateOrUpdateMethodology(supabase, userId, typeId);
-  } catch {
-    // 静默失败
-  }
+  } catch {}
 }
