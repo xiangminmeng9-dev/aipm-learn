@@ -11,51 +11,102 @@ export async function GET() {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-    // ── Coding ──
+    // ── Coding (dev_flows) ──
     let codingFlowCount = 0, codingRecent = 0;
     let codingDaily: { date: string; count: number }[] = [];
     let codingByStage: { name: string; value: number }[] = [];
     try {
-      const { data: codingFlows } = await serviceClient
-        .from('coding_flows')
-        .select('id, created_at, current_stage, status')
+      const { data: devFlows } = await serviceClient
+        .from('dev_flows')
+        .select('id, created_at, mode_id')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
-      codingFlowCount = codingFlows?.length ?? 0;
-      codingRecent = (codingFlows ?? []).filter((f) => new Date(f.created_at) >= sevenDaysAgo).length;
+      codingFlowCount = devFlows?.length ?? 0;
+      codingRecent = (devFlows ?? []).filter((f) => new Date(f.created_at) >= sevenDaysAgo).length;
       // 7-day daily
       const dailyMap: Record<string, number> = {};
       for (let i = 6; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); dailyMap[d.toISOString().split('T')[0]] = 0; }
-      for (const f of codingFlows ?? []) { const date = new Date(f.created_at).toISOString().split('T')[0]; if (date in dailyMap) dailyMap[date]++; }
+      for (const f of devFlows ?? []) { const date = new Date(f.created_at).toISOString().split('T')[0]; if (date in dailyMap) dailyMap[date]++; }
       codingDaily = Object.entries(dailyMap).sort(([a], [b]) => a.localeCompare(b)).map(([date, count]) => ({ date: date.slice(5), count }));
-      // By stage
-      const stageMap: Record<string, number> = {};
-      for (const f of codingFlows ?? []) { const s = f.current_stage || '未开始'; stageMap[s] = (stageMap[s] || 0) + 1; }
-      codingByStage = Object.entries(stageMap).map(([name, value]) => ({ name, value }));
+      // By mode
+      const modeMap: Record<string, number> = {};
+      for (const f of devFlows ?? []) { const m = f.mode_id || '未分类'; modeMap[m] = (modeMap[m] || 0) + 1; }
+      // Try to resolve mode names
+      try {
+        const { data: modes } = await serviceClient.from('dev_modes').select('id, name');
+        const modeNameMap: Record<string, string> = {};
+        for (const m of modes ?? []) modeNameMap[m.id] = m.name;
+        codingByStage = Object.entries(modeMap).map(([id, value]) => ({ name: modeNameMap[id] || id.slice(0, 6), value }));
+      } catch {
+        codingByStage = Object.entries(modeMap).map(([name, value]) => ({ name: name.slice(0, 6), value }));
+      }
     } catch {}
 
     // ── Skills ──
+    // Two sources: system modules (skill_modules + learning_tasks + learning_progress)
+    //              user modules (user_skill_modules + user_module_tasks)
     let totalModules = 0, totalTaskCount = 0, completedTaskCount = 0, skillCoverage = 0;
     let skillModules: { id: string; name: string; level: string; total: number; completed: number }[] = [];
     let skillByLevel: { level: string; total: number; completed: number; custom: number }[] = [];
     let customModuleCount = 0;
     try {
-      const { data: modules } = await serviceClient.from('skill_modules').select('id, name, level');
-      const { data: userModules } = await serviceClient.from('user_skill_modules').select('id, module_id, is_custom, level').eq('user_id', user.id);
-      const { data: userTasks } = await serviceClient.from('user_skill_tasks').select('id, status, module_id, is_custom').eq('user_id', user.id);
-      const allModuleIds = new Set([...(modules ?? []).map((m) => m.id), ...(userModules ?? []).map((m) => m.module_id)]);
-      totalModules = allModuleIds.size;
-      completedTaskCount = (userTasks ?? []).filter((t) => t.status === 'completed').length;
-      totalTaskCount = (userTasks ?? []).length;
-      const completedModuleIds = new Set((userTasks ?? []).filter((t) => t.status === 'completed').map((t) => t.module_id));
-      skillCoverage = totalModules > 0 ? Math.round((completedModuleIds.size / totalModules) * 100) : 0;
-      // Per-module breakdown with level
-      const moduleTaskMap: Record<string, { total: number; completed: number }> = {};
-      for (const t of userTasks ?? []) { if (!moduleTaskMap[t.module_id]) moduleTaskMap[t.module_id] = { total: 0, completed: 0 }; moduleTaskMap[t.module_id].total++; if (t.status === 'completed') moduleTaskMap[t.module_id].completed++; }
-      const moduleLevelMap: Record<string, string> = {};
-      for (const m of modules ?? []) moduleLevelMap[m.id] = m.level || '未分类';
-      for (const m of userModules ?? []) { if (m.level) moduleLevelMap[m.module_id] = m.level; if (m.is_custom) customModuleCount++; }
-      skillModules = Object.entries(moduleTaskMap).map(([id, v]) => ({ id, name: (modules ?? []).find((m) => m.id === id)?.name ?? `模块${id.slice(0, 4)}`, level: moduleLevelMap[id] || '未分类', total: v.total, completed: v.completed }));
+      // System modules
+      const { data: sysModules } = await serviceClient.from('skill_modules').select('id, name, level, level_name');
+      // System tasks
+      const { data: sysTasks } = await serviceClient.from('learning_tasks').select('id, module_id');
+      // System progress (learning_progress)
+      const { data: sysProgress } = await serviceClient.from('learning_progress').select('id, task_id, status, completed_at').eq('user_id', user.id);
+
+      // User modules
+      const { data: userModules } = await serviceClient.from('user_skill_modules').select('id, user_id, name, level, level_name').eq('user_id', user.id);
+      // User tasks
+      const { data: userTasks } = await serviceClient.from('user_module_tasks').select('id, module_id, status, completed_at');
+
+      customModuleCount = userModules?.length ?? 0;
+
+      // Build module map
+      const moduleMap: Record<string, { name: string; level: string; total: number; completed: number; isCustom: boolean }> = {};
+
+      // System modules
+      for (const m of sysModules ?? []) {
+        const lvl = m.level_name || (m.level ? `L${m.level}` : '未分类');
+        moduleMap[m.id] = { name: m.name, level: lvl, total: 0, completed: 0, isCustom: false };
+      }
+      // User modules
+      for (const m of userModules ?? []) {
+        const lvl = m.level_name || (m.level ? `L${m.level}` : '自定义');
+        moduleMap[m.id] = { name: m.name, level: lvl, total: 0, completed: 0, isCustom: true };
+      }
+
+      // Count system tasks per module
+      for (const t of sysTasks ?? []) {
+        if (moduleMap[t.module_id]) moduleMap[t.module_id].total++;
+      }
+      // Count user tasks per module
+      for (const t of userTasks ?? []) {
+        if (moduleMap[t.module_id]) {
+          moduleMap[t.module_id].total++;
+          if (t.status === 'completed') moduleMap[t.module_id].completed++;
+        }
+      }
+      // Count system progress (completed tasks)
+      const sysTaskModuleMap: Record<string, string> = {};
+      for (const t of sysTasks ?? []) sysTaskModuleMap[t.id] = t.module_id;
+      for (const p of sysProgress ?? []) {
+        if (p.status === 'completed') {
+          const moduleId = sysTaskModuleMap[p.task_id];
+          if (moduleId && moduleMap[moduleId]) moduleMap[moduleId].completed++;
+        }
+      }
+
+      totalModules = Object.keys(moduleMap).length;
+      totalTaskCount = Object.values(moduleMap).reduce((s, m) => s + m.total, 0);
+      completedTaskCount = Object.values(moduleMap).reduce((s, m) => s + m.completed, 0);
+      const completedModuleIds = Object.entries(moduleMap).filter(([, m]) => m.total > 0 && m.completed === m.total).map(([id]) => id);
+      skillCoverage = totalModules > 0 ? Math.round((completedModuleIds.length / totalModules) * 100) : 0;
+
+      skillModules = Object.entries(moduleMap).map(([id, m]) => ({ id, name: m.name, level: m.level, total: m.total, completed: m.completed }));
+
       // By level aggregation
       const levelMap: Record<string, { total: number; completed: number; custom: number }> = {};
       for (const sm of skillModules) {
@@ -63,10 +114,12 @@ export async function GET() {
         levelMap[sm.level].total += sm.total;
         levelMap[sm.level].completed += sm.completed;
       }
-      const customTasks = (userTasks ?? []).filter((t) => t.is_custom);
-      const customByModule: Record<string, number> = {};
-      for (const t of customTasks) { customByModule[t.module_id] = (customByModule[t.module_id] || 0) + 1; }
-      for (const [mid] of Object.entries(customByModule)) { const lvl = moduleLevelMap[mid] || '自定义'; if (levelMap[lvl]) levelMap[lvl].custom += customByModule[mid]; }
+      // Custom tasks by level
+      for (const [, m] of Object.entries(moduleMap)) {
+        if (m.isCustom && levelMap[m.level]) {
+          levelMap[m.level].custom += m.total;
+        }
+      }
       skillByLevel = Object.entries(levelMap).map(([level, v]) => ({ level, ...v }));
     } catch {}
 
@@ -79,13 +132,12 @@ export async function GET() {
       notebookNotes = nCount ?? 0;
       const { count: tCount } = await serviceClient.from('notebook_tasks').select('id', { count: 'exact', head: true }).eq('user_id', user.id);
       notebookTasks = tCount ?? 0;
-      try { const { count: aCount } = await serviceClient.from('notebook_ai_analyses').select('id', { count: 'exact', head: true }).eq('user_id', user.id); notebookAiAnalysis = aCount ?? 0; } catch {}
-      // By type/category
+      // By category (column is 'category', not 'type')
       try {
-        const { data: notesByType } = await serviceClient.from('notebook_notes').select('type').eq('user_id', user.id);
-        const typeMap: Record<string, number> = {};
-        for (const n of notesByType ?? []) { const t = n.type || '未分类'; typeMap[t] = (typeMap[t] || 0) + 1; }
-        notebookByType = Object.entries(typeMap).map(([name, value]) => ({ name, value }));
+        const { data: notesByCat } = await serviceClient.from('notebook_notes').select('category').eq('user_id', user.id);
+        const catMap: Record<string, number> = {};
+        for (const n of notesByCat ?? []) { const c = n.category || '未分类'; catMap[c] = (catMap[c] || 0) + 1; }
+        notebookByType = Object.entries(catMap).map(([name, value]) => ({ name, value }));
       } catch {}
       // 7-day daily
       try {
@@ -100,20 +152,36 @@ export async function GET() {
     } catch {}
 
     // ── Simulator ──
+    // simulator_sessions has: stage_scores (jsonb), status, scenario_id, current_stage
     let simulatorSessions = 0, simulatorStagesCompleted = 0, simulatorAvgScore = 0;
     let simulatorByScenario: { name: string; count: number; avgScore: number }[] = [];
     let simulatorScoreDist: { range: string; count: number }[] = [];
     try {
-      const { data: simSessions } = await serviceClient.from('simulator_sessions').select('id, score, progress, scenario_id, created_at').eq('user_id', user.id);
+      const { data: simSessions } = await serviceClient.from('simulator_sessions').select('id, stage_scores, status, scenario_id, created_at').eq('user_id', user.id);
       simulatorSessions = simSessions?.length ?? 0;
       if (simSessions && simSessions.length > 0) {
-        const scores = simSessions.map((s) => s.score).filter((s): s is number => typeof s === 'number' && s > 0);
+        // Extract scores from stage_scores jsonb
+        const scores: number[] = [];
+        for (const s of simSessions) {
+          const ss = s.stage_scores as Record<string, number> | null;
+          if (ss && typeof ss === 'object') {
+            const vals = Object.values(ss).filter((v) => typeof v === 'number' && v > 0);
+            if (vals.length > 0) scores.push(Math.round(vals.reduce((a, b) => a + b, 0) / vals.length));
+          }
+        }
         simulatorAvgScore = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
-        simulatorStagesCompleted = simSessions.filter((s) => s.progress != null && Number(s.progress) > 0).length;
+        simulatorStagesCompleted = simSessions.filter((s) => s.status === 'completed').length;
         // By scenario
         const scenarioMap: Record<string, { count: number; totalScore: number }> = {};
-        for (const s of simSessions) { const sid = s.scenario_id || '未知'; if (!scenarioMap[sid]) scenarioMap[sid] = { count: 0, totalScore: 0 }; scenarioMap[sid].count++; if (typeof s.score === 'number' && s.score > 0) scenarioMap[sid].totalScore += s.score; }
-        simulatorByScenario = Object.entries(scenarioMap).map(([name, v]) => ({ name: name.slice(0, 8), count: v.count, avgScore: v.count > 0 ? Math.round(v.totalScore / v.count) : 0 }));
+        for (const s of simSessions) { const sid = s.scenario_id || '默认场景'; if (!scenarioMap[sid]) scenarioMap[sid] = { count: 0, totalScore: 0 }; scenarioMap[sid].count++; }
+        // Match scenario scores
+        let idx = 0;
+        for (const s of simSessions) {
+          const sid = s.scenario_id || '默认场景';
+          if (idx < scores.length && scenarioMap[sid]) scenarioMap[sid].totalScore += scores[idx];
+          idx++;
+        }
+        simulatorByScenario = Object.entries(scenarioMap).map(([name, v]) => ({ name: name.length > 8 ? name.slice(0, 8) : name, count: v.count, avgScore: v.count > 0 ? Math.round(v.totalScore / v.count) : 0 }));
         // Score distribution
         const dist = { '0-20': 0, '21-40': 0, '41-60': 0, '61-80': 0, '81-100': 0 };
         for (const s of scores) { if (s <= 20) dist['0-20']++; else if (s <= 40) dist['21-40']++; else if (s <= 60) dist['41-60']++; else if (s <= 80) dist['61-80']++; else dist['81-100']++; }
@@ -167,7 +235,8 @@ export async function GET() {
       interviewMethodStats = Object.entries(methodMap).map(([method, v]) => ({ method, count: v.count, avgScore: v.count > 0 ? Math.round(v.totalScore / v.count) : 0 }));
     } catch {}
     try { const { count: mCount } = await serviceClient.from('mock_interviews').select('id', { count: 'exact', head: true }).eq('user_id', user.id); mockCount = mCount ?? 0; } catch {}
-    try { const { count: sCount } = await serviceClient.from('interview_sessions').select('id', { count: 'exact', head: true }).eq('user_id', user.id); sessionCount = sCount ?? 0; } catch {}
+    // Chat sessions count
+    try { const { count: sCount } = await serviceClient.from('chat_sessions').select('id', { count: 'exact', head: true }).eq('user_id', user.id); sessionCount = sCount ?? 0; } catch {}
     // Mock score distribution
     try {
       const { data: mockAnswers } = await serviceClient.from('interview_answers').select('score').in('mock_interview_id', (await serviceClient.from('mock_interviews').select('id').eq('user_id', user.id)).data?.map((m) => m.id) ?? []);
@@ -181,18 +250,14 @@ export async function GET() {
     let resumeMatchTrend: { date: string; score: number }[] = [];
     let resumeJobStats: { status: string; count: number }[] = [];
     try {
-      const { data: resumeData } = await serviceClient.from('resume_versions').select('id, match_score, created_at').eq('user_id', user.id).order('created_at', { ascending: true });
+      // resume_versions has no match_score, just count versions
+      const { data: resumeData } = await serviceClient.from('resume_versions').select('id, created_at').eq('user_id', user.id).order('created_at', { ascending: true });
       resumeVersions = resumeData?.length ?? 0;
-      if (resumeData && resumeData.length > 0) {
-        resumeMatchScore = resumeData.reduce((best: number, r: { match_score: number | null }) => Math.max(best, r.match_score ?? 0), 0);
-        resumeMatchTrend = resumeData.filter((r) => r.match_score != null).slice(-10).map((r) => ({ date: new Date(r.created_at).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' }), score: r.match_score ?? 0 }));
-      }
     } catch {}
     try {
-      const { data: jobs } = await serviceClient.from('resume_jobs').select('status').eq('user_id', user.id);
-      const statusMap: Record<string, number> = {};
-      for (const j of jobs ?? []) { const s = j.status || '未知'; statusMap[s] = (statusMap[s] || 0) + 1; }
-      resumeJobStats = Object.entries(statusMap).map(([status, count]) => ({ status, count }));
+      // resume_jobs has no status column, it's a cached RSS listing
+      const { count: jobCount } = await serviceClient.from('resume_jobs').select('id', { count: 'exact', head: true });
+      resumeJobStats = jobCount ? [{ status: '已缓存', count: jobCount }] : [];
     } catch {}
 
     // ── Resources ──
@@ -200,11 +265,11 @@ export async function GET() {
     let resourcesByCategory: { name: string; total: number; read: number }[] = [];
     let readingPace: { date: string; count: number }[] = [];
     try {
-      const { count: rCount } = await serviceClient.from('resources').select('id', { count: 'exact', head: true });
+      const { count: rCount } = await serviceClient.from('external_resources').select('id', { count: 'exact', head: true });
       resourcesCount = rCount ?? 0;
     } catch {}
     try {
-      const { data: readData } = await serviceClient.from('user_resource_reads').select('id, created_at, resource_id').eq('user_id', user.id);
+      const { data: readData } = await serviceClient.from('user_task_resources').select('id, created_at, resource_id').eq('user_id', user.id);
       articlesRead = readData?.length ?? 0;
       // Reading pace (7-day)
       const paceMap: Record<string, number> = {};
@@ -213,11 +278,11 @@ export async function GET() {
       readingPace = Object.entries(paceMap).sort(([a], [b]) => a.localeCompare(b)).map(([date, count]) => ({ date: date.slice(5), count }));
     } catch {}
     try {
-      const { data: resWithCat } = await serviceClient.from('resources').select('id, category');
-      const { data: userReads } = await serviceClient.from('user_resource_reads').select('resource_id').eq('user_id', user.id);
+      const { data: resWithCat } = await serviceClient.from('external_resources').select('id, category');
+      const { data: userReads } = await serviceClient.from('user_task_resources').select('resource_id').eq('user_id', user.id);
       const readSet = new Set((userReads ?? []).map((r) => r.resource_id));
       const catMap: Record<string, { total: number; read: number }> = {};
-      for (const r of resWithCat ?? []) { const c = r.category || '未分类'; if (!catMap[c]) catMap[c] = { total: 0, read: 0 }; catMap[c].total++; if (readSet.has(r.id)) catMap[c].read++; }
+      for (const r of resWithCat ?? []) { const c = (r as Record<string, unknown>).category as string || '未分类'; if (!catMap[c]) catMap[c] = { total: 0, read: 0 }; catMap[c].total++; if (readSet.has(r.id)) catMap[c].read++; }
       resourcesByCategory = Object.entries(catMap).map(([name, v]) => ({ name, ...v }));
     } catch {}
 
@@ -227,17 +292,18 @@ export async function GET() {
     let challengeScoreDist: { range: string; count: number }[] = [];
     let challengeStreakCalendar: { date: string; hasSubmission: boolean }[] = [];
     try {
-      const { data: challenges } = await serviceClient.from('daily_challenge_submissions').select('id, score, created_at').eq('user_id', user.id).order('created_at', { ascending: true });
+      // Column is submitted_at, not created_at
+      const { data: challenges } = await serviceClient.from('daily_challenge_submissions').select('id, score, submitted_at').eq('user_id', user.id).order('submitted_at', { ascending: true });
       challengeCount = challenges?.length ?? 0;
       if (challenges && challenges.length > 0) {
         const scores = challenges.map((c) => c.score ?? 0).filter((s) => s > 0);
         challengeAvgScore = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
-        const dates = challenges.map((c) => new Date(c.created_at).toISOString().split('T')[0]);
+        const dates = challenges.map((c) => new Date(c.submitted_at).toISOString().split('T')[0]);
         const uniqueDates = [...new Set(dates)].sort().reverse();
         let streak = 0;
         for (let i = 0; i < uniqueDates.length; i++) { const expected = new Date(); expected.setDate(expected.getDate() - i); if (uniqueDates[i] === expected.toISOString().split('T')[0]) streak++; else break; }
         dailyStreak = streak;
-        challengeScoreHistory = challenges.slice(-20).map((c) => ({ date: new Date(c.created_at).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' }), score: c.score ?? 0 }));
+        challengeScoreHistory = challenges.slice(-20).map((c) => ({ date: new Date(c.submitted_at).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' }), score: c.score ?? 0 }));
         // Score distribution
         const dist = { '0-20': 0, '21-40': 0, '41-60': 0, '61-80': 0, '81-100': 0 };
         for (const s of scores) { if (s <= 20) dist['0-20']++; else if (s <= 40) dist['21-40']++; else if (s <= 60) dist['41-60']++; else if (s <= 80) dist['61-80']++; else dist['81-100']++; }
