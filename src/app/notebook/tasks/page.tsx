@@ -26,8 +26,8 @@ function localDateStr(d: Date = new Date()): string {
 
 const STATUS_CONFIG: Record<string, { label: string; icon: string; color: string; bg: string; border: string; barGradient: string }> = {
   todo: { label: '待办', icon: '○', color: 'text-muted-foreground', bg: 'bg-secondary', border: 'border-border', barGradient: 'from-indigo-400 to-violet-400' },
-  in_progress: { label: '进行中', icon: '◐', color: 'text-sky-600', bg: 'bg-sky-50', border: 'border-sky-200', barGradient: 'from-sky-400 to-blue-400' },
-  done: { label: '已完成', icon: '●', color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200', barGradient: 'from-emerald-400 to-teal-400' },
+  in_progress: { label: '进行中', icon: '◐', color: 'text-sky-600 dark:text-sky-400', bg: 'bg-sky-50 dark:bg-sky-950/40', border: 'border-sky-200 dark:border-sky-800', barGradient: 'from-sky-400 to-blue-400' },
+  done: { label: '已完成', icon: '●', color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/40', border: 'border-emerald-200 dark:border-emerald-800', barGradient: 'from-emerald-400 to-teal-400' },
 };
 
 const DAILY_TEMPLATES = [
@@ -136,12 +136,12 @@ function GlassButton({
   disabled?: boolean;
 }) {
   const colorMap: Record<string, string> = {
-    indigo: 'bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-600 border-indigo-200/60',
-    rose: 'bg-rose-500/15 hover:bg-rose-500/25 text-rose-600 border-rose-200/60',
-    emerald: 'bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-600 border-emerald-200/60',
-    amber: 'bg-amber-500/15 hover:bg-amber-500/25 text-amber-600 border-amber-200/60',
-    purple: 'bg-purple-500/15 hover:bg-purple-500/25 text-purple-600 border-purple-200/60',
-    gray: 'bg-secondary hover:bg-gray-200/80 text-muted-foreground border-border',
+    indigo: 'bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-600 dark:text-indigo-400 border-indigo-200/60 dark:border-indigo-700/60',
+    rose: 'bg-rose-500/15 hover:bg-rose-500/25 text-rose-600 dark:text-rose-400 border-rose-200/60 dark:border-rose-700/60',
+    emerald: 'bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-600 dark:text-emerald-400 border-emerald-200/60 dark:border-emerald-700/60',
+    amber: 'bg-amber-500/15 hover:bg-amber-500/25 text-amber-600 dark:text-amber-400 border-amber-200/60 dark:border-amber-700/60',
+    purple: 'bg-purple-500/15 hover:bg-purple-500/25 text-purple-600 dark:text-purple-400 border-purple-200/60 dark:border-purple-700/60',
+    gray: 'bg-secondary hover:bg-accent text-muted-foreground border-border',
   };
   const sizeClass = size === 'sm' ? 'px-3 py-1.5 text-xs' : 'px-4 py-2 text-sm';
 
@@ -375,7 +375,7 @@ function TaskEditor({
               )}
               <button
                 onClick={() => setDuration('')}
-                className={`rounded-lg px-3 py-1.5 text-xs font-medium border transition-all ${!duration ? 'bg-gray-800 text-white border-gray-800' : 'bg-muted text-muted-foreground border-border hover:bg-secondary'}`}
+                className={`rounded-lg px-3 py-1.5 text-xs font-medium border transition-all ${!duration ? 'bg-foreground text-background border-foreground' : 'bg-muted text-muted-foreground border-border hover:bg-secondary'}`}
               >清除</button>
               {DURATION_OPTIONS.map((d) => (
                 <button
@@ -751,7 +751,7 @@ export default function DailyTasksPage() {
               {Array.from({ length: TIMELINE_END }, (_, h) => (
                 <div
                   key={`half-${h}`}
-                  className="absolute left-0 right-0 border-t border-dashed border-gray-50"
+                  className="absolute left-0 right-0 border-t border-dashed border-border"
                   style={{ top: `${(h + 0.5) * HOUR_HEIGHT}px` }}
                 />
               ))}

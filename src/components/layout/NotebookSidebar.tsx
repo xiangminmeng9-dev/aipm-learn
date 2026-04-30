@@ -34,7 +34,7 @@ export default function NotebookSidebar() {
               href={item.href}
               className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
                 isActive
-                  ? 'bg-indigo-50 text-indigo-600 border border-indigo-200'
+                  ? 'bg-indigo-50 text-indigo-600 border border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-400 dark:border-indigo-800'
                   : 'text-muted-foreground hover:bg-muted hover:text-foreground border border-transparent'
               }`}
             >

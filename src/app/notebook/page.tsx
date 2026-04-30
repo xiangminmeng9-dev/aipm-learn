@@ -9,10 +9,10 @@ import { type Note, getNotes, createNote, updateNote, deleteNote } from '@/lib/n
 /* ──────────────────────────── Config ──────────────────────────── */
 
 const CATEGORY_CONFIG: Record<string, { label: string; icon: string; color: string; bg: string; border: string; accent: string; gradient: string }> = {
-  problem: { label: '问题', icon: '🔥', color: 'text-rose-600', bg: 'bg-rose-50', border: 'border-rose-200', accent: '#f43f5e', gradient: 'from-rose-400 to-orange-400' },
-  insight: { label: '洞察', icon: '💡', color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200', accent: '#f59e0b', gradient: 'from-amber-400 to-yellow-400' },
-  meeting: { label: '会议', icon: '📋', color: 'text-sky-600', bg: 'bg-sky-50', border: 'border-sky-200', accent: '#0ea5e9', gradient: 'from-sky-400 to-blue-400' },
-  general: { label: '通用', icon: '📝', color: 'text-violet-600', bg: 'bg-violet-50', border: 'border-violet-200', accent: '#8b5cf6', gradient: 'from-violet-400 to-purple-400' },
+  problem: { label: '问题', icon: '🔥', color: 'text-rose-600 dark:text-rose-400', bg: 'bg-rose-50 dark:bg-rose-950/40', border: 'border-rose-200 dark:border-rose-800', accent: '#f43f5e', gradient: 'from-rose-400 to-orange-400' },
+  insight: { label: '洞察', icon: '💡', color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/40', border: 'border-amber-200 dark:border-amber-800', accent: '#f59e0b', gradient: 'from-amber-400 to-yellow-400' },
+  meeting: { label: '会议', icon: '📋', color: 'text-sky-600 dark:text-sky-400', bg: 'bg-sky-50 dark:bg-sky-950/40', border: 'border-sky-200 dark:border-sky-800', accent: '#0ea5e9', gradient: 'from-sky-400 to-blue-400' },
+  general: { label: '通用', icon: '📝', color: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-50 dark:bg-violet-950/40', border: 'border-violet-200 dark:border-violet-800', accent: '#8b5cf6', gradient: 'from-violet-400 to-purple-400' },
 };
 
 /* ──────────────────────────── Glass Button ──────────────────────────── */
@@ -31,11 +31,11 @@ function GlassButton({
   size?: 'sm' | 'md';
 }) {
   const colorMap: Record<string, string> = {
-    indigo: 'bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-600 border-indigo-200/60',
-    rose: 'bg-rose-500/15 hover:bg-rose-500/25 text-rose-600 border-rose-200/60',
-    emerald: 'bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-600 border-emerald-200/60',
-    amber: 'bg-amber-500/15 hover:bg-amber-500/25 text-amber-600 border-amber-200/60',
-    gray: 'bg-secondary hover:bg-gray-200/80 text-muted-foreground border-border',
+    indigo: 'bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-600 dark:text-indigo-400 border-indigo-200/60 dark:border-indigo-700/60',
+    rose: 'bg-rose-500/15 hover:bg-rose-500/25 text-rose-600 dark:text-rose-400 border-rose-200/60 dark:border-rose-700/60',
+    emerald: 'bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-600 dark:text-emerald-400 border-emerald-200/60 dark:border-emerald-700/60',
+    amber: 'bg-amber-500/15 hover:bg-amber-500/25 text-amber-600 dark:text-amber-400 border-amber-200/60 dark:border-amber-700/60',
+    gray: 'bg-secondary hover:bg-accent text-muted-foreground border-border',
   };
   const sizeClass = size === 'sm' ? 'px-3 py-1.5 text-xs' : 'px-4 py-2 text-sm';
 
@@ -108,13 +108,13 @@ function NoteCard({
         <div className="absolute inset-0 flex items-center justify-center gap-2 rounded-2xl bg-black/5 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
           <button
             onClick={(e) => { e.stopPropagation(); onPin(); }}
-            className="rounded-lg bg-white/90 px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-sm hover:bg-white"
+            className="rounded-lg bg-card/90 px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-sm hover:bg-card"
           >
             {note.pinned ? '取消置顶' : '📌 置顶'}
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); onDelete(); }}
-            className="rounded-lg bg-rose-50 px-3 py-1.5 text-xs font-medium text-rose-500 shadow-sm hover:bg-rose-100"
+            className="rounded-lg bg-rose-50 px-3 py-1.5 text-xs font-medium text-rose-500 shadow-sm hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-400 dark:hover:bg-rose-900/40"
           >
             删除
           </button>
@@ -300,7 +300,7 @@ export default function NotesPage() {
         }}
       >
         <div className="absolute inset-0 bg-gradient-to-r from-emerald-900/75 via-teal-800/55 to-green-900/70" />
-        <div className="absolute inset-0 bg-white/5" />
+        <div className="absolute inset-0 bg-black/5 dark:bg-white/5" />
         <div className="relative z-10 px-8 py-8">
           <h1 className="mb-1 text-2xl font-bold text-white drop-shadow-sm">📝 AI PM 笔记本</h1>
           <p className="text-sm text-white/80">记录工作中遇到的问题与洞察，沉淀产品思维</p>
@@ -316,7 +316,7 @@ export default function NotesPage() {
           onClick={() => setFilterCategory(null)}
           className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-medium transition-all ${
             filterCategory === null
-              ? 'bg-gray-800 text-white shadow-sm'
+              ? 'bg-foreground text-background shadow-sm'
               : 'bg-card text-muted-foreground border border-border hover:bg-muted'
           }`}
         >
@@ -350,7 +350,7 @@ export default function NotesPage() {
             exit={{ opacity: 0, height: 0 }}
             className="mb-6 overflow-hidden"
           >
-            <div className="rounded-2xl border border-indigo-200 bg-indigo-50/50 p-5">
+            <div className="rounded-2xl border border-indigo-200 bg-indigo-50/50 p-5 dark:border-indigo-800 dark:bg-indigo-950/30">
               <input
                 value={newTitle}
                 onChange={(e) => setNewTitle(e.target.value)}
