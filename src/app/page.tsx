@@ -30,13 +30,14 @@ const topShelf: BookItem[] = [
     title: 'Coding',
     titleEn: 'AI Coding',
     label: 'AI Coding 练习',
-    description: '开发流程生成 · 提示词范例 · 历史记录 · 方法论提炼',
+    description: '开发流程生成 · 实操练习 · 提示词范例 · 历史记录 · 方法论提炼',
     detail:
-      'AI Coding 练习模块帮助你掌握 AI 辅助开发的完整流程。通过生成开发流程、浏览全网提示词范例、记录历史操作、提炼方法论和范式对比，让你在 AI 时代成为更高效的工程师。',
+      'AI Coding 练习模块帮助你掌握 AI 辅助开发的完整流程。通过生成开发流程、实操练习编写 Spec、浏览全网提示词范例、记录历史操作、提炼方法论和范式对比，让你在 AI 时代成为更高效的工程师。',
     href: '/coding/practice',
     theme: 'coding',
     subFeatures: [
       { label: '开发流程生成', href: '/coding/practice' },
+      { label: '实操练习', href: '/coding/spec-practice' },
       { label: '提示词范例', href: '/coding/prompts' },
       { label: '历史记录', href: '/coding/flows' },
       { label: '方法论提炼', href: '/coding/methodology' },

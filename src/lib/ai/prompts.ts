@@ -347,22 +347,36 @@ export const METHODOLOGY_SYSTEM_PROMPT = `你是一位方法论提炼专家，�
 // ============================================================
 
 export function buildDevFlowPrompt(question: string, modeName: string, modeDescription: string): string {
-  return `请根据以下需求生成一个完整的开发流程。
+  return `请根据以下需求生成一个详细的开发流程。
 
 开发模式：${modeName}
 模式说明：${modeDescription}
 需求描述：${question}
 
-请按以下格式输出（严格使用 JSON）：
-{
-  "clarification": "<需要澄清的问题，2-3个>",
-  "breakdown": ["<子任务1>", "<子任务2>", ...],
-  "steps": [{"title": "<步骤标题>", "description": "<步骤描述>", "code_hint": "<代码提示>"}],
-  "notes": "<注意事项和最佳实践>"
-}`;
+请严格按以下 Markdown 格式输出，内容要详细、专业、有深度：
+
+## 🔍 澄清问题
+列出 3-5 个需要向需求方澄清的关键问题，每个问题附带简短说明为什么需要澄清
+
+## 📋 需求拆解
+将需求拆解为 4-6 个子模块，每个模块包含：
+- **模块名**：简要描述该模块的职责和边界
+
+## 🛠 开发步骤
+列出具体开发步骤，每步包含：
+**步骤N：标题**
+- 具体要做的事情
+- 关键代码思路或架构选择
+- 预期产出
+
+## ⚠️ 重点关注事项
+列出开发中需要特别注意的点，每个包含：
+- **关注点**：具体说明为什么重要、可能的风险、建议的应对方案`;
 }
 
-export const DEV_FLOW_SYSTEM_PROMPT = `你是一位资深全栈工程师，擅长将需求拆解为清晰的开发流程。输出严格的 JSON 格式。`;
+export const DEV_FLOW_SYSTEM_PROMPT = `你是一位资深全栈工程师和技术架构师，擅长将需求拆解为清晰、详细、可执行的开发流程。
+严格按 Markdown 格式输出，使用 ## 标题分隔四个部分，每个部分内容要丰富有深度。
+不要输出 JSON。使用 emoji 让标题更醒目。`;
 
 export function buildCodingMethodologyPrompt(flows: Record<string, unknown>[]): string {
   return `请基于以下开发流程历史，提炼出个人开发方法论。
@@ -370,16 +384,84 @@ export function buildCodingMethodologyPrompt(flows: Record<string, unknown>[]): 
 开发流程历史：
 ${JSON.stringify(flows, null, 2)}
 
-请按以下格式输出（严格使用 JSON）：
+请严格按以下 Markdown 格式输出，每个部分内容要丰富详实，使用列表、加粗等 Markdown 语法增强可读性：
+
+## 🔥 高频澄清问题
+列出你在需求澄清阶段反复出现的核心问题，每个问题附带简短说明为什么重要。
+
+## 📋 通用拆解策略
+总结你在需求拆解中的通用模式和最佳实践，包含具体的方法和步骤。
+
+## 🔄 跨模式共通步骤
+提炼不同开发模式下都适用的核心步骤，按执行顺序排列，每步说明要点。
+
+## ⚠️ 关键注意事项
+列出开发过程中最容易踩坑的关键点，每个注意项给出具体建议。`;
+}
+
+export const CODING_METHODOLOGY_SYSTEM_PROMPT = `你是一位方法论提炼专家，擅长从开发实践中抽象出通用的开发范式和步骤。
+严格按 Markdown 格式输出，使用 emoji 让标题更醒目。不要输出 JSON。
+每个部分的内容要丰富、具体、有洞察力，避免泛泛而谈。使用加粗、列表等 Markdown 语法增强可读性。`;
+
+// ============================================================
+// Spec Practice — AI Coding 实操
+// ============================================================
+
+export function buildSpecPracticeQuestionPrompt(): string {
+  return `请生成一道符合大厂标准的 AI 产品经理场景题目，要求：
+1. 题目贴近真实工作场景，考察 AI PM 核心能力
+2. 题目类型从以下方向中随机选择：需求分析、系统设计、产品规划、用户增长、数据驱动决策
+3. 题目要有足够的复杂度，适合编写完整的 Spec（规格说明）
+4. 每次生成的题目应不同，避免重复
+
+请严格按以下 JSON 格式输出：
 {
-  "high_freq_questions": ["<高频问题1>", ...],
-  "common_breakdowns": ["<常见拆解模式1>", ...],
-  "cross_mode_steps": ["<跨模式通用步骤1>", ...],
-  "key_notes": "<关键注意事项>"
+  "question": "题目内容",
+  "question_category": "题目类别"
 }`;
 }
 
-export const CODING_METHODOLOGY_SYSTEM_PROMPT = `你是一位方法论提炼专家，擅长从开发实践中抽象出通用的开发范式和步骤。输出严格的 JSON 格式。`;
+export const SPEC_PRACTICE_QUESTION_SYSTEM_PROMPT = `你是一位大厂 AI 产品经理面试官，擅长设计高质量的实战场景题目。
+输出严格的 JSON 格式。题目要具体、有深度、贴近真实业务场景。`;
+
+export function buildSpecEvaluationPrompt(question: string, userSpec: string): string {
+  return `你是一位资深的 AI 产品经理导师，请对以下 Spec 进行专业评分。
+
+## 题目
+${question}
+
+## 用户编写的 Spec
+${userSpec}
+
+请从以下 4 个维度评分（每维度 0-100 分），并给出逐条优化建议：
+
+1. **完整性**：Spec 是否覆盖了所有关键方面（背景、目标、功能需求、非功能需求、约束条件等）
+2. **可执行性**：Spec 是否足够具体、可落地，开发团队能否直接据此实施
+3. **边界考虑**：是否考虑了异常场景、边界条件、降级方案、风险点
+4. **结构清晰度**：Spec 的组织结构是否清晰、逻辑是否连贯、表达是否准确
+
+请严格按以下 JSON 格式输出：
+{
+  "total_score": 75,
+  "dimension_scores": [
+    { "dimension": "完整性", "score": 75, "comment": "具体评语" },
+    { "dimension": "可执行性", "score": 80, "comment": "具体评语" },
+    { "dimension": "边界考虑", "score": 60, "comment": "具体评语" },
+    { "dimension": "结构清晰度", "score": 85, "comment": "具体评语" }
+  ],
+  "suggestions": [
+    { "original_text": "用户 Spec 中的原文片段", "improvement": "改进方向", "suggestion": "具体的优化建议" }
+  ]
+}
+
+要求：
+- total_score 是 4 个维度分数的加权平均
+- suggestions 至少给出 3 条优化建议，每条必须引用用户 Spec 中的原文
+- comment 要具体指出优点和不足，避免泛泛而谈`;
+}
+
+export const SPEC_EVALUATION_SYSTEM_PROMPT = `你是一位资深的 AI 产品经理导师，擅长评估 Spec 质量并给出专业建议。
+输出严格的 JSON 格式。评分要客观公正，建议要具体可操作。`;
 
 // ============================================================
 // JD Analysis

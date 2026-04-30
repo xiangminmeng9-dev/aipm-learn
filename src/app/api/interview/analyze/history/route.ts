@@ -7,10 +7,10 @@ export async function GET() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ records: [] });
 
-    // Get question_analyses for this user (QA page records)
+    // Get question_analyses for this user with full content
     const { data: analyses } = await supabase
       .from('question_analyses')
-      .select('id, question_id, analysis, created_at')
+      .select('id, question_id, analysis, thinking_framework, answer_approach, answer_template, created_at')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(30);
@@ -44,7 +44,13 @@ export async function GET() {
         id: a.id,
         question: q?.text || '',
         type_name: q?.type_id ? typeMap.get(q.type_id) : null,
+        type_id: q?.type_id || null,
         created_at: a.created_at,
+        // Full analysis content so history click can display without re-analyzing
+        analysis: a.analysis,
+        thinking_framework: a.thinking_framework,
+        answer_approach: a.answer_approach,
+        answer_template: a.answer_template,
       };
     }).filter(r => r.question);
 

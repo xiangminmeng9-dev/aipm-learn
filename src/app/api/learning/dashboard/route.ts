@@ -42,6 +42,41 @@ export async function GET() {
       }
     } catch {}
 
+    // ── Spec Practice ──
+    let specPracticeCount = 0, specPracticeAvgScore = 0;
+    let specPracticeScoreTrend: { date: string; score: number }[] = [];
+    let specPracticeDimensionDist: { dimension: string; avgScore: number }[] = [];
+    try {
+      const { data: specPractices } = await serviceClient
+        .from('spec_practices')
+        .select('id, total_score, dimension_scores, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: true });
+      specPracticeCount = specPractices?.length ?? 0;
+      if (specPractices && specPractices.length > 0) {
+        const scores = specPractices.map((s) => s.total_score);
+        specPracticeAvgScore = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+        // 7-day score trend
+        const trendMap: Record<string, { total: number; count: number }> = {};
+        for (let i = 6; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); trendMap[d.toISOString().split('T')[0]] = { total: 0, count: 0 }; }
+        for (const s of specPractices) { const date = new Date(s.created_at).toISOString().split('T')[0]; if (date in trendMap) { trendMap[date].total += s.total_score; trendMap[date].count++; } }
+        specPracticeScoreTrend = Object.entries(trendMap).sort(([a], [b]) => a.localeCompare(b)).map(([date, v]) => ({ date: date.slice(5), score: v.count > 0 ? Math.round(v.total / v.count) : 0 }));
+        // Dimension distribution
+        const dimMap: Record<string, { total: number; count: number }> = {};
+        for (const s of specPractices) {
+          const dims = s.dimension_scores as { dimension: string; score: number }[] | null;
+          if (dims && Array.isArray(dims)) {
+            for (const d of dims) {
+              if (!dimMap[d.dimension]) dimMap[d.dimension] = { total: 0, count: 0 };
+              dimMap[d.dimension].total += d.score;
+              dimMap[d.dimension].count++;
+            }
+          }
+        }
+        specPracticeDimensionDist = Object.entries(dimMap).map(([dimension, v]) => ({ dimension, avgScore: Math.round(v.total / v.count) }));
+      }
+    } catch {}
+
     // ── Skills ──
     // Two sources: system modules (skill_modules + learning_tasks + learning_progress)
     //              user modules (user_skill_modules + user_module_tasks)
@@ -336,7 +371,7 @@ export async function GET() {
       totalTasks: totalTaskCount, completedTasks: completedTaskCount,
       progressCurve, scoreTrend,
       moduleDetails: {
-        coding: { flows: codingFlowCount, recentActivity: codingRecent, dailyActivity: codingDaily, byStage: codingByStage },
+        coding: { flows: codingFlowCount, recentActivity: codingRecent, dailyActivity: codingDaily, byStage: codingByStage, specPracticeCount, specPracticeAvgScore, specPracticeScoreTrend, specPracticeDimensionDist },
         skills: { coverage: skillCoverage, modules: totalModules, tasks: totalTaskCount, completedTasks: completedTaskCount, moduleBreakdown: skillModules, byLevel: skillByLevel, customModules: customModuleCount },
         notebook: { notes: notebookNotes, tasks: notebookTasks, aiAnalysis: notebookAiAnalysis, dailyCreation: notebookDaily, byType: notebookByType },
         simulator: { sessions: simulatorSessions, stagesCompleted: simulatorStagesCompleted, avgScore: simulatorAvgScore, byScenario: simulatorByScenario, scoreDistribution: simulatorScoreDist },

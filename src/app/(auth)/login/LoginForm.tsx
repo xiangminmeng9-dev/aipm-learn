@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 export default function LoginForm() {
@@ -10,17 +9,29 @@ export default function LoginForm() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
-  const supabase = createClient();
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setError('');
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) { setError(error.message); setLoading(false); return; }
-    router.push('/interview/qa');
-    router.refresh();
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        console.error('[Login] signInWithPassword error:', error);
+        setError(error.message);
+        setLoading(false);
+        return;
+      }
+      console.log('[Login] signInWithPassword success, session:', !!data.session);
+      // Wait for cookie to be fully written (Safari ITP needs this)
+      await new Promise((r) => setTimeout(r, 300));
+      window.location.href = '/interview/qa';
+    } catch (err) {
+      console.error('[Login] unexpected error:', err);
+      setError('登录失败，请重试');
+      setLoading(false);
+    }
   }
 
   return (

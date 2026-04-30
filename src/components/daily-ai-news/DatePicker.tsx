@@ -31,11 +31,16 @@ const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'];
 export default function NewsDatePicker({ value, onChange, availableDates }: Props) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const today = getTodayShanghai();
-  const todayDate = new Date();
+  const [today, setToday] = useState('');
+  const [viewYear, setViewYear] = useState(2026);
+  const [viewMonth, setViewMonth] = useState(0);
 
-  const [viewYear, setViewYear] = useState(todayDate.getFullYear());
-  const [viewMonth, setViewMonth] = useState(todayDate.getMonth());
+  useEffect(() => {
+    const now = new Date();
+    setToday(getTodayShanghai());
+    setViewYear(now.getFullYear());
+    setViewMonth(now.getMonth());
+  }, []);
 
   useEffect(() => {
     const d = new Date(value + 'T00:00:00');

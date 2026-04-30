@@ -169,7 +169,7 @@ export default function MockInterviewFlow({
             }
           }
 
-          setAnswers(answered);
+          setAnswers(answered.filter((a): a is AnswerRecord => a != null));
           setCurrentQuestion(currentQ);
 
           const scored = answered.filter(a => a.evaluation);
@@ -319,10 +319,12 @@ export default function MockInterviewFlow({
   };
 
   const handleComplete = () => {
+    const finalAnswers = [...answers];
     if (evaluationRef.current) {
-      setAnswers(prev => [...prev, evaluationRef.current!]);
+      finalAnswers.push(evaluationRef.current);
     }
-    onComplete({ mockId, totalQuestions: totalQ || totalQuestions || 0, totalScore, answers: [...answers, evaluationRef.current ? evaluationRef.current : undefined].filter(Boolean) as AnswerRecord[] });
+    const validAnswers = finalAnswers.filter((a): a is AnswerRecord => a != null);
+    onComplete({ mockId, totalQuestions: totalQ || totalQuestions || 0, totalScore, answers: validAnswers });
   };
 
   const handleRetry = () => {
@@ -354,7 +356,7 @@ export default function MockInterviewFlow({
       {answers.length > 0 && (
         <div className="space-y-2">
           <h3 className="text-xs font-medium text-muted-foreground">历史问答（点击回顾）</h3>
-          {answers.map((a) => (
+          {answers.filter(a => a != null).map((a) => (
             <div key={a.number} className="rounded-xl border border-border bg-card overflow-hidden">
               <button
                 className="w-full flex items-center justify-between p-3 text-left hover:bg-muted/50 transition-colors"

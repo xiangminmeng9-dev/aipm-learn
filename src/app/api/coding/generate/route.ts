@@ -143,10 +143,11 @@ export async function POST(request: NextRequest) {
 function parseDevFlowSections(text: string) {
   const sections = { clarification: '', breakdown: '', steps: '', notes: '' };
 
-  const clarifyMatch = text.match(/##\s*澄清问题\s*\n([\s\S]*?)(?=##\s*(?:需求拆解)|$)/i);
-  const breakdownMatch = text.match(/##\s*需求拆解\s*\n([\s\S]*?)(?=##\s*(?:开发步骤)|$)/i);
-  const stepsMatch = text.match(/##\s*开发步骤\s*\n([\s\S]*?)(?=##\s*(?:重点关注|注意事项)|$)/i);
-  const notesMatch = text.match(/##\s*(?:重点关注事项|注意事项)\s*\n([\s\S]*?)$/i);
+  // Match ## titles with optional emoji prefix (e.g. "## 🔍 澄清问题" or "## 澄清问题")
+  const clarifyMatch = text.match(/##\s*(?:🔍\s*)?澄清问题\s*\n([\s\S]*?)(?=##\s*(?:📋\s*)?(?:需求拆解)|$)/i);
+  const breakdownMatch = text.match(/##\s*(?:📋\s*)?需求拆解\s*\n([\s\S]*?)(?=##\s*(?:🛠\s*)?(?:开发步骤)|$)/i);
+  const stepsMatch = text.match(/##\s*(?:🛠\s*)?开发步骤\s*\n([\s\S]*?)(?=##\s*(?:⚠️\s*)?(?:重点关注|注意事项)|$)/i);
+  const notesMatch = text.match(/##\s*(?:⚠️\s*)?(?:重点关注事项|注意事项|重点关注)\s*\n([\s\S]*?)$/i);
 
   sections.clarification = clarifyMatch?.[1]?.trim() ?? '';
   sections.breakdown = breakdownMatch?.[1]?.trim() ?? '';
@@ -195,7 +196,22 @@ async function triggerCodingMethodologyUpdate(userId: string): Promise<void> {
 
     let methodology;
     try {
-      methodology = JSON.parse(result.trim());
+      const text = result.trim();
+      // Parse markdown sections with emoji headers
+      const highFreqMatch = text.match(/##\s*(?:🔥\s*)?高频澄清问题\s*\n([\s\S]*?)(?=##\s*(?:📋\s*)?(?:通用拆解策略)|$)/i);
+      const breakdownsMatch = text.match(/##\s*(?:📋\s*)?通用拆解策略\s*\n([\s\S]*?)(?=##\s*(?:🔄\s*)?(?:跨模式共通步骤)|$)/i);
+      const stepsMatch = text.match(/##\s*(?:🔄\s*)?跨模式共通步骤\s*\n([\s\S]*?)(?=##\s*(?:⚠️\s*)?(?:关键注意事项)|$)/i);
+      const notesMatch = text.match(/##\s*(?:⚠️\s*)?关键注意事项\s*\n([\s\S]*?)$/i);
+
+      const splitParagraphs = (s: string | undefined) =>
+        (s ?? '').trim().split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
+
+      methodology = {
+        high_freq_questions: splitParagraphs(highFreqMatch?.[1]),
+        common_breakdowns: splitParagraphs(breakdownsMatch?.[1]),
+        cross_mode_steps: splitParagraphs(stepsMatch?.[1]),
+        key_notes: splitParagraphs(notesMatch?.[1]),
+      };
     } catch {
       methodology = {
         high_freq_questions: [],

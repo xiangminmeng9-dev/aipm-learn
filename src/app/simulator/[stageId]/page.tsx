@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { SIMULATOR_SCENARIOS, SimulatorStageConfig, findStageByStageId } from '@/lib/simulator-config';
 import InteractiveChat from '@/components/simulator/InteractiveChat';
@@ -13,7 +13,7 @@ interface StageScore {
   completed_at: string;
 }
 
-export default function StagePage({ params }: { params: Promise<{ stageId: string }> }) {
+function StagePageContent({ params }: { params: Promise<{ stageId: string }> }) {
   const [stageId, setStageId] = useState<string>('');
   const [scenarioId, setScenarioId] = useState<string>('');
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -166,5 +166,13 @@ export default function StagePage({ params }: { params: Promise<{ stageId: strin
         />
       </div>
     </div>
+  );
+}
+
+export default function StagePage({ params }: { params: Promise<{ stageId: string }> }) {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center py-20"><p className="text-muted-foreground">加载中...</p></div>}>
+      <StagePageContent params={params} />
+    </Suspense>
   );
 }

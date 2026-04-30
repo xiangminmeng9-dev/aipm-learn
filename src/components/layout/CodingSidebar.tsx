@@ -6,6 +6,8 @@ import { ThemeToggle } from '@/components/ui/theme-toggle';
 
 const navItems = [
   { label: '开发流程生成', href: '/coding/practice', icon: '💻' },
+  { label: '实操练习', href: '/coding/spec-practice', icon: '✏️' },
+  { label: '实操历史', href: '/coding/spec-history', icon: '🕐' },
   { label: '提示词范例', href: '/coding/prompts', icon: '✨' },
   { label: '历史记录', href: '/coding/flows', icon: '📋' },
   { label: '方法论提炼', href: '/coding/methodology', icon: '📖' },

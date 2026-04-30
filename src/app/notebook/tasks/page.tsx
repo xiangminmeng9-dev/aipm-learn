@@ -426,12 +426,14 @@ export default function DailyTasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthed, setIsAuthed] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(() => localDateStr());
+  const [selectedDate, setSelectedDate] = useState('');
   const [showTemplates, setShowTemplates] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   const [hoverHour, setHoverHour] = useState<number | null>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => { setSelectedDate(localDateStr()); }, []);
   const pageRef = useRef<HTMLDivElement>(null);
   const hasScrolledRef = useRef(false);
 

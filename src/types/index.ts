@@ -419,6 +419,31 @@ export interface CodingMethodology {
   updated_at: string;
 }
 
+// --- Spec Practice ---
+export interface DimensionScore {
+  dimension: string;
+  score: number;
+  comment: string;
+}
+
+export interface SpecSuggestion {
+  original_text: string;
+  improvement: string;
+  suggestion: string;
+}
+
+export interface SpecPractice {
+  id: string;
+  user_id: string;
+  question: string;
+  question_category: string;
+  user_spec: string;
+  total_score: number;
+  dimension_scores: DimensionScore[];
+  suggestions: SpecSuggestion[];
+  created_at: string;
+}
+
 // --- RSS Article Collection ---
 export type RssSourceCategory = 'ai_tech' | 'ai_pm';
 export type RssSourceLanguage = 'en' | 'zh';

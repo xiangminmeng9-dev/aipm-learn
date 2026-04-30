@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { generateText, streamChatResponse } from '@/lib/ai/claude';
 import { classifyQuestion } from '@/lib/ai/classifier';
 import { buildAnalysisPrompt, ANALYSIS_SYSTEM_PROMPT } from '@/lib/ai/prompts';
@@ -8,6 +8,7 @@ export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
+  const serviceClient = createServiceClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: '未登录' }, { status: 401 });
 
@@ -65,7 +66,7 @@ export async function POST(request: NextRequest) {
   }
 
   // 2. Save question record first
-  const { data: questionRecord, error: questionError } = await supabase
+  const { data: questionRecord, error: questionError } = await serviceClient
     .from('interview_questions')
     .insert({
       text: question.trim(),
@@ -106,7 +107,7 @@ export async function POST(request: NextRequest) {
         // Parse sections and save
         const sections = parseAnalysisSections(fullAnswer);
 
-        await supabase.from('question_analyses').insert({
+        const { error: insertError } = await serviceClient.from('question_analyses').insert({
           question_id: questionRecord.id,
           user_id: user.id,
           analysis: sections.analysis,
@@ -114,6 +115,10 @@ export async function POST(request: NextRequest) {
           answer_approach: sections.answer_approach,
           answer_template: sections.answer_template,
         });
+
+        if (insertError) {
+          console.error('Failed to save analysis:', insertError);
+        }
 
         // Send parsed sections
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({

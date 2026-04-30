@@ -8,7 +8,7 @@ const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false });
 
 /* ── Types ── */
 interface ModuleDetails {
-  coding: { flows: number; recentActivity: number; dailyActivity: { date: string; count: number }[]; byStage: { name: string; value: number }[] };
+  coding: { flows: number; recentActivity: number; dailyActivity: { date: string; count: number }[]; byStage: { name: string; value: number }[]; specPracticeCount: number; specPracticeAvgScore: number; specPracticeScoreTrend: { date: string; score: number }[]; specPracticeDimensionDist: { dimension: string; avgScore: number }[] };
   skills: { coverage: number; modules: number; tasks: number; completedTasks: number; moduleBreakdown: { id: string; name: string; level: string; total: number; completed: number }[]; byLevel: { level: string; total: number; completed: number; custom: number }[]; customModules: number };
   notebook: { notes: number; tasks: number; aiAnalysis: number; dailyCreation: { date: string; notes: number; tasks: number }[]; byType: { name: string; value: number }[] };
   simulator: { sessions: number; stagesCompleted: number; avgScore: number; byScenario: { name: string; count: number; avgScore: number }[]; scoreDistribution: { range: string; count: number }[] };
@@ -34,8 +34,7 @@ interface DashboardData {
 }
 
 /* ── Shared ECharts theme helpers ── */
-const gradient = (c1: string, c2: string) => new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: c1 }, { offset: 1, color: c2 }]);
-import * as echarts from 'echarts';
+const gradient = (c1: string, c2: string) => ({ type: "linear" as const, x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: c1 }, { offset: 1, color: c2 }] });
 
 const CHART_HEIGHT = 240;
 const gridBase = { left: 50, right: 16, top: 24, bottom: 36 };
@@ -138,8 +137,8 @@ export default function LearningDashboardPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
             <StatItem label="开发流程" value={d.coding.flows} color={palette.indigo.main} />
             <StatItem label="近7天活跃" value={d.coding.recentActivity} color={palette.indigo.main} />
-            <StatItem label="活跃率" value={`${d.coding.flows > 0 ? Math.round((d.coding.recentActivity / d.coding.flows) * 100) : 0}%`} color={palette.indigo.main} />
-            <StatItem label="日均" value={d.coding.dailyActivity.length > 0 ? (d.coding.dailyActivity.reduce((s, x) => s + x.count, 0) / 7).toFixed(1) : '0'} color={palette.indigo.main} />
+            <StatItem label="实操次数" value={d.coding.specPracticeCount} color={palette.indigo.main} />
+            <StatItem label="实操均分" value={d.coding.specPracticeAvgScore} color={palette.indigo.main} />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {/* 7-day bar */}
@@ -149,7 +148,7 @@ export default function LearningDashboardPage() {
               grid: gridBase,
               xAxis: { type: 'category', data: d.coding.dailyActivity.map((x) => x.date), axisLabel: { fontSize: 10, color: '#9CA3AF' }, axisLine: { lineStyle: { color: '#E5E7EB' } } },
               yAxis: { type: 'value', minInterval: 1, axisLabel: { fontSize: 10, color: '#9CA3AF' }, splitLine: { lineStyle: { color: '#F3F4F6', type: 'dashed' } } },
-              series: [{ type: 'bar', data: d.coding.dailyActivity.map((x) => x.count), itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: '#818CF8' }, { offset: 1, color: '#6366F1' }]), borderRadius: [6, 6, 0, 0] }, barWidth: '45%' }],
+              series: [{ type: 'bar', data: d.coding.dailyActivity.map((x) => x.count), itemStyle: { color: gradient('#818CF8', '#6366F1'), borderRadius: [6, 6, 0, 0] }, barWidth: '45%' }],
             }} style={{ height: CHART_HEIGHT }} />
             {/* Stage distribution */}
             <ReactECharts option={{
@@ -167,11 +166,30 @@ export default function LearningDashboardPage() {
               title: { text: '活跃占比', left: 'center', top: 0, textStyle: { fontSize: 13, color: '#6B7280' } },
               tooltip: { trigger: 'item', backgroundColor: '#1F2937', borderColor: '#374151', textStyle: { color: '#F9FAFB', fontSize: 12 } },
               series: [{ type: 'pie', radius: ['42%', '72%'], center: ['50%', '55%'], data: [
-                { name: '近期活跃', value: d.coding.recentActivity, itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 1, 1, [{ offset: 0, color: '#818CF8' }, { offset: 1, color: '#6366F1' }]) } },
+                { name: '近期活跃', value: d.coding.recentActivity, itemStyle: { color: { type: 'linear' as const, x: 0, y: 0, x2: 1, y2: 1, colorStops: [{ offset: 0, color: '#818CF8' }, { offset: 1, color: '#6366F1' }] } } },
                 { name: '历史流程', value: Math.max(0, d.coding.flows - d.coding.recentActivity), itemStyle: { color: '#E0E7FF' } },
               ], label: { fontSize: 11, color: '#6B7280' }, itemStyle: { borderColor: '#fff', borderWidth: 2, borderRadius: 6 }, emphasis: { itemStyle: { shadowBlur: 12 } } }],
             }} style={{ height: CHART_HEIGHT }} />
           </div>
+          {/* Spec Practice stats */}
+          {d.coding.specPracticeCount > 0 && (
+            <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-5">
+              <ReactECharts option={{
+                title: { text: '实操得分趋势', left: 'center', top: 0, textStyle: { fontSize: 13, color: '#6B7280' } },
+                tooltip: { trigger: 'axis', backgroundColor: '#1F2937', borderColor: '#374151', textStyle: { color: '#F9FAFB', fontSize: 12 } },
+                grid: gridBase,
+                xAxis: { type: 'category', data: d.coding.specPracticeScoreTrend.map((x) => x.date), axisLabel: { fontSize: 10, color: '#9CA3AF' }, axisLine: { lineStyle: { color: '#E5E7EB' } } },
+                yAxis: { type: 'value', min: 0, max: 100, axisLabel: { fontSize: 10, color: '#9CA3AF' }, splitLine: { lineStyle: { color: '#F3F4F6', type: 'dashed' } } },
+                series: [{ type: 'line', data: d.coding.specPracticeScoreTrend.map((x) => x.score), smooth: true, lineStyle: { color: '#6366F1', width: 2 }, areaStyle: { color: { type: 'linear' as const, x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(99,102,241,0.3)' }, { offset: 1, color: 'rgba(99,102,241,0.02)' }] } }, itemStyle: { color: '#6366F1' }, symbol: 'circle', symbolSize: 6 }],
+              }} style={{ height: CHART_HEIGHT }} />
+              <ReactECharts option={{
+                title: { text: '维度平均分', left: 'center', top: 0, textStyle: { fontSize: 13, color: '#6B7280' } },
+                tooltip: { trigger: 'item', backgroundColor: '#1F2937', borderColor: '#374151', textStyle: { color: '#F9FAFB', fontSize: 12 } },
+                radar: { indicator: d.coding.specPracticeDimensionDist.map((d) => ({ name: d.dimension, max: 100 })), radius: '65%', center: ['50%', '55%'], axisName: { color: '#6B7280', fontSize: 11 }, splitArea: { areaStyle: { color: ['rgba(99,102,241,0.02)', 'rgba(99,102,241,0.05)'] } } },
+                series: [{ type: 'radar', data: [{ value: d.coding.specPracticeDimensionDist.map((d) => d.avgScore), name: '平均分', areaStyle: { color: 'rgba(99,102,241,0.15)' }, lineStyle: { color: '#6366F1', width: 2 }, itemStyle: { color: '#6366F1' } }] }],
+              }} style={{ height: CHART_HEIGHT }} />
+            </div>
+          )}
         </section>
 
         {/* ════════════════════════════════════════════
@@ -258,7 +276,7 @@ export default function LearningDashboardPage() {
               title: { text: '内容构成', left: 'center', top: 0, textStyle: { fontSize: 13, color: '#6B7280' } },
               tooltip: { trigger: 'item', backgroundColor: '#1F2937', borderColor: '#374151', textStyle: { color: '#F9FAFB', fontSize: 12 } },
               series: [{ type: 'pie', radius: ['42%', '72%'], center: ['50%', '55%'], data: [
-                { name: '笔记', value: d.notebook.notes, itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 1, 1, [{ offset: 0, color: '#FBBF24' }, { offset: 1, color: '#F59E0B' }]) } },
+                { name: '笔记', value: d.notebook.notes, itemStyle: { color: { type: 'linear' as const, x: 0, y: 0, x2: 1, y2: 1, colorStops: [{ offset: 0, color: '#FBBF24' }, { offset: 1, color: '#F59E0B' }] } } },
                 { name: '任务', value: d.notebook.tasks, itemStyle: { color: '#FDE68A' } },
                 { name: 'AI分析', value: d.notebook.aiAnalysis, itemStyle: { color: '#FEF3C7' } },
               ], label: { fontSize: 11, color: '#6B7280', formatter: '{b}\n{c}' }, itemStyle: { borderColor: '#fff', borderWidth: 2, borderRadius: 6 }, emphasis: { itemStyle: { shadowBlur: 12 } } }],
@@ -324,7 +342,7 @@ export default function LearningDashboardPage() {
               grid: { left: 50, right: 16, top: 30, bottom: 20 },
               xAxis: { type: 'value', axisLabel: { fontSize: 10, color: '#9CA3AF' }, splitLine: { lineStyle: { color: '#F3F4F6', type: 'dashed' } } },
               yAxis: { type: 'category', data: d.simulator.byScenario.map((s) => s.name), axisLabel: { fontSize: 10, color: '#6B7280' } },
-              series: [{ type: 'bar', data: d.simulator.byScenario.map((s) => s.count), itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [{ offset: 0, color: '#2DD4BF' }, { offset: 1, color: '#14B8A6' }]), borderRadius: [0, 6, 6, 0] }, barWidth: '50%' }],
+              series: [{ type: 'bar', data: d.simulator.byScenario.map((s) => s.count), itemStyle: { color: { type: 'linear' as const, x: 0, y: 0, x2: 1, y2: 0, colorStops: [{ offset: 0, color: '#2DD4BF' }, { offset: 1, color: '#14B8A6' }] }, borderRadius: [0, 6, 6, 0] }, barWidth: '50%' }],
             }} style={{ height: CHART_HEIGHT }} />
             {/* Score distribution */}
             <ReactECharts option={{
@@ -367,7 +385,7 @@ export default function LearningDashboardPage() {
               grid: { left: 60, right: 16, top: 30, bottom: 20 },
               xAxis: { type: 'value', max: 100, axisLabel: { fontSize: 10, color: '#9CA3AF' }, splitLine: { lineStyle: { color: '#F3F4F6', type: 'dashed' } } },
               yAxis: { type: 'category', data: d.interview.byCategory.map((c) => c.name.length > 5 ? c.name.slice(0, 5) + '…' : c.name), axisLabel: { fontSize: 10, color: '#6B7280' } },
-              series: [{ type: 'bar', data: d.interview.byCategory.map((c) => c.avgScore), itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [{ offset: 0, color: '#A78BFA' }, { offset: 1, color: '#8B5CF6' }]), borderRadius: [0, 6, 6, 0] }, barWidth: '50%', label: { show: true, position: 'right', fontSize: 10, color: '#8B5CF6' } }],
+              series: [{ type: 'bar', data: d.interview.byCategory.map((c) => c.avgScore), itemStyle: { color: { type: 'linear' as const, x: 0, y: 0, x2: 1, y2: 0, colorStops: [{ offset: 0, color: '#A78BFA' }, { offset: 1, color: '#8B5CF6' }] }, borderRadius: [0, 6, 6, 0] }, barWidth: '50%', label: { show: true, position: 'right', fontSize: 10, color: '#8B5CF6' } }],
             }} style={{ height: CHART_HEIGHT }} />
             {/* Score trend line */}
             <ReactECharts option={{
@@ -376,7 +394,7 @@ export default function LearningDashboardPage() {
               grid: gridBase,
               xAxis: { type: 'category', data: d.interview.scoreHistory.map((s) => s.date), axisLabel: { fontSize: 10, color: '#9CA3AF' }, axisLine: { lineStyle: { color: '#E5E7EB' } }, boundaryGap: false },
               yAxis: { type: 'value', min: 0, max: 100, axisLabel: { fontSize: 10, color: '#9CA3AF' }, splitLine: { lineStyle: { color: '#F3F4F6', type: 'dashed' } } },
-              series: [{ type: 'line', data: d.interview.scoreHistory.map((s) => s.score), smooth: true, itemStyle: { color: '#8B5CF6' }, lineStyle: { width: 3, color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [{ offset: 0, color: '#A78BFA' }, { offset: 1, color: '#8B5CF6' }]) }, areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(139,92,246,0.25)' }, { offset: 1, color: 'rgba(139,92,246,0.02)' }]) }, symbol: 'circle', symbolSize: 7 }],
+              series: [{ type: 'line', data: d.interview.scoreHistory.map((s) => s.score), smooth: true, itemStyle: { color: '#8B5CF6' }, lineStyle: { width: 3, color: { type: 'linear' as const, x: 0, y: 0, x2: 1, y2: 0, colorStops: [{ offset: 0, color: '#A78BFA' }, { offset: 1, color: '#8B5CF6' }] } }, areaStyle: { color: gradient('rgba(139,92,246,0.25)', 'rgba(139,92,246,0.02)') }, symbol: 'circle', symbolSize: 7 }],
             }} style={{ height: CHART_HEIGHT }} />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5">
@@ -428,7 +446,7 @@ export default function LearningDashboardPage() {
               grid: gridBase,
               xAxis: { type: 'category', data: d.resume.matchTrend.map((x) => x.date), axisLabel: { fontSize: 10, color: '#9CA3AF' }, boundaryGap: false },
               yAxis: { type: 'value', min: 0, max: 100, axisLabel: { fontSize: 10, color: '#9CA3AF' }, splitLine: { lineStyle: { color: '#F3F4F6', type: 'dashed' } } },
-              series: [{ type: 'line', data: d.resume.matchTrend.map((x) => x.score), smooth: true, itemStyle: { color: '#F97316' }, lineStyle: { width: 3 }, areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(249,115,22,0.25)' }, { offset: 1, color: 'rgba(249,115,22,0.02)' }]) }, symbol: 'circle', symbolSize: 7 }],
+              series: [{ type: 'line', data: d.resume.matchTrend.map((x) => x.score), smooth: true, itemStyle: { color: '#F97316' }, lineStyle: { width: 3 }, areaStyle: { color: gradient('rgba(249,115,22,0.25)', 'rgba(249,115,22,0.02)') }, symbol: 'circle', symbolSize: 7 }],
             }} style={{ height: CHART_HEIGHT }} />
             {/* Job stats */}
             <ReactECharts option={{
@@ -459,7 +477,7 @@ export default function LearningDashboardPage() {
               title: { text: '阅读进度', left: 'center', top: 0, textStyle: { fontSize: 13, color: '#6B7280' } },
               tooltip: { trigger: 'item', backgroundColor: '#1F2937', borderColor: '#374151', textStyle: { color: '#F9FAFB', fontSize: 12 } },
               series: [{ type: 'pie', radius: ['42%', '72%'], center: ['50%', '55%'], data: [
-                { name: '已读', value: d.resources.articlesRead, itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 1, 1, [{ offset: 0, color: '#60A5FA' }, { offset: 1, color: '#3B82F6' }]) } },
+                { name: '已读', value: d.resources.articlesRead, itemStyle: { color: { type: 'linear' as const, x: 0, y: 0, x2: 1, y2: 1, colorStops: [{ offset: 0, color: '#60A5FA' }, { offset: 1, color: '#3B82F6' }] } } },
                 { name: '未读', value: Math.max(0, d.resources.count - d.resources.articlesRead), itemStyle: { color: '#BFDBFE' } },
               ], label: { fontSize: 11, color: '#6B7280', formatter: '{b}\n{c}' }, itemStyle: { borderColor: '#fff', borderWidth: 2, borderRadius: 6 }, emphasis: { itemStyle: { shadowBlur: 12 } } }],
             }} style={{ height: CHART_HEIGHT }} />
@@ -483,7 +501,7 @@ export default function LearningDashboardPage() {
               grid: gridBase,
               xAxis: { type: 'category', data: d.resources.readingPace.map((x) => x.date), axisLabel: { fontSize: 10, color: '#9CA3AF' }, axisLine: { lineStyle: { color: '#E5E7EB' } }, boundaryGap: false },
               yAxis: { type: 'value', minInterval: 1, axisLabel: { fontSize: 10, color: '#9CA3AF' }, splitLine: { lineStyle: { color: '#F3F4F6', type: 'dashed' } } },
-              series: [{ type: 'line', data: d.resources.readingPace.map((x) => x.count), smooth: true, itemStyle: { color: '#3B82F6' }, lineStyle: { width: 3 }, areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(59,130,246,0.25)' }, { offset: 1, color: 'rgba(59,130,246,0.02)' }]) }, symbol: 'circle', symbolSize: 7 }],
+              series: [{ type: 'line', data: d.resources.readingPace.map((x) => x.count), smooth: true, itemStyle: { color: '#3B82F6' }, lineStyle: { width: 3 }, areaStyle: { color: gradient('rgba(59,130,246,0.25)', 'rgba(59,130,246,0.02)') }, symbol: 'circle', symbolSize: 7 }],
             }} style={{ height: CHART_HEIGHT }} />
           </div>
         </section>
@@ -518,7 +536,7 @@ export default function LearningDashboardPage() {
               grid: gridBase,
               xAxis: { type: 'category', data: d.dailyChallenge.scoreHistory.map((s) => s.date), axisLabel: { fontSize: 10, color: '#9CA3AF' }, boundaryGap: false },
               yAxis: { type: 'value', min: 0, max: 100, axisLabel: { fontSize: 10, color: '#9CA3AF' }, splitLine: { lineStyle: { color: '#F3F4F6', type: 'dashed' } } },
-              series: [{ type: 'line', data: d.dailyChallenge.scoreHistory.map((s) => s.score), smooth: true, itemStyle: { color: '#F43F5E' }, lineStyle: { width: 3 }, areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(244,63,94,0.25)' }, { offset: 1, color: 'rgba(244,63,94,0.02)' }]) }, symbol: 'circle', symbolSize: 7 }],
+              series: [{ type: 'line', data: d.dailyChallenge.scoreHistory.map((s) => s.score), smooth: true, itemStyle: { color: '#F43F5E' }, lineStyle: { width: 3 }, areaStyle: { color: gradient('rgba(244,63,94,0.25)', 'rgba(244,63,94,0.02)') }, symbol: 'circle', symbolSize: 7 }],
             }} style={{ height: CHART_HEIGHT }} />
             {/* Score distribution */}
             <ReactECharts option={{
@@ -558,7 +576,7 @@ export default function LearningDashboardPage() {
                   { type: 'value', name: '分数', min: 0, max: 100, axisLabel: { fontSize: 10, color: '#9CA3AF' } },
                 ],
                 series: [
-                  { name: '活跃度', type: 'bar', data: data.progressCurve.map((p) => p.totalActivity), itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: '#818CF8' }, { offset: 1, color: '#6366F1' }]), borderRadius: [6, 6, 0, 0] }, barWidth: '40%' },
+                  { name: '活跃度', type: 'bar', data: data.progressCurve.map((p) => p.totalActivity), itemStyle: { color: gradient('#818CF8', '#6366F1'), borderRadius: [6, 6, 0, 0] }, barWidth: '40%' },
                   { name: '平均分', type: 'line', yAxisIndex: 1, data: data.progressCurve.map((p) => p.avgScore), smooth: true, itemStyle: { color: '#F59E0B' }, lineStyle: { width: 2 }, symbol: 'circle', symbolSize: 5 },
                 ],
               }} style={{ height: 280 }} />
@@ -572,7 +590,7 @@ export default function LearningDashboardPage() {
                 grid: { left: 50, right: 20, top: 24, bottom: 36 },
                 xAxis: { type: 'category', data: data.scoreTrend.map((s) => s.date), axisLabel: { fontSize: 10, color: '#9CA3AF' }, boundaryGap: false },
                 yAxis: { type: 'value', min: 0, max: 100, axisLabel: { fontSize: 10, color: '#9CA3AF' }, splitLine: { lineStyle: { color: '#F3F4F6', type: 'dashed' } } },
-                series: [{ type: 'line', data: data.scoreTrend.map((s) => s.score), smooth: true, itemStyle: { color: '#4F46E5' }, lineStyle: { width: 3, color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [{ offset: 0, color: '#818CF8' }, { offset: 1, color: '#4F46E5' }]) }, areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(79,70,229,0.25)' }, { offset: 1, color: 'rgba(79,70,229,0.02)' }]) }, symbol: 'circle', symbolSize: 7 }],
+                series: [{ type: 'line', data: data.scoreTrend.map((s) => s.score), smooth: true, itemStyle: { color: '#4F46E5' }, lineStyle: { width: 3, color: { type: 'linear' as const, x: 0, y: 0, x2: 1, y2: 0, colorStops: [{ offset: 0, color: '#818CF8' }, { offset: 1, color: '#4F46E5' }] } }, areaStyle: { color: gradient('rgba(79,70,229,0.25)', 'rgba(79,70,229,0.02)') }, symbol: 'circle', symbolSize: 7 }],
               }} style={{ height: 280 }} />
             ) : <p className="py-12 text-center text-sm text-muted-foreground">暂无数据</p>}
           </div>

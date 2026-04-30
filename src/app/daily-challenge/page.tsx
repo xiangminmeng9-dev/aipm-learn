@@ -12,21 +12,11 @@ export default function DailyChallengePage() {
   const [history, setHistory] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [evaluation, setEvaluation] = useState<{ total_score: number; overall_comment: string; improvement: string; scores: { dimension: string; score: number; comment: string }[] } | null>(null);
-  const [isUpgrading, setIsUpgrading] = useState(false);
-  const [startTime] = useState(Date.now());
-  const lastQuestionRef = useRef('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const startTimeRef = useRef(Date.now());
 
-  const parseFeedback = (fb: unknown) => {
-    if (!fb) return;
-    try {
-      const obj = typeof fb === 'string' ? JSON.parse(fb) : fb;
-      if (obj && typeof obj === 'object') setEvaluation(obj);
-    } catch { /* ignore */ }
-  };
-
-  const fetchData = useCallback(async (poll = false) => {
-    // Show cached data first for instant display
-    if (!poll) {
+  const fetchData = useCallback(async (forceRefresh = false) => {
+    if (!forceRefresh) {
       const cached = cacheGet<{ challenge: any; submission: any }>('daily-challenge-today');
       if (cached?.challenge) {
         setChallenge(cached.challenge);
@@ -43,15 +33,12 @@ export default function DailyChallengePage() {
     }
     try {
       const [todayRes, streakRes] = await Promise.all([
-        fetch('/api/daily-challenge/today'),
+        fetch(`/api/daily-challenge/today${forceRefresh ? '?refresh=1' : ''}`),
         fetch('/api/daily-challenge/streak'),
       ]);
       if (todayRes.ok) {
         const data = await todayRes.json();
-        if (poll && data.challenge?.question === lastQuestionRef.current) return;
-        lastQuestionRef.current = data.challenge?.question || '';
         setChallenge(data.challenge);
-        setIsUpgrading(false);
         if (data.submission) {
           setSubmission(data.submission);
           try { setEvaluation(JSON.parse(data.submission.feedback)); } catch { /* ignore */ }
@@ -69,13 +56,6 @@ export default function DailyChallengePage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // Poll for AI-upgraded content
-  useEffect(() => {
-    if (!isUpgrading) return;
-    const interval = setInterval(() => fetchData(true), 5000);
-    return () => clearInterval(interval);
-  }, [isUpgrading, fetchData]);
-
   const handleSubmit = async () => {
     if (!challenge?.id || !answer.trim() || isSubmitting) return;
     setIsSubmitting(true);
@@ -83,7 +63,7 @@ export default function DailyChallengePage() {
       const res = await fetch('/api/daily-challenge/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ challenge_id: challenge.id, answer: answer.trim(), time_spent: Math.round((Date.now() - startTime) / 1000) }),
+        body: JSON.stringify({ challenge_id: challenge.id, answer: answer.trim(), time_spent: Math.round((Date.now() - startTimeRef.current) / 1000) }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -114,21 +94,30 @@ export default function DailyChallengePage() {
         <Link href="/daily-challenge/flashcards" className="rounded-xl bg-indigo-50 px-4 py-2 text-sm font-medium text-indigo-600 hover:bg-indigo-100">
           🃏 知识闪卡
         </Link>
+        <button
+          onClick={async () => {
+            setIsRefreshing(true);
+            setSubmission(null);
+            setEvaluation(null);
+            setAnswer('');
+            setChallenge(null);
+            await fetchData(true);
+            setIsRefreshing(false);
+          }}
+          disabled={isRefreshing}
+          className="ml-auto rounded-xl bg-secondary px-4 py-2 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50 transition"
+        >
+          {isRefreshing ? '重新生成中...' : '换一题'}
+        </button>
       </div>
 
       {!challenge ? (
         <div className="rounded-2xl border border-border bg-card p-12 text-center">
           <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-amber-500 border-t-transparent" />
-          <p className="mt-4 text-sm text-muted-foreground">正在加载今日挑战...</p>
+          <p className="mt-4 text-sm text-muted-foreground">正在生成今日挑战...</p>
         </div>
       ) : (
         <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-          {isUpgrading && (
-            <div className="mb-3 flex items-center gap-2 rounded-lg bg-indigo-50 px-3 py-2">
-              <div className="h-3 w-3 animate-spin rounded-full border border-indigo-500 border-t-transparent" />
-              <span className="text-xs text-indigo-600">AI 正在生成更精准的题目，刷新后可见...</span>
-            </div>
-          )}
           <div className="mb-4 flex items-center gap-3">
             <span className="rounded-lg bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">{challenge.category}</span>
             <span className={`text-xs font-medium ${diffColor}`}>{diffLabel}</span>

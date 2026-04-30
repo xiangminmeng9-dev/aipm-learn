@@ -8,6 +8,8 @@ import {
   MOCK_QUESTION_SYSTEM_PROMPT,
 } from '@/lib/ai/prompts';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const supabase = await createClient();

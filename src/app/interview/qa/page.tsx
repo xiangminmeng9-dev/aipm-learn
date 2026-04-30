@@ -26,7 +26,7 @@ export default function QAPage() {
   const [error, setError] = useState('');
   const [frequency, setFrequency] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
-  const [history, setHistory] = useState<{ id: string; question: string; type_name: string | null; created_at: string }[]>([]);
+  const [history, setHistory] = useState<{ id: string; question: string; type_name: string | null; type_id: string | null; created_at: string; analysis: string; thinking_framework: string; answer_approach: string; answer_template: string }[]>([]);
 
   const fetchHistory = useCallback(async () => {
     try {
@@ -165,6 +165,21 @@ export default function QAPage() {
 
   const handleTrendingSelect = useCallback((question: string) => { handleAnalyze(question); }, [handleAnalyze]);
 
+  const handleHistorySelect = useCallback((h: typeof history[number]) => {
+    setLastQuestion(h.question);
+    setResult({
+      question_id: '',
+      type: { id: h.type_id || '', name: h.type_name || '通用', is_new: false },
+      analysis: h.analysis,
+      thinking_framework: h.thinking_framework,
+      answer_approach: h.answer_approach,
+      answer_template: h.answer_template,
+    });
+    setStreamingText('');
+    setError('');
+    if (h.type_id) fetchFrequency(h.type_id);
+  }, [fetchFrequency]);
+
   return (
     <div className="p-8 space-y-8">
       <div>
@@ -191,7 +206,7 @@ export default function QAPage() {
               {history.map((h) => (
                 <button
                   key={h.id}
-                  onClick={() => handleAnalyze(h.question)}
+                  onClick={() => handleHistorySelect(h)}
                   className="w-full rounded-xl border border-border bg-card px-4 py-3 text-left text-sm transition-colors hover:bg-muted hover:border-indigo-200"
                 >
                   <div className="flex items-center justify-between">
@@ -253,6 +268,23 @@ export default function QAPage() {
             </div>
           )}
           <AnalysisResult result={result} />
+        </div>
+      )}
+
+      {/* Fallback: if streaming finished but no parsed result, show raw text */}
+      {!isLoading && !result && streamingText && (
+        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+          <div className="prose prose-sm max-w-none
+            prose-headings:mt-5 prose-headings:mb-2 prose-headings:font-bold
+            prose-h2:text-base prose-h2:text-indigo-700 prose-h2:border-b prose-h2:border-indigo-100 prose-h2:pb-1
+            prose-h3:text-sm prose-h3:text-foreground
+            prose-p:my-2 prose-p:leading-relaxed
+            prose-li:my-1 prose-ul:my-2 prose-ol:my-2
+            prose-blockquote:my-3 prose-blockquote:border-l-indigo-400 prose-blockquote:bg-indigo-50 prose-blockquote:py-2 prose-blockquote:px-4 prose-blockquote:rounded-r-lg
+            prose-strong:text-indigo-700
+            prose-table:my-3 prose-th:bg-muted prose-th:px-3 prose-th:py-1.5 prose-td:px-3 prose-td:py-1.5 prose-td:border-border">
+            <Markdown content={streamingText} />
+          </div>
         </div>
       )}
     </div>

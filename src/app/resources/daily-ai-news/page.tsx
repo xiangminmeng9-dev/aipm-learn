@@ -19,11 +19,14 @@ function timeAgo(date: string): string {
 }
 
 export default function DailyAiNewsPage() {
-  const [date, setDate] = useState(getTodayShanghai);
+  const [date, setDate] = useState('');
   const [articles, setArticles] = useState<DailyAiNewsArticle[]>([]);
   const [digest, setDigest] = useState<DailyAiNewsDigest | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Set date on mount to avoid hydration mismatch
+  useEffect(() => { setDate(getTodayShanghai()); }, []);
 
   const fetchData = useCallback(async (d: string) => {
     setLoading(true);
@@ -47,7 +50,7 @@ export default function DailyAiNewsPage() {
     }
   }, []);
 
-  useEffect(() => { fetchData(date); }, [date, fetchData]);
+  useEffect(() => { if (date) fetchData(date); }, [date, fetchData]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
