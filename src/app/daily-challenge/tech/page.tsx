@@ -21,11 +21,10 @@ export default function DailyTechPage() {
   const [bookmarks, setBookmarks] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTech, setSelectedTech] = useState<TechItem | null>(null);
-  const [isUpgrading, setIsUpgrading] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const fetchData = useCallback(async (poll = false) => {
-    // Only read from cache on initial load, not during polls
-    if (!poll) {
+  const fetchData = useCallback(async (forceRefresh = false) => {
+    if (!forceRefresh) {
       const cached = cacheGet<{ tech: TechItem; history: TechItem[]; bookmarks: string[] }>('daily-tech');
       if (cached) {
         setToday(cached.tech);
@@ -36,38 +35,27 @@ export default function DailyTechPage() {
       }
     }
     try {
-      const res = await fetch('/api/daily-challenge/tech');
+      const res = await fetch(`/api/daily-challenge/tech${forceRefresh ? '?refresh=1' : ''}`);
       if (res.ok) {
         const data = await res.json();
-        const newTech = data.tech;
-        if (poll && today && newTech?.title === today.title && data.source === 'default') return;
-        setToday(newTech);
-        setIsUpgrading(data.source === 'default');
+        setToday(data.tech);
         setHistory(data.history || []);
         setBookmarks(data.bookmarks || []);
-        if (!selectedTech || !poll) setSelectedTech(newTech);
-        // Only cache on initial load, not during polls
-        if (!poll) {
-          cacheSet('daily-tech', { tech: newTech, history: data.history || [], bookmarks: data.bookmarks || [] }, TTL.DAILY);
+        setSelectedTech(data.tech);
+        if (!forceRefresh) {
+          cacheSet('daily-tech', { tech: data.tech, history: data.history || [], bookmarks: data.bookmarks || [] }, TTL.DAILY);
         }
       }
     } catch { /* ignore */ } finally {
-      if (!poll) setIsLoading(false);
+      setIsLoading(false);
     }
-  }, [today, selectedTech]);
+  }, []);
 
   useEffect(() => { fetchData(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (!isUpgrading) return;
-    const interval = setInterval(() => fetchData(true), 6000);
-    return () => clearInterval(interval);
-  }, [isUpgrading, fetchData]);
 
   const toggleBookmark = async (date: string) => {
     const isBookmarked = bookmarks.includes(date);
     const action = isBookmarked ? 'unbookmark' : 'bookmark';
-    // Find the tech item to save its full data with the bookmark
     const techItem = date === today?.date ? today : history.find(h => h.date === date);
     try {
       const res = await fetch('/api/daily-challenge/tech', {
@@ -109,12 +97,18 @@ export default function DailyTechPage() {
       <header className="sticky top-0 z-40 border-b border-border bg-card/80 backdrop-blur">
         <div className="flex items-center justify-between px-6 py-3">
           <h1 className="text-base font-semibold text-foreground">每日 AI 技术</h1>
-          {isUpgrading && (
-            <div className="flex items-center gap-2 text-xs text-indigo-600">
-              <div className="h-3 w-3 animate-spin rounded-full border border-indigo-500 border-t-transparent" />
-              AI 正在生成更精准内容...
-            </div>
-          )}
+          <button
+            onClick={async () => {
+              setIsRefreshing(true);
+              setIsLoading(true);
+              await fetchData(true);
+              setIsRefreshing(false);
+            }}
+            disabled={isRefreshing}
+            className="rounded-lg bg-secondary px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted disabled:opacity-50 transition"
+          >
+            {isRefreshing ? '重新生成中...' : '换一条'}
+          </button>
         </div>
       </header>
 

@@ -485,6 +485,20 @@ export interface PlainTranslation {
   tags: string[];
 }
 
+// --- Competitive Analysis ---
+export interface CompetitiveAnalysis {
+  id: string;
+  user_id: string;
+  product_name: string;
+  market_position: string;
+  feature_comparison: string;
+  strengths_weaknesses: string;
+  differentiation_strategy: string;
+  total_score: number;
+  dimension_scores: DimensionScore[];
+  created_at: string;
+}
+
 // --- AI PM Simulator ---
 export interface SimulatorSession {
   id: string;
@@ -502,6 +516,23 @@ export interface SimulatorMessage {
   stage_id: string;
   role: 'user' | 'assistant' | 'system';
   content: string;
+  created_at: string;
+}
+
+// --- AI Learning Path (Weakness-based) ---
+export interface RecommendedModule {
+  name: string;
+  priority: 'high' | 'medium' | 'low';
+  estimatedHours: number;
+  reason: string;
+}
+
+export interface AiLearningPath {
+  id: string;
+  user_id: string;
+  weakness_summary: string;
+  recommended_modules: RecommendedModule[];
+  total_estimated_hours: number;
   created_at: string;
 }
 

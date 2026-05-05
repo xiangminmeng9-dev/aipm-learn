@@ -48,15 +48,17 @@ const topShelf: BookItem[] = [
     title: 'Skills',
     titleEn: 'Skill Tree',
     label: 'AI PM 技能学习',
-    description: '技能树总览 · 岗位分析 · 学习路径 · JD差距分析 · 收藏技术',
+    description: '技能树总览 · 岗位分析 · 学习路径 · AI学习路径 · JD差距分析 · 收藏技术',
     detail:
-      '技能树模块提供系统化的 AI PM 技能学习路径。通过可视化技能树、岗位 JD 分析、学习路径规划、JD 差距分析和收藏技术，精准定位技能差距，高效提升核心竞争力。',
+      '技能树模块提供系统化的 AI PM 技能学习路径。通过可视化技能树、岗位 JD 分析、学习路径规划、AI 弱项分析学习路径、JD 差距分析和收藏技术，精准定位技能差距，高效提升核心竞争力。',
     href: '/skills/tree',
     theme: 'skills',
     subFeatures: [
       { label: '技能树总览', href: '/skills/tree' },
       { label: '岗位分析', href: '/skills/jd-analysis' },
       { label: '学习路径', href: '/skills/learning-path' },
+      { label: 'AI 学习路径', href: '/skills/ai-learning-path' },
+      { label: '路径历史', href: '/skills/path-history' },
       { label: 'JD差距分析', href: '/skills/jd-gaps' },
       { label: '收藏技术', href: '/skills/bookmarked-tech' },
     ],
@@ -101,7 +103,7 @@ const bottomShelf: BookItem[] = [
     title: 'Interview',
     titleEn: 'Interview',
     label: 'AI PM 面试助手',
-    description: '面试助手 · 面试问答 · 模拟面试 · 方法论 · 练习统计',
+    description: '面试助手 · 面试问答 · 模拟面试 · 竞品分析 · 方法论 · 练习统计',
     detail:
       'AI PM 面试助手覆盖面试全流程：AI 面试助手对话、智能问答、对话式 Session、模拟面试、方法论提炼和练习统计。通过 AI 驱动的实战练习，让你在 PM 面试中脱颖而出。',
     href: '/interview/assistant',
@@ -113,6 +115,8 @@ const bottomShelf: BookItem[] = [
       { label: '模拟面试', href: '/interview/mock' },
       { label: '方法论', href: '/interview/methodology' },
       { label: '练习统计', href: '/interview/stats' },
+      { label: '竞品分析', href: '/interview/competitive' },
+      { label: '竞品历史', href: '/interview/comp-history' },
     ],
   },
   {

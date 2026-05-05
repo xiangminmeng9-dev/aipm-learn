@@ -9,10 +9,10 @@ const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false });
 /* ── Types ── */
 interface ModuleDetails {
   coding: { flows: number; recentActivity: number; dailyActivity: { date: string; count: number }[]; byStage: { name: string; value: number }[]; specPracticeCount: number; specPracticeAvgScore: number; specPracticeScoreTrend: { date: string; score: number }[]; specPracticeDimensionDist: { dimension: string; avgScore: number }[] };
-  skills: { coverage: number; modules: number; tasks: number; completedTasks: number; moduleBreakdown: { id: string; name: string; level: string; total: number; completed: number }[]; byLevel: { level: string; total: number; completed: number; custom: number }[]; customModules: number };
+  skills: { coverage: number; modules: number; tasks: number; completedTasks: number; moduleBreakdown: { id: string; name: string; level: string; total: number; completed: number }[]; byLevel: { level: string; total: number; completed: number; custom: number }[]; customModules: number; learningPathCount: number; learningPathTotalModules: number; learningPathModuleCategoryDist: { category: string; count: number }[] };
   notebook: { notes: number; tasks: number; aiAnalysis: number; dailyCreation: { date: string; notes: number; tasks: number }[]; byType: { name: string; value: number }[] };
   simulator: { sessions: number; stagesCompleted: number; avgScore: number; byScenario: { name: string; count: number; avgScore: number }[]; scoreDistribution: { range: string; count: number }[] };
-  interview: { qaCount: number; mockCount: number; avgScore: number; sessions: number; scoreHistory: { date: string; score: number }[]; byCategory: { name: string; count: number; avgScore: number }[]; mockScoreDistribution: { range: string; count: number }[]; methodStats: { method: string; count: number; avgScore: number }[] };
+  interview: { qaCount: number; mockCount: number; avgScore: number; sessions: number; scoreHistory: { date: string; score: number }[]; byCategory: { name: string; count: number; avgScore: number }[]; mockScoreDistribution: { range: string; count: number }[]; methodStats: { method: string; count: number; avgScore: number }[]; competitiveAnalysisCount: number; competitiveAnalysisAvgScore: number; competitiveAnalysisScoreTrend: { date: string; score: number }[] };
   resume: { versions: number; matchScore: number; matchTrend: { date: string; score: number }[]; jobStats: { status: string; count: number }[] };
   resources: { count: number; articlesRead: number; byCategory: { name: string; total: number; read: number }[]; readingPace: { date: string; count: number }[] };
   dailyChallenge: { submissions: number; streak: number; avgScore: number; scoreHistory: { date: string; score: number }[]; scoreDistribution: { range: string; count: number }[]; streakCalendar: { date: string; hasSubmission: boolean }[] };
@@ -257,6 +257,29 @@ export default function LearningDashboardPage() {
               ], label: { fontSize: 11, color: '#6B7280' }, itemStyle: { borderColor: '#fff', borderWidth: 2, borderRadius: 6 }, emphasis: { itemStyle: { shadowBlur: 12 } } }],
             }} style={{ height: CHART_HEIGHT }} />
           </div>
+          {d.skills.learningPathCount > 0 && (
+            <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50/50 p-4 dark:border-emerald-800 dark:bg-emerald-950/20">
+              <h3 className="mb-3 text-sm font-semibold text-foreground">AI 学习路径</h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <StatItem label="生成次数" value={d.skills.learningPathCount} color={palette.emerald.main} />
+                <StatItem label="推荐模块总数" value={d.skills.learningPathTotalModules} color={palette.emerald.main} />
+              </div>
+              {d.skills.learningPathModuleCategoryDist.length > 0 && (
+                <div className="mt-4">
+                  <ReactECharts option={{
+                    title: { text: '模块优先级分布', left: 'center', top: 0, textStyle: { fontSize: 13, color: '#6B7280' } },
+                    tooltip: { trigger: 'item', backgroundColor: '#1F2937', borderColor: '#374151', textStyle: { color: '#F9FAFB', fontSize: 12 } },
+                    series: [{ type: 'pie', radius: ['42%', '72%'], center: ['50%', '55%'], data: d.skills.learningPathModuleCategoryDist.map((c) => ({
+                      name: c.category === 'high' ? '高优先' : c.category === 'medium' ? '中优先' : '低优先',
+                      value: c.count,
+                      itemStyle: { color: c.category === 'high' ? '#F87171' : c.category === 'medium' ? '#FBBF24' : '#9CA3AF' },
+                    })),
+                    label: { fontSize: 11, color: '#6B7280' }, itemStyle: { borderColor: '#fff', borderWidth: 2, borderRadius: 6 }, emphasis: { itemStyle: { shadowBlur: 12 } } }],
+                  }} style={{ height: 200 }} />
+                </div>
+              )}
+            </div>
+          )}
         </section>
 
         {/* ════════════════════════════════════════════
@@ -414,6 +437,29 @@ export default function LearningDashboardPage() {
               series: [{ type: 'bar', data: d.interview.mockScoreDistribution.map((x) => x.count), itemStyle: { color: (params: { dataIndex: number }) => ['#F87171', '#FB923C', '#FBBF24', '#A78BFA', '#8B5CF6'][params.dataIndex], borderRadius: [6, 6, 0, 0] }, barWidth: '50%' }],
             }} style={{ height: CHART_HEIGHT }} />
           </div>
+          {/* Competitive Analysis stats */}
+          {d.interview.competitiveAnalysisCount > 0 && (
+            <div className="mb-5">
+              <h3 className="mb-3 text-sm font-semibold text-foreground">竞品分析</h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <StatItem label="分析次数" value={d.interview.competitiveAnalysisCount} color={palette.purple.main} />
+                <StatItem label="平均分" value={d.interview.competitiveAnalysisAvgScore} color={palette.purple.main} />
+                <StatItem label="得分趋势" value={d.interview.competitiveAnalysisScoreTrend.length > 0 ? `${d.interview.competitiveAnalysisScoreTrend[d.interview.competitiveAnalysisScoreTrend.length - 1].score}分` : '-'} color={palette.purple.main} />
+              </div>
+              {d.interview.competitiveAnalysisScoreTrend.length > 0 && (
+                <div className="mt-3">
+                  <ReactECharts option={{
+                    title: { text: '竞品分析得分趋势', left: 'center', top: 0, textStyle: { fontSize: 13, color: '#6B7280' } },
+                    tooltip: { trigger: 'axis', backgroundColor: '#1F2937', borderColor: '#374151', textStyle: { color: '#F9FAFB', fontSize: 12 } },
+                    grid: gridBase,
+                    xAxis: { type: 'category', data: d.interview.competitiveAnalysisScoreTrend.map((x) => x.date), axisLabel: { fontSize: 10, color: '#9CA3AF' }, axisLine: { lineStyle: { color: '#E5E7EB' } } },
+                    yAxis: { type: 'value', min: 0, max: 100, axisLabel: { fontSize: 10, color: '#9CA3AF' }, splitLine: { lineStyle: { color: '#F3F4F6', type: 'dashed' } } },
+                    series: [{ type: 'line', data: d.interview.competitiveAnalysisScoreTrend.map((x) => x.score), smooth: true, lineStyle: { color: '#8B5CF6', width: 2 }, areaStyle: { color: { type: 'linear' as const, x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(139,92,246,0.3)' }, { offset: 1, color: 'rgba(139,92,246,0.02)' }] } }, itemStyle: { color: '#8B5CF6' }, symbol: 'circle', symbolSize: 6 }],
+                  }} style={{ height: 180 }} />
+                </div>
+              )}
+            </div>
+          )}
         </section>
 
         {/* ════════════════════════════════════════════

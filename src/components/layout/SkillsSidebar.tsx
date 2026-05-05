@@ -7,6 +7,8 @@ import { ThemeToggle } from '@/components/ui/theme-toggle';
 const navItems = [
   { label: '技能树总览', href: '/skills/tree', icon: '🌳' },
   { label: '学习路径', href: '/skills/learning-path', icon: '🗺️' },
+  { label: 'AI 学习路径', href: '/skills/ai-learning-path', icon: '🧭' },
+  { label: '路径历史', href: '/skills/path-history', icon: '🕐' },
   { label: '岗位分析', href: '/skills/jd-analysis', icon: '🔍' },
   { label: 'JD差距分析', href: '/skills/jd-gaps', icon: '📋' },
   { label: '收藏技术', href: '/skills/bookmarked-tech', icon: '🔖' },

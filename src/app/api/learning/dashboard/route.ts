@@ -77,6 +77,52 @@ export async function GET() {
       }
     } catch {}
 
+    // ── Competitive Analysis ──
+    let competitiveAnalysisCount = 0, competitiveAnalysisAvgScore = 0;
+    let competitiveAnalysisScoreTrend: { date: string; score: number }[] = [];
+    try {
+      const { data: compAnalyses } = await serviceClient
+        .from('competitive_analyses')
+        .select('id, total_score, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: true });
+      competitiveAnalysisCount = compAnalyses?.length ?? 0;
+      if (compAnalyses && compAnalyses.length > 0) {
+        const scores = compAnalyses.map((c) => c.total_score);
+        competitiveAnalysisAvgScore = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+        const trendMap: Record<string, { total: number; count: number }> = {};
+        for (let i = 6; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); trendMap[d.toISOString().split('T')[0]] = { total: 0, count: 0 }; }
+        for (const c of compAnalyses) { const date = new Date(c.created_at).toISOString().split('T')[0]; if (date in trendMap) { trendMap[date].total += c.total_score; trendMap[date].count++; } }
+        competitiveAnalysisScoreTrend = Object.entries(trendMap).sort(([a], [b]) => a.localeCompare(b)).map(([date, v]) => ({ date: date.slice(5), score: v.count > 0 ? Math.round(v.total / v.count) : 0 }));
+      }
+    } catch {}
+
+    // ── AI Learning Path ──
+    let learningPathCount = 0, learningPathTotalModules = 0;
+    let learningPathModuleCategoryDist: { category: string; count: number }[] = [];
+    try {
+      const { data: aiPaths } = await serviceClient
+        .from('ai_learning_paths')
+        .select('id, recommended_modules, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      learningPathCount = aiPaths?.length ?? 0;
+      if (aiPaths && aiPaths.length > 0) {
+        const priorityMap: Record<string, number> = {};
+        for (const p of aiPaths) {
+          const mods = p.recommended_modules as { priority: string }[] | null;
+          if (mods && Array.isArray(mods)) {
+            learningPathTotalModules += mods.length;
+            for (const m of mods) {
+              const cat = m.priority || 'low';
+              priorityMap[cat] = (priorityMap[cat] || 0) + 1;
+            }
+          }
+        }
+        learningPathModuleCategoryDist = Object.entries(priorityMap).map(([category, count]) => ({ category, count }));
+      }
+    } catch {}
+
     // ── Skills ──
     // Two sources: system modules (skill_modules + learning_tasks + learning_progress)
     //              user modules (user_skill_modules + user_module_tasks)
@@ -372,10 +418,10 @@ export async function GET() {
       progressCurve, scoreTrend,
       moduleDetails: {
         coding: { flows: codingFlowCount, recentActivity: codingRecent, dailyActivity: codingDaily, byStage: codingByStage, specPracticeCount, specPracticeAvgScore, specPracticeScoreTrend, specPracticeDimensionDist },
-        skills: { coverage: skillCoverage, modules: totalModules, tasks: totalTaskCount, completedTasks: completedTaskCount, moduleBreakdown: skillModules, byLevel: skillByLevel, customModules: customModuleCount },
+        skills: { coverage: skillCoverage, modules: totalModules, tasks: totalTaskCount, completedTasks: completedTaskCount, moduleBreakdown: skillModules, byLevel: skillByLevel, customModules: customModuleCount, learningPathCount, learningPathTotalModules, learningPathModuleCategoryDist },
         notebook: { notes: notebookNotes, tasks: notebookTasks, aiAnalysis: notebookAiAnalysis, dailyCreation: notebookDaily, byType: notebookByType },
         simulator: { sessions: simulatorSessions, stagesCompleted: simulatorStagesCompleted, avgScore: simulatorAvgScore, byScenario: simulatorByScenario, scoreDistribution: simulatorScoreDist },
-        interview: { qaCount: interviewCount, mockCount, avgScore, sessions: sessionCount, scoreHistory: interviewScoreHistory, byCategory: interviewByCategory, mockScoreDistribution: mockScoreDistribution, methodStats: interviewMethodStats },
+        interview: { qaCount: interviewCount, mockCount, avgScore, sessions: sessionCount, scoreHistory: interviewScoreHistory, byCategory: interviewByCategory, mockScoreDistribution: mockScoreDistribution, methodStats: interviewMethodStats, competitiveAnalysisCount, competitiveAnalysisAvgScore, competitiveAnalysisScoreTrend },
         resume: { versions: resumeVersions, matchScore: resumeMatchScore, matchTrend: resumeMatchTrend, jobStats: resumeJobStats },
         resources: { count: resourcesCount, articlesRead, byCategory: resourcesByCategory, readingPace },
         dailyChallenge: { submissions: challengeCount, streak: dailyStreak, avgScore: challengeAvgScore, scoreHistory: challengeScoreHistory, scoreDistribution: challengeScoreDist, streakCalendar: challengeStreakCalendar },

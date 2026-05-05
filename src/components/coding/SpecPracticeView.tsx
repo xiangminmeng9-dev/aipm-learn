@@ -1,6 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import SpecScoreCard from './SpecScoreCard';
 import type { DimensionScore, SpecSuggestion } from '@/types';
 
@@ -19,8 +21,10 @@ export default function SpecPracticeView() {
   const [isLoadingQuestion, setIsLoadingQuestion] = useState(true);
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [streamingText, setStreamingText] = useState('');
   const [result, setResult] = useState<EvaluationResult | null>(null);
   const [error, setError] = useState('');
+  const abortRef = useRef<AbortController | null>(null);
 
   const fetchQuestion = useCallback(async (refresh = false) => {
     setIsLoadingQuestion(true);
@@ -67,6 +71,10 @@ export default function SpecPracticeView() {
     setIsEvaluating(true);
     setError('');
     setResult(null);
+    setStreamingText('');
+
+    const abortController = new AbortController();
+    abortRef.current = abortController;
 
     try {
       const res = await fetch('/api/coding/spec-practice', {
@@ -77,19 +85,55 @@ export default function SpecPracticeView() {
           question_category: category,
           user_spec: userSpec,
         }),
+        signal: abortController.signal,
       });
 
       if (!res.ok) {
-        const data = await res.json();
+        const data = await res.json().catch(() => ({ error: '评分失败' }));
         throw new Error(data.error || '评分失败');
       }
 
-      const data = await res.json();
-      setResult(data);
+      const reader = res.body?.getReader();
+      if (!reader) throw new Error('无法读取响应流');
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let fullText = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          try {
+            const event = JSON.parse(line.slice(6));
+            if (event.text) {
+              fullText += event.text;
+              setStreamingText(fullText);
+            }
+            if (event.done && event.evaluation) {
+              setResult(event.evaluation);
+              setStreamingText('');
+            }
+            if (event.error) throw new Error(event.error);
+          } catch (e) {
+            if (e instanceof Error && e.message !== 'AI 评分解析失败') throw e;
+          }
+        }
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : '评分失败，请重试');
+      if (err instanceof Error && err.name !== 'AbortError') {
+        setError(err instanceof Error ? err.message : '评分失败，请重试');
+      }
     } finally {
       setIsEvaluating(false);
+      setStreamingText('');
+      abortRef.current = null;
     }
   };
 
@@ -199,7 +243,21 @@ export default function SpecPracticeView() {
       )}
 
       {/* Evaluating Spinner */}
-      {isEvaluating && (
+      {isEvaluating && streamingText && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+            <span className="text-sm text-muted-foreground">AI 正在评分...</span>
+          </div>
+          <div className="rounded-xl border bg-card p-5">
+            <div className="prose prose-sm max-w-none dark:prose-invert">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{streamingText}</ReactMarkdown>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isEvaluating && !streamingText && (
         <div className="flex flex-col items-center gap-3 py-8">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
           <span className="text-sm text-muted-foreground">AI 正在评分，请稍候...</span>

@@ -59,20 +59,44 @@ export default function DailyChallengePage() {
   const handleSubmit = async () => {
     if (!challenge?.id || !answer.trim() || isSubmitting) return;
     setIsSubmitting(true);
+    setEvaluation(null);
+    setSubmission(null);
     try {
       const res = await fetch('/api/daily-challenge/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ challenge_id: challenge.id, answer: answer.trim(), time_spent: Math.round((Date.now() - startTimeRef.current) / 1000) }),
       });
-      if (res.ok) {
-        const data = await res.json();
-        setEvaluation(data.evaluation);
-        setSubmission({ score: data.evaluation?.total_score || 0, feedback: '' });
-      } else {
+      if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        console.error('Submit failed:', res.status, errData);
         alert(`评分失败: ${errData.error || '请稍后重试'}`);
+        setIsSubmitting(false);
+        return;
+      }
+      // Read SSE stream
+      const reader = res.body?.getReader();
+      if (!reader) { setIsSubmitting(false); return; }
+      const decoder = new TextDecoder();
+      let buffer = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          try {
+            const event = JSON.parse(line.slice(6));
+            if (event.done && event.evaluation) {
+              setEvaluation(event.evaluation);
+              setSubmission({ score: event.evaluation.total_score || 0, feedback: '' });
+            }
+            if (event.error) {
+              alert(`评分失败: ${event.error}`);
+            }
+          } catch {}
+        }
       }
     } catch (err) {
       console.error('Submit error:', err);

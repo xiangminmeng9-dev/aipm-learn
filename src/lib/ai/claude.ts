@@ -78,6 +78,9 @@ export async function generateText(
 ): Promise<string> {
   const { system, maxTokens = 4096 } = options;
   const cfg = await resolveConfig();
+  // Only use sonnet/haiku when using official Anthropic API (no custom baseURL)
+  const isOfficialAnthropic = !cfg.baseURL;
+  const model = (isOfficialAnthropic && options.model) ? options.model : cfg.model;
 
   if (cfg.protocol === 'openai') {
     const client = buildOpenAI(cfg);
@@ -86,7 +89,7 @@ export async function generateText(
     messages.push({ role: 'user', content: prompt });
 
     const resp = await client.chat.completions.create({
-      model: cfg.model,
+      model,
       max_tokens: maxTokens,
       messages,
     });
@@ -96,7 +99,7 @@ export async function generateText(
   // Anthropic — use streaming to avoid timeout on slow responses
   const client = buildAnthropic(cfg);
   const stream = client.messages.stream({
-    model: cfg.model,
+    model,
     max_tokens: maxTokens,
     system: system || undefined,
     messages: [{ role: 'user', content: prompt }],
@@ -121,6 +124,9 @@ export async function generateChatResponse(
 ): Promise<string> {
   const { system, maxTokens = 4096 } = options;
   const cfg = await resolveConfig();
+  // Only use sonnet/haiku when using official Anthropic API (no custom baseURL)
+  const isOfficialAnthropic = !cfg.baseURL;
+  const model = (isOfficialAnthropic && options.model) ? options.model : cfg.model;
 
   if (cfg.protocol === 'openai') {
     const client = buildOpenAI(cfg);
@@ -129,7 +135,7 @@ export async function generateChatResponse(
     fullMessages.push(...messages);
 
     const resp = await client.chat.completions.create({
-      model: cfg.model,
+      model,
       max_tokens: maxTokens,
       messages: fullMessages,
     });
@@ -139,7 +145,7 @@ export async function generateChatResponse(
   // Anthropic — use streaming to avoid timeout
   const client = buildAnthropic(cfg);
   const stream = client.messages.stream({
-    model: cfg.model,
+    model,
     max_tokens: maxTokens,
     system: system || undefined,
     messages,
@@ -164,6 +170,9 @@ export async function* streamChatResponse(
 ): AsyncGenerator<string> {
   const { system, maxTokens = 4096 } = options;
   const cfg = await resolveConfig();
+  // Only use sonnet/haiku when using official Anthropic API (no custom baseURL)
+  const isOfficialAnthropic = !cfg.baseURL;
+  const model = (isOfficialAnthropic && options.model) ? options.model : cfg.model;
 
   if (cfg.protocol === 'openai') {
     const client = buildOpenAI(cfg);
@@ -172,7 +181,7 @@ export async function* streamChatResponse(
     fullMessages.push(...messages);
 
     const stream = await client.chat.completions.create({
-      model: cfg.model,
+      model,
       max_tokens: maxTokens,
       messages: fullMessages,
       stream: true,
@@ -187,7 +196,7 @@ export async function* streamChatResponse(
 
   const client = buildAnthropic(cfg);
   const stream = client.messages.stream({
-    model: cfg.model,
+    model,
     max_tokens: maxTokens,
     system: system || undefined,
     messages,
