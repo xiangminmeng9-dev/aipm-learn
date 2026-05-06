@@ -6,7 +6,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { type Note, type Task, getNotes, getTasks } from '@/lib/notebook-store';
 
-/* ──────────────────────────── Glass Button ──────────────────────────── */
+/* ---------------------------- Glass Button ---------------------------- */
 
 function GlassButton({
   children,
@@ -44,7 +44,7 @@ function GlassButton({
   );
 }
 
-/* ──────────────────────────── Page ──────────────────────────── */
+/* ---------------------------- Page ---------------------------- */
 
 export default function AIAnalysisPage() {
   const [analysis, setAnalysis] = useState('');
@@ -180,7 +180,7 @@ export default function AIAnalysisPage() {
   );
 }
 
-/* ──────────────────────────── Helpers ──────────────────────────── */
+/* ---------------------------- Helpers ---------------------------- */
 
 function buildAnalysisPrompt(notesContext: string, tasksContext: string, scope: 'notes' | 'tasks' | 'both'): string {
   const scopeDesc = { notes: '笔记', tasks: '每日任务', both: '笔记和每日任务' }[scope];

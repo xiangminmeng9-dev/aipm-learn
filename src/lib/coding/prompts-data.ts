@@ -14,7 +14,7 @@ export interface PromptExample {
 }
 
 export const PROMPT_EXAMPLES: PromptExample[] = [
-  // ── 完整项目 ──
+  // -- 完整项目 --
   {
     id: 'proj-01',
     title: '从零搭建 Next.js SaaS 全栈项目',
@@ -235,7 +235,7 @@ CREATE FUNCTION match_documents(
     difficulty: 'advanced',
   },
 
-  // ── 系统设计 ──
+  // -- 系统设计 --
   {
     id: 'sys-01',
     title: '设计高并发 API 限流系统',
@@ -330,7 +330,7 @@ const rateLimitRules = {
     difficulty: 'advanced',
   },
 
-  // ── AI 应用 ──
+  // -- AI 应用 --
   {
     id: 'ai-01',
     title: '构建 AI Agent 自动化工作流',
@@ -556,7 +556,7 @@ const response = await anthropic.messages.create({
     difficulty: 'advanced',
   },
 
-  // ── 前端开发 ──
+  // -- 前端开发 --
   {
     id: 'fe-01',
     title: '实现高级数据表格组件',
@@ -667,7 +667,7 @@ interface Card {
     difficulty: 'intermediate',
   },
 
-  // ── 后端开发 ──
+  // -- 后端开发 --
   {
     id: 'be-01',
     title: '实现完整的用户权限系统（RBAC）',
@@ -819,7 +819,7 @@ running → cancelled
     difficulty: 'advanced',
   },
 
-  // ── DevOps ──
+  // -- DevOps --
   {
     id: 'ops-01',
     title: '配置 CI/CD 流水线（GitHub Actions）',
@@ -947,7 +947,7 @@ const alerts = [
     difficulty: 'intermediate',
   },
 
-  // ── 代码审查 ──
+  // -- 代码审查 --
   {
     id: 'review-01',
     title: 'AI 代码审查完整工作流',
@@ -1019,7 +1019,7 @@ const alerts = [
     difficulty: 'advanced',
   },
 
-  // ── 调试与重构 ──
+  // -- 调试与重构 --
   {
     id: 'debug-01',
     title: '系统性 Bug 调查与修复工作流',

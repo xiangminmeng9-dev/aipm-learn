@@ -5,7 +5,7 @@ import { useState, useRef, useCallback } from 'react';
 import { motion, useInView, AnimatePresence } from 'framer-motion';
 import UserMenu from '@/components/layout/UserMenu';
 
-/* ──────────────────────────── Data ──────────────────────────── */
+/* ---------------------------- Data ---------------------------- */
 
 interface SubFeature {
   label: string;
@@ -174,7 +174,7 @@ const bottomShelf: BookItem[] = [
 
 const allBooks = [...topShelf, ...bottomShelf];
 
-/* ──────────────────────────── Cover Art (per-theme SVG) ──────────────────────────── */
+/* ---------------------------- Cover Art (per-theme SVG) ---------------------------- */
 
 function CoverArt({ theme }: { theme: BookItem['theme'] }) {
   switch (theme) {
@@ -351,7 +351,7 @@ function CoverArt({ theme }: { theme: BookItem['theme'] }) {
   }
 }
 
-/* ──────────────────────────── Detail Modal ──────────────────────────── */
+/* ---------------------------- Detail Modal ---------------------------- */
 
 function DetailModal({ book, onClose }: { book: BookItem; onClose: () => void }) {
   return (
@@ -417,7 +417,7 @@ function DetailModal({ book, onClose }: { book: BookItem; onClose: () => void })
   );
 }
 
-/* ──────────────────────────── Edition Card (Shopify-style) ──────────────────────────── */
+/* ---------------------------- Edition Card (Shopify-style) ---------------------------- */
 
 const CARD_SIZE = 260;
 
@@ -499,7 +499,7 @@ function EditionCard({
   );
 }
 
-/* ──────────────────────────── Floating Shelf ──────────────────────────── */
+/* ---------------------------- Floating Shelf ---------------------------- */
 
 function FloatingShelf({
   books,
@@ -569,7 +569,7 @@ function FloatingShelf({
   );
 }
 
-/* ──────────────────────────── Page ──────────────────────────── */
+/* ---------------------------- Page ---------------------------- */
 
 export default function HomePage() {
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
@@ -597,7 +597,7 @@ export default function HomePage() {
         }}
       />
 
-      {/* ── Nav ── */}
+      {/* -- Nav -- */}
       <header className="sticky top-0 z-50 border-b border-border bg-card">
         <div
           className="flex h-16 items-center justify-between px-4 md:px-0"
@@ -668,7 +668,7 @@ export default function HomePage() {
         </AnimatePresence>
       </header>
 
-      {/* ── Main (Shopify Editions style) ── */}
+      {/* -- Main (Shopify Editions style) -- */}
       <main className="relative flex flex-1 flex-col items-center px-4 pb-16 pt-12 md:pt-16">
         {/* Editorial intro (top-left, Shopify style) */}
         <motion.div
@@ -720,7 +720,7 @@ export default function HomePage() {
         </div>
       </main>
 
-      {/* ── Footer ── */}
+      {/* -- Footer -- */}
       <footer className="border-t border-border bg-card">
         <div className="mx-auto flex max-w-[1280px] flex-col items-center gap-4 px-6 py-6">
           <p className="text-center text-xs font-medium italic text-muted-foreground">

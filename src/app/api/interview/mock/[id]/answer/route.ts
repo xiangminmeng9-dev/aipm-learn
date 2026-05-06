@@ -95,7 +95,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ evaluation_text: '已跳过', is_last: false, next_question: nextQ });
     }
 
-    // ── Stream evaluation via SSE ──
+    // -- Stream evaluation via SSE --
     const { data: typeData } = await supabase
       .from('question_types')
       .select('name')
@@ -264,7 +264,7 @@ async function generateNextQuestion(
 async function triggerMethodologyUpdate(userId: string, typeId: string): Promise<void> {
   try {
     const { createClient } = await import('@/lib/supabase/server');
-    const { generateOrUpdateMethodology } = await import('@/app/api/interview/methodology/route');
+    const { generateOrUpdateMethodology } = await import('@/lib/ai/methodology');
     const supabase = await createClient();
     await generateOrUpdateMethodology(supabase, userId, typeId);
   } catch {}

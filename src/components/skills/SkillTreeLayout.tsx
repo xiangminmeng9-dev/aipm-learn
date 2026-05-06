@@ -1,6 +1,6 @@
 import type { SkillModuleWithProgress } from '@/types';
 
-/* ──────────────────────────── Level Config ──────────────────────────── */
+/* ---------------------------- Level Config ---------------------------- */
 
 const LEVEL_COLORS: Record<number, string> = {
   1: '#34c759',
@@ -16,7 +16,7 @@ const LEVEL_NAMES: Record<number, string> = {
   4: '实战综合',
 };
 
-/* ──────────────────────────── Types ──────────────────────────── */
+/* ---------------------------- Types ---------------------------- */
 
 export interface GraphNode {
   id: string;
@@ -74,7 +74,7 @@ export interface GraphData {
   levels: { level: number; name: string; color: string; y: number }[];
 }
 
-/* ──────────────────────────── Transform ──────────────────────────── */
+/* ---------------------------- Transform ---------------------------- */
 
 interface ModuleWithCustom extends SkillModuleWithProgress {
   is_custom?: boolean;

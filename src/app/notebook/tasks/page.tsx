@@ -22,7 +22,7 @@ function localDateStr(d: Date = new Date()): string {
   return `${y}-${m}-${day}`;
 }
 
-/* ──────────────────────────── Config ──────────────────────────── */
+/* ---------------------------- Config ---------------------------- */
 
 const STATUS_CONFIG: Record<string, { label: string; icon: string; color: string; bg: string; border: string; barGradient: string }> = {
   todo: { label: '待办', icon: '○', color: 'text-muted-foreground', bg: 'bg-secondary', border: 'border-border', barGradient: 'from-indigo-400 to-violet-400' },
@@ -49,7 +49,7 @@ const MAX_COLUMNS = 5;
 const TIMELINE_START = 0;
 const TIMELINE_END = 24;
 
-/* ──────────────────────────── Helpers ──────────────────────────── */
+/* ---------------------------- Helpers ---------------------------- */
 
 /** Parse "9:00" or "9:30" → fractional hours (9.0, 9.5) */
 function parseTime(time: string): number {
@@ -118,7 +118,7 @@ function getUnscheduledTasks(tasks: Task[]): Task[] {
   return tasks.filter((t) => parseTime(t.start_time) < 0);
 }
 
-/* ──────────────────────────── Glass Button ──────────────────────────── */
+/* ---------------------------- Glass Button ---------------------------- */
 
 function GlassButton({
   children,
@@ -156,7 +156,7 @@ function GlassButton({
   );
 }
 
-/* ──────────────────────────── Timeline Task Bar ──────────────────────────── */
+/* ---------------------------- Timeline Task Bar ---------------------------- */
 
 function TimelineTaskBar({
   task,
@@ -312,7 +312,7 @@ function TimelineTaskBar({
   );
 }
 
-/* ──────────────────────────── Task Editor ──────────────────────────── */
+/* ---------------------------- Task Editor ---------------------------- */
 
 function TaskEditor({
   task,
@@ -420,7 +420,7 @@ function TaskEditor({
   );
 }
 
-/* ──────────────────────────── Page ──────────────────────────── */
+/* ---------------------------- Page ---------------------------- */
 
 export default function DailyTasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);

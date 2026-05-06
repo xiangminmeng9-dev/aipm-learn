@@ -10,7 +10,7 @@ export interface KnowledgeEntry {
 }
 
 export const KNOWLEDGE_BASE: KnowledgeEntry[] = [
-  // ── LLM 基础 ──
+  // -- LLM 基础 --
   {
     id: 'kb-llm-01',
     title: '大语言模型（LLM）核心原理',
@@ -137,7 +137,7 @@ Agent 架构：
 - 建立评估-迭代闭环：评估→发现问题→优化→再评估`,
   },
 
-  // ── AI 产品设计 ──
+  // -- AI 产品设计 --
   {
     id: 'kb-prod-01',
     title: 'AI 产品设计方法论',
@@ -227,7 +227,7 @@ A/B 测试要点：
 - 数据飞轮：更多使用→更多数据→更好的模型→更好的体验→更多使用`,
   },
 
-  // ── AI 工程实践 ──
+  // -- AI 工程实践 --
   {
     id: 'kb-eng-01',
     title: 'MLOps 与模型部署',

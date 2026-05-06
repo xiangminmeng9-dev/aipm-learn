@@ -197,7 +197,7 @@ export async function GET() {
 async function triggerMethodologyUpdate(userId: string, typeId: string): Promise<void> {
   try {
     const { createClient } = await import('@/lib/supabase/server');
-    const { generateOrUpdateMethodology } = await import('@/app/api/interview/methodology/route');
+    const { generateOrUpdateMethodology } = await import('@/lib/ai/methodology');
     const supabase = await createClient();
     await generateOrUpdateMethodology(supabase, userId, typeId);
   } catch { /* non-blocking */ }

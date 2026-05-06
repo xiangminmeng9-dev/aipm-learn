@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import ReactECharts from '@/components/ui/EChartsWrapper';
 
-/* ── Types ── */
+/* -- Types -- */
 interface ModuleDetails {
   coding: { flows: number; recentActivity: number; dailyActivity: { date: string; count: number }[]; byStage: { name: string; value: number }[]; specPracticeCount: number; specPracticeAvgScore: number; specPracticeScoreTrend: { date: string; score: number }[]; specPracticeDimensionDist: { dimension: string; avgScore: number }[] };
   skills: { coverage: number; modules: number; tasks: number; completedTasks: number; moduleBreakdown: { id: string; name: string; level: string; total: number; completed: number }[]; byLevel: { level: string; total: number; completed: number; custom: number }[]; customModules: number; learningPathCount: number; learningPathTotalModules: number; learningPathModuleCategoryDist: { category: string; count: number }[] };
@@ -31,7 +31,7 @@ interface DashboardData {
   moduleDetails?: ModuleDetails;
 }
 
-/* ── Shared ECharts theme helpers ── */
+/* -- Shared ECharts theme helpers -- */
 const gradient = (c1: string, c2: string) => ({ type: "linear" as const, x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: c1 }, { offset: 1, color: c2 }] });
 
 const CHART_HEIGHT = 240;
@@ -78,7 +78,7 @@ function ModuleHeader({ icon, title, href, accent }: { icon: string; title: stri
   );
 }
 
-/* ── Main Page ── */
+/* -- Main Page -- */
 export default function LearningDashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);

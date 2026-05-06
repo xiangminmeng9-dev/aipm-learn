@@ -11,7 +11,7 @@ export async function GET() {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-    // ── Coding (dev_flows) ──
+    // -- Coding (dev_flows) --
     let codingFlowCount = 0, codingRecent = 0;
     let codingDaily: { date: string; count: number }[] = [];
     let codingByStage: { name: string; value: number }[] = [];
@@ -42,7 +42,7 @@ export async function GET() {
       }
     } catch {}
 
-    // ── Spec Practice ──
+    // -- Spec Practice --
     let specPracticeCount = 0, specPracticeAvgScore = 0;
     let specPracticeScoreTrend: { date: string; score: number }[] = [];
     let specPracticeDimensionDist: { dimension: string; avgScore: number }[] = [];
@@ -77,7 +77,7 @@ export async function GET() {
       }
     } catch {}
 
-    // ── Competitive Analysis ──
+    // -- Competitive Analysis --
     let competitiveAnalysisCount = 0, competitiveAnalysisAvgScore = 0;
     let competitiveAnalysisScoreTrend: { date: string; score: number }[] = [];
     try {
@@ -97,7 +97,7 @@ export async function GET() {
       }
     } catch {}
 
-    // ── AI Learning Path ──
+    // -- AI Learning Path --
     let learningPathCount = 0, learningPathTotalModules = 0;
     let learningPathModuleCategoryDist: { category: string; count: number }[] = [];
     try {
@@ -123,7 +123,7 @@ export async function GET() {
       }
     } catch {}
 
-    // ── Skills ──
+    // -- Skills --
     // Two sources: system modules (skill_modules + learning_tasks + learning_progress)
     //              user modules (user_skill_modules + user_module_tasks)
     let totalModules = 0, totalTaskCount = 0, completedTaskCount = 0, skillCoverage = 0;
@@ -204,7 +204,7 @@ export async function GET() {
       skillByLevel = Object.entries(levelMap).map(([level, v]) => ({ level, ...v }));
     } catch {}
 
-    // ── Notebook ──
+    // -- Notebook --
     let notebookNotes = 0, notebookTasks = 0, notebookAiAnalysis = 0;
     let notebookDaily: { date: string; notes: number; tasks: number }[] = [];
     let notebookByType: { name: string; value: number }[] = [];
@@ -232,7 +232,7 @@ export async function GET() {
       } catch {}
     } catch {}
 
-    // ── Simulator ──
+    // -- Simulator --
     // simulator_sessions has: stage_scores (jsonb), status, scenario_id, current_stage
     let simulatorSessions = 0, simulatorStagesCompleted = 0, simulatorAvgScore = 0;
     let simulatorByScenario: { name: string; count: number; avgScore: number }[] = [];
@@ -270,7 +270,7 @@ export async function GET() {
       }
     } catch {}
 
-    // ── Interview ──
+    // -- Interview --
     let interviewCount = 0, avgScore = 0, mockCount = 0, sessionCount = 0;
     let interviewScoreHistory: { date: string; score: number }[] = [];
     let interviewByCategory: { name: string; count: number; avgScore: number }[] = [];
@@ -326,7 +326,7 @@ export async function GET() {
       mockScoreDistribution = Object.entries(dist).map(([range, count]) => ({ range, count }));
     } catch {}
 
-    // ── Resume ──
+    // -- Resume --
     let resumeVersions = 0, resumeMatchScore = 0;
     let resumeMatchTrend: { date: string; score: number }[] = [];
     let resumeJobStats: { status: string; count: number }[] = [];
@@ -341,7 +341,7 @@ export async function GET() {
       resumeJobStats = jobCount ? [{ status: '已缓存', count: jobCount }] : [];
     } catch {}
 
-    // ── Resources ──
+    // -- Resources --
     let resourcesCount = 0, articlesRead = 0;
     let resourcesByCategory: { name: string; total: number; read: number }[] = [];
     let readingPace: { date: string; count: number }[] = [];
@@ -367,7 +367,7 @@ export async function GET() {
       resourcesByCategory = Object.entries(catMap).map(([name, v]) => ({ name, ...v }));
     } catch {}
 
-    // ── Daily Challenge ──
+    // -- Daily Challenge --
     let challengeCount = 0, dailyStreak = 0, challengeAvgScore = 0;
     let challengeScoreHistory: { date: string; score: number }[] = [];
     let challengeScoreDist: { range: string; count: number }[] = [];
@@ -394,7 +394,7 @@ export async function GET() {
       }
     } catch {}
 
-    // ── Progress curve ──
+    // -- Progress curve --
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     const recentQA = qaRecords.filter((i) => new Date(i.created_at) >= thirtyDaysAgo);

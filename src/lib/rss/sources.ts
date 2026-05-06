@@ -9,7 +9,7 @@ export interface RssSourceConfig {
 }
 
 export const RSS_SOURCES: RssSourceConfig[] = [
-  // ── AI Tech: 技术路线、RAG/Agent 实现、前沿技术 ──
+  // -- AI Tech: 技术路线、RAG/Agent 实现、前沿技术 --
   { name: 'OpenAI Blog', url: 'https://openai.com/blog/rss.xml', category: 'ai_tech', language: 'en' },
   { name: 'Hugging Face Blog', url: 'https://huggingface.co/blog/feed.xml', category: 'ai_tech', language: 'en' },
   { name: 'Lilian Weng', url: 'https://lilianweng.github.io/index.xml', category: 'ai_tech', language: 'en' },
@@ -19,7 +19,7 @@ export const RSS_SOURCES: RssSourceConfig[] = [
   { name: "Ben's Bites", url: 'https://bensbites.com/feed', category: 'ai_tech', language: 'en' },
   { name: 'Google AI Blog', url: 'https://blog.google/innovation-and-ai/technology/ai/rss/', category: 'ai_tech', language: 'en' },
 
-  // ── AI PM: 产品经理技术文章 ──
+  // -- AI PM: 产品经理技术文章 --
   { name: '人人都是产品经理', url: 'https://www.woshipm.com/feed', category: 'ai_pm', language: 'zh' },
   { name: '36氪', url: 'https://36kr.com/feed', category: 'ai_pm', language: 'zh' },
   { name: '机器之心', url: 'https://www.jiqizhixin.com/rss', category: 'ai_pm', language: 'zh' },

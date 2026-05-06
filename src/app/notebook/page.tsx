@@ -6,7 +6,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { type Note, getNotes, createNote, updateNote, deleteNote } from '@/lib/notebook-store';
 
-/* ──────────────────────────── Config ──────────────────────────── */
+/* ---------------------------- Config ---------------------------- */
 
 const CATEGORY_CONFIG: Record<string, { label: string; icon: string; color: string; bg: string; border: string; accent: string; gradient: string }> = {
   problem: { label: '问题', icon: '🔥', color: 'text-rose-600 dark:text-rose-400', bg: 'bg-rose-50 dark:bg-rose-950/40', border: 'border-rose-200 dark:border-rose-800', accent: '#f43f5e', gradient: 'from-rose-400 to-orange-400' },
@@ -15,7 +15,7 @@ const CATEGORY_CONFIG: Record<string, { label: string; icon: string; color: stri
   general: { label: '通用', icon: '📝', color: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-50 dark:bg-violet-950/40', border: 'border-violet-200 dark:border-violet-800', accent: '#8b5cf6', gradient: 'from-violet-400 to-purple-400' },
 };
 
-/* ──────────────────────────── Glass Button ──────────────────────────── */
+/* ---------------------------- Glass Button ---------------------------- */
 
 function GlassButton({
   children,
@@ -49,7 +49,7 @@ function GlassButton({
   );
 }
 
-/* ──────────────────────────── Note Card (rectangular) ──────────────────────────── */
+/* ---------------------------- Note Card (rectangular) ---------------------------- */
 
 function NoteCard({
   note,
@@ -124,7 +124,7 @@ function NoteCard({
   );
 }
 
-/* ──────────────────────────── Note Editor ──────────────────────────── */
+/* ---------------------------- Note Editor ---------------------------- */
 
 function NoteEditor({
   note,
@@ -221,7 +221,7 @@ function NoteEditor({
   );
 }
 
-/* ──────────────────────────── Page ──────────────────────────── */
+/* ---------------------------- Page ---------------------------- */
 
 export default function NotesPage() {
   const [notes, setNotes] = useState<Note[]>([]);

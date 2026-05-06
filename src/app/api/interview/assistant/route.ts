@@ -203,7 +203,7 @@ export async function POST(request: NextRequest) {
                   analysis: fullAnswer,
                 });
 
-                const { generateOrUpdateMethodology } = await import('@/app/api/interview/methodology/route');
+                const { generateOrUpdateMethodology } = await import('@/lib/ai/methodology');
                 await generateOrUpdateMethodology(supabase, authenticatedUser.id, typeData.id);
               }
             }

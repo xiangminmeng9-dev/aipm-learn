@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import Markdown from '@/components/ui/markdown';
 
-/* ──────────────────────────── Section Config ──────────────────────────── */
+/* ---------------------------- Section Config ---------------------------- */
 
 const SECTION_CONFIG = [
   { key: 'clarification', label: '澄清问题', icon: '💡', color: 'amber', accent: 'from-amber-400 to-orange-400', bg: 'bg-amber-50/50', border: 'border-amber-200/60', text: 'text-amber-700' },
@@ -21,7 +21,7 @@ const MODE_COLORS: Record<string, { bg: string; text: string; border: string }> 
   '算法': { bg: 'bg-rose-50', text: 'text-rose-600', border: 'border-rose-200' },
 };
 
-/* ──────────────────────────── Flow Section Block ──────────────────────────── */
+/* ---------------------------- Flow Section Block ---------------------------- */
 
 function FlowSection({ label, icon, accent, bg, border, content }: {
   label: string;
@@ -46,7 +46,7 @@ function FlowSection({ label, icon, accent, bg, border, content }: {
   );
 }
 
-/* ──────────────────────────── Flow Card ──────────────────────────── */
+/* ---------------------------- Flow Card ---------------------------- */
 
 function FlowCard({ flow, isExpanded, onToggle }: {
   flow: Record<string, unknown>;
@@ -132,7 +132,7 @@ function FlowCard({ flow, isExpanded, onToggle }: {
   );
 }
 
-/* ──────────────────────────── Page ──────────────────────────── */
+/* ---------------------------- Page ---------------------------- */
 
 export default function CodingFlowsPage() {
   const [flows, setFlows] = useState<Record<string, unknown>[]>([]);
