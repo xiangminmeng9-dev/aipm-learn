@@ -12,7 +12,12 @@ export async function POST(request: NextRequest) {
 
     const serviceClient = createServiceClient();
 
-    const body = await request.json();
+    let body: Record<string, unknown> = {};
+    try {
+      body = await request.json();
+    } catch {
+      // Empty body is OK — will use defaults
+    }
     const validation = validateBody(aiLearningPathSchema, body);
     if (!validation.success) {
       return NextResponse.json({ error: validation.error }, { status: 400 });
