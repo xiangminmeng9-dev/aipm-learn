@@ -77,7 +77,7 @@ export default function MockConfigPage() {
       });
       if (res.ok) {
         const data = await res.json();
-        const records = data.mocks || [];
+        const records = data.data || [];
         setMockRecords(records);
         cacheSet('mock-records', records, TTL.USER_DATA);
       }

@@ -8,6 +8,7 @@ import Markdown from '@/components/ui/markdown';
 import SessionHeader from '@/components/interview/SessionHeader';
 
 interface Message {
+  id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: string;
@@ -29,6 +30,10 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
   const [isLoading, setIsLoading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef('');
+  const msgIdCounter = useRef(0);
+
+  const nextMsgId = () => `msg-${++msgIdCounter.current}-${Date.now()}`;
 
   useEffect(() => {
     params.then(p => setSessionId(p.id));
@@ -44,6 +49,7 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
         setSession(data.session);
         if (data.messages) {
           setMessages(data.messages.map((m: { role: string; content: string; created_at: string }) => ({
+            id: nextMsgId(),
             role: m.role as 'user' | 'assistant',
             content: m.content,
             timestamp: m.created_at,
@@ -61,6 +67,7 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
     if (!input.trim() || isLoading || !sessionId) return;
 
     const userMessage: Message = {
+      id: nextMsgId(),
       role: 'user',
       content: input.trim(),
       timestamp: new Date().toISOString(),
@@ -85,7 +92,7 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
 
       const reader = res.body?.getReader();
       const decoder = new TextDecoder();
-      let assistantContent = '';
+      contentRef.current = '';
 
       if (reader) {
         let buffer = '';
@@ -102,15 +109,17 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
               try {
                 const data = JSON.parse(line.slice(6));
                 if (data.type === 'chunk') {
-                  assistantContent += data.content;
+                  contentRef.current += data.content;
+                  const currentContent = contentRef.current;
                   setMessages(prev => {
                     const last = prev[prev.length - 1];
                     if (last?.role === 'assistant') {
-                      return [...prev.slice(0, -1), { ...last, content: assistantContent }];
+                      return [...prev.slice(0, -1), { ...last, content: currentContent }];
                     }
                     return [...prev, {
+                      id: nextMsgId(),
                       role: 'assistant' as const,
-                      content: assistantContent,
+                      content: currentContent,
                       timestamp: new Date().toISOString(),
                     }];
                   });
@@ -185,8 +194,8 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
           </div>
         )}
 
-        {messages.map((msg, i) => (
-          <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+        {messages.map((msg) => (
+          <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-[80%] ${msg.role === 'user' ? '' : ''}`}>
               {msg.role === 'assistant' && (
                 <div className="mb-1 flex items-center gap-1.5">

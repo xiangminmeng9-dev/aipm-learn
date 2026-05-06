@@ -27,7 +27,7 @@ export default function AiTechPage() {
       const res = await fetch('/api/rss/articles?category=ai_tech');
       if (res.ok) {
         const data = await res.json();
-        setArticles(data.articles || []);
+        setArticles(data.data || []);
       }
     } catch { /* ignore */ }
     setLoading(false);

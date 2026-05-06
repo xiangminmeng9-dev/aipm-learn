@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -30,17 +30,13 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (
-    !user &&
-    !request.nextUrl.pathname.startsWith('/login') &&
-    !request.nextUrl.pathname.startsWith('/register') &&
-    request.nextUrl.pathname !== '/' &&
-    !request.nextUrl.pathname.startsWith('/interview') &&
-    !request.nextUrl.pathname.startsWith('/coding') &&
-    !request.nextUrl.pathname.startsWith('/skills') &&
-    !request.nextUrl.pathname.startsWith('/notebook') &&
-    !request.nextUrl.pathname.startsWith('/resume')
-  ) {
+  // Public paths that don't require authentication
+  const publicPaths = ['/', '/login', '/register'];
+  const isPublicPath = publicPaths.some(
+    (p) => request.nextUrl.pathname === p || request.nextUrl.pathname.startsWith(p + '/')
+  );
+
+  if (!user && !isPublicPath) {
     if (request.nextUrl.pathname.startsWith('/api/')) {
       return NextResponse.json(
         { error: '未登录', code: 'UNAUTHORIZED' },
@@ -49,7 +45,7 @@ export async function proxy(request: NextRequest) {
     }
     const url = request.nextUrl.clone();
     url.pathname = '/login';
-    url.search = '';
+    url.searchParams.set('next', request.nextUrl.pathname);
     const redirectResponse = NextResponse.redirect(url);
     supabaseResponse.cookies.getAll().forEach(({ name, value, ...options }) => {
       redirectResponse.cookies.set(name, value, { ...options, sameSite: 'lax', path: '/' });

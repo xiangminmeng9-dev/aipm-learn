@@ -3,6 +3,7 @@ import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { generateText, streamChatResponse } from '@/lib/ai/claude';
 import { classifyQuestion } from '@/lib/ai/classifier';
 import { buildAnalysisPrompt, ANALYSIS_SYSTEM_PROMPT } from '@/lib/ai/prompts';
+import { validateBody, analyzeSchema } from '@/lib/validations';
 
 export const maxDuration = 60;
 
@@ -13,11 +14,11 @@ export async function POST(request: NextRequest) {
   if (!user) return NextResponse.json({ error: '未登录' }, { status: 401 });
 
   const body = await request.json();
-  const { question } = body as { question: string; session_id?: string };
-
-  if (!question || question.trim().length < 5 || question.length > 5000) {
-    return NextResponse.json({ error: '问题内容不能为空或超过5000字符' }, { status: 400 });
+  const validation = validateBody(analyzeSchema, body);
+  if (!validation.success) {
+    return NextResponse.json({ error: validation.error }, { status: 400 });
   }
+  const { question, session_id } = validation.data;
 
   // 1. Classify question (fast, uses haiku)
   const { data: existingTypes } = await supabase.from('question_types').select('id, name');

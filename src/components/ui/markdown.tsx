@@ -2,9 +2,7 @@
 
 import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import dynamic from 'next/dynamic';
-
-const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false });
+import ReactECharts from '@/components/ui/EChartsWrapper';
 
 interface MarkdownProps {
   content: string;

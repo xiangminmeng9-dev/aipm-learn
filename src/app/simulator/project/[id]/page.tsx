@@ -7,11 +7,15 @@ import Markdown from '@/components/ui/markdown';
 
 export default function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const [projectId, setProjectId] = useState('');
-  const [project, setProject] = useState<any>(null);
-  const [messages, setMessages] = useState<{ role: string; content: string }[]>([]);
+  const [project, setProject] = useState<{ id: string; title: string; scenario_id: string; deliverables?: { name: string; description: string }[] } | null>(null);
+  const [messages, setMessages] = useState<{ id: string; role: string; content: string }[]>([]);
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef('');
+  const msgIdCounter = useRef(0);
+
+  const nextMsgId = () => `msg-${++msgIdCounter.current}-${Date.now()}`;
 
   useEffect(() => { params.then(p => setProjectId(p.id)); }, [params]);
 
@@ -23,7 +27,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       setProject(data);
 
       const { data: msgs } = await supabase.from('simulator_project_messages').select('*').eq('project_id', projectId).order('created_at');
-      setMessages((msgs || []).map((m: any) => ({ role: m.role, content: m.content })));
+      setMessages((msgs || []).map((m: { role: string; content: string }) => ({ id: nextMsgId(), role: m.role, content: m.content })));
     } catch { /* ignore */ }
   }, [projectId]);
 
@@ -34,7 +38,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     if (!input.trim() || isStreaming || !project) return;
     const text = input.trim();
     setInput('');
-    setMessages(prev => [...prev, { role: 'user', content: text }]);
+    setMessages(prev => [...prev, { id: nextMsgId(), role: 'user', content: text }]);
     setIsStreaming(true);
 
     try {
@@ -48,8 +52,8 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       const decoder = new TextDecoder();
       if (reader) {
         let buffer = '';
-        let assistantContent = '';
-        setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
+        contentRef.current = '';
+        setMessages(prev => [...prev, { id: nextMsgId(), role: 'assistant', content: '' }]);
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
@@ -61,10 +65,11 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               try {
                 const data = JSON.parse(line.slice(6));
                 if (data.type === 'chunk') {
-                  assistantContent += data.content;
+                  contentRef.current += data.content;
+                  const currentContent = contentRef.current;
                   setMessages(prev => {
                     const copy = [...prev];
-                    copy[copy.length - 1] = { role: 'assistant', content: assistantContent };
+                    copy[copy.length - 1] = { ...copy[copy.length - 1], content: currentContent };
                     return copy;
                   });
                 }
@@ -105,7 +110,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
           <div className="p-4">
             <h3 className="text-sm font-semibold text-foreground mb-3">项目交付物</h3>
             <div className="space-y-2">
-              {deliverables.map((d: any, i: number) => (
+              {deliverables.map((d: { name: string; description: string }, i: number) => (
                 <div key={i} className="rounded-xl border border-border bg-muted p-3">
                   <div className="text-sm font-medium text-foreground">{d.name}</div>
                   <div className="text-xs text-muted-foreground mt-0.5">{d.description}</div>
@@ -123,8 +128,8 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 开始和评审团队对话，逐步完成每个交付物...
               </div>
             )}
-            {messages.map((msg, i) => (
-              <div key={i} className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
+            {messages.map((msg) => (
+              <div key={msg.id} className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
                 {msg.role === 'assistant' && (
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-teal-100 text-sm">🔍</div>
                 )}

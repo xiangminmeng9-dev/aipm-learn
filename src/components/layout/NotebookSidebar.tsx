@@ -14,7 +14,7 @@ export default function NotebookSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="flex w-60 flex-col border-r border-border bg-card">
+    <aside className="flex h-full flex-col border-r border-border bg-card">
       <div className="p-5">
         <Link href="/" className="text-xs text-muted-foreground hover:text-muted-foreground transition-colors">
           ← 返回首页

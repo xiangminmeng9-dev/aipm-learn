@@ -41,7 +41,7 @@ export async function POST(
       .order('created_at', { ascending: true })
       .limit(20);
 
-    const chatHistory = (recentMessages || []).map((m: any) => ({
+    const chatHistory = (recentMessages || []).map((m: { role: string; content: string }) => ({
       role: m.role as 'user' | 'assistant',
       content: m.content,
     }));

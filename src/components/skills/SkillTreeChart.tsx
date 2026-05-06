@@ -1,9 +1,7 @@
 'use client';
 
-import dynamic from 'next/dynamic';
+import ReactECharts from '@/components/ui/EChartsWrapper';
 import type { GraphData } from './SkillTreeLayout';
-
-const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false });
 
 interface SkillTreeChartProps {
   data: GraphData;
@@ -41,8 +39,7 @@ export default function SkillTreeChart({ data, onNodeClick }: SkillTreeChartProp
     prereqMap.set(l.target, prereqs);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const option: any = {
+  const option: Record<string, unknown> = {
     tooltip: {
       trigger: 'item',
       formatter: (params: { dataType?: string; data?: { name?: string; id?: string; moduleData?: ModuleData } }) => {

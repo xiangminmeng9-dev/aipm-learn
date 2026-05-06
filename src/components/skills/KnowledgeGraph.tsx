@@ -1,10 +1,8 @@
 'use client';
 
-import dynamic from 'next/dynamic';
 import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-
-const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false });
+import ReactECharts from '@/components/ui/EChartsWrapper';
 
 interface KnowledgeLink {
   source: string;

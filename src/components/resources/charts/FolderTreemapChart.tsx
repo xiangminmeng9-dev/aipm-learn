@@ -1,10 +1,8 @@
 'use client';
 
-import dynamic from 'next/dynamic';
 import type { EChartsOption } from 'echarts';
 import { CHART_COLORS } from '../constants';
-
-const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false });
+import ReactECharts from '@/components/ui/EChartsWrapper';
 
 interface Props {
   data: { name: string; value: number; children?: { name: string; value: number }[] }[];

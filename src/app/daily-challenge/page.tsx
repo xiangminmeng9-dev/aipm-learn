@@ -17,7 +17,7 @@ export default function DailyChallengePage() {
 
   const fetchData = useCallback(async (forceRefresh = false) => {
     if (!forceRefresh) {
-      const cached = cacheGet<{ challenge: any; submission: any }>('daily-challenge-today');
+      const cached = cacheGet<{ challenge: { id: string; question: string; category: string; difficulty: string; hint: string; perfect_answer: string }; submission: { score: number; feedback: string } | null }>('daily-challenge-today');
       if (cached?.challenge) {
         setChallenge(cached.challenge);
         if (cached.submission) {

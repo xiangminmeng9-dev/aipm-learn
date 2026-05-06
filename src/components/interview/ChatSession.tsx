@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import Markdown from '@/components/ui/markdown';
 
 interface Message {
+  id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: string;
@@ -24,11 +25,14 @@ export default function ChatSession({
   onSendMessage,
   isStreaming = false,
 }: ChatSessionProps) {
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const [messages, setMessages] = useState<Message[]>(initialMessages.map(m => ({ ...m, id: m.id || `msg-${Date.now()}-${Math.random()}` })));
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const msgIdCounter = useRef(0);
+
+  const nextMsgId = () => `msg-${++msgIdCounter.current}-${Date.now()}`;
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -38,6 +42,7 @@ export default function ChatSession({
     if (!input.trim() || isLoading) return;
 
     const userMessage: Message = {
+      id: nextMsgId(),
       role: 'user',
       content: input.trim(),
       timestamp: new Date().toISOString(),
@@ -59,6 +64,7 @@ export default function ChatSession({
   // Expose method to add assistant message
   const addAssistantMessage = (content: string) => {
     setMessages(prev => [...prev, {
+      id: nextMsgId(),
       role: 'assistant',
       content,
       timestamp: new Date().toISOString(),
@@ -72,6 +78,7 @@ export default function ChatSession({
         return [...prev.slice(0, -1), { ...last, content }];
       }
       return [...prev, {
+        id: nextMsgId(),
         role: 'assistant' as const,
         content,
         timestamp: new Date().toISOString(),
@@ -82,8 +89,8 @@ export default function ChatSession({
   // Expose methods via ref pattern
   useEffect(() => {
     // Store methods on window for parent component access
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (window as any)[`chatSession_${sessionId}`] = {
+    const w = window as unknown as Record<string, unknown>;
+    w[`chatSession_${sessionId}`] = {
       addAssistantMessage,
       updateLastAssistantMessage,
     };
@@ -105,8 +112,8 @@ export default function ChatSession({
           </div>
         )}
 
-        {messages.map((msg, i) => (
-          <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+        {messages.map((msg) => (
+          <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-[80%] ${msg.role === 'user' ? '' : ''}`}>
               {/* Role indicator */}
               {msg.role === 'assistant' && (

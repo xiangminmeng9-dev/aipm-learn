@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 export default function RegisterForm() {
@@ -10,6 +11,7 @@ export default function RegisterForm() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
@@ -20,8 +22,8 @@ export default function RegisterForm() {
     const supabase = createClient();
     const { error } = await supabase.auth.signUp({ email, password });
     if (error) { setError(error.message); setLoading(false); return; }
-    await new Promise((r) => setTimeout(r, 300));
-    window.location.href = '/interview/qa';
+    router.push('/interview/qa');
+    router.refresh();
   }
 
   return (

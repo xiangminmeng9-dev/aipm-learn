@@ -7,6 +7,7 @@ import {
   buildSpecEvaluationPrompt,
   SPEC_EVALUATION_SYSTEM_PROMPT,
 } from '@/lib/ai/prompts';
+import { validateBody, specPracticeSchema } from '@/lib/validations';
 
 export async function GET(request: NextRequest) {
   try {
@@ -67,17 +68,11 @@ export async function POST(request: NextRequest) {
     if (!user) return NextResponse.json({ error: '未登录' }, { status: 401 });
 
     const body = await request.json();
-    const { question, question_category, user_spec } = body;
-
-    if (!question || !question_category || !user_spec) {
-      return NextResponse.json({ error: '缺少必填字段' }, { status: 400 });
+    const validation = validateBody(specPracticeSchema, body);
+    if (!validation.success) {
+      return NextResponse.json({ error: validation.error }, { status: 400 });
     }
-    if (user_spec.length < 50) {
-      return NextResponse.json({ error: 'Spec 太短，至少需要 50 字' }, { status: 400 });
-    }
-    if (user_spec.length > 5000) {
-      return NextResponse.json({ error: 'Spec 太长，最多 5000 字' }, { status: 400 });
-    }
+    const { question, question_category, user_spec } = validation.data;
 
     const prompt = buildSpecEvaluationPrompt(question, user_spec);
     const encoder = new TextEncoder();

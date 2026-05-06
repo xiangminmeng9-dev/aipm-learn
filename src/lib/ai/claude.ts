@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
 import { createClient } from '@/lib/supabase/server';
+import { decrypt } from '@/lib/crypto';
 
 export type ModelType = 'sonnet' | 'haiku';
 export type AIProtocol = 'anthropic' | 'openai';
@@ -24,11 +25,19 @@ const DEFAULT_CONFIG: AIConfig = {
   model: 'astron-code-latest',
 };
 
+// Request-level cache: resolved once per request, reused across AI calls
+let cachedConfig: { config: AIConfig; userId: string } | null = null;
+
 async function resolveConfig(): Promise<AIConfig> {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return DEFAULT_CONFIG;
+    if (!user) { cachedConfig = null; return DEFAULT_CONFIG; }
+
+    // Return cached config if same user within this request
+    if (cachedConfig && cachedConfig.userId === user.id) {
+      return cachedConfig.config;
+    }
 
     const { data } = await supabase
       .from('user_ai_configs')
@@ -37,12 +46,20 @@ async function resolveConfig(): Promise<AIConfig> {
       .maybeSingle();
 
     if (data && data.api_key && data.model) {
-      return {
+      let apiKey = data.api_key;
+      try {
+        apiKey = decrypt(apiKey);
+      } catch {
+        // Legacy unencrypted key
+      }
+      const config: AIConfig = {
         protocol: (data.protocol as AIProtocol) || 'anthropic',
         baseURL: data.base_url || undefined,
-        apiKey: data.api_key,
+        apiKey,
         model: data.model,
       };
+      cachedConfig = { config, userId: user.id };
+      return config;
     }
   } catch {
     // fallback to default

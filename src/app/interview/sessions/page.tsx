@@ -47,7 +47,7 @@ export default function SessionsPage() {
       const res = await fetch('/api/interview/sessions');
       if (res.ok) {
         const data = await res.json();
-        setSessions(data.sessions ?? []);
+        setSessions(data.data ?? []);
       }
     } catch {} finally { setIsLoading(false); }
   };

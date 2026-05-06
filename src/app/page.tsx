@@ -600,15 +600,16 @@ export default function HomePage() {
       {/* ── Nav ── */}
       <header className="sticky top-0 z-50 border-b border-border bg-card">
         <div
-          className="flex h-16 items-center justify-between"
+          className="flex h-16 items-center justify-between px-4 md:px-0"
           style={{
-            paddingLeft: 'max(48px, calc((100vw - 1600px) / 2 + 48px))',
-            paddingRight: 'max(16px, calc((100vw - 1600px) / 4 + 8px))',
+            paddingLeft: 'max(16px, min(48px, calc((100vw - 1600px) / 2 + 48px)))',
+            paddingRight: 'max(16px, min(16px, calc((100vw - 1600px) / 4 + 8px)))',
           }}
         >
           <Link href="/" className="shrink-0 text-xl font-bold tracking-tight text-foreground">AI PM 学习平台</Link>
           <div className="flex items-center gap-2">
-            <nav className="flex items-center gap-1">
+            {/* Desktop nav */}
+            <nav className="hidden items-center gap-1 md:flex">
               {allBooks.map((feature) => (
                 <div key={feature.id} className="relative" onMouseEnter={() => setActiveDropdown(feature.id)} onMouseLeave={() => setActiveDropdown(null)}>
                   <Link href={feature.href} className="flex items-center gap-1 rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">
@@ -627,11 +628,44 @@ export default function HomePage() {
                 </div>
               ))}
             </nav>
+            {/* Mobile hamburger */}
+            <button
+              className="flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary md:hidden"
+              onClick={() => setActiveDropdown(activeDropdown === 'mobile-menu' ? null : 'mobile-menu')}
+              aria-label="菜单"
+              aria-expanded={activeDropdown === 'mobile-menu'}
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                {activeDropdown === 'mobile-menu'
+                  ? <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                  : <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5" />}
+              </svg>
+            </button>
             <div className="ml-3 border-l border-border pl-3">
               <UserMenu />
             </div>
           </div>
         </div>
+        {/* Mobile dropdown menu */}
+        <AnimatePresence>
+          {activeDropdown === 'mobile-menu' && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden border-t border-border md:hidden"
+            >
+              <nav className="grid grid-cols-2 gap-1 p-4">
+                {allBooks.flatMap((feature) => [
+                  <Link key={feature.id} href={feature.href} className="col-span-2 rounded-lg px-3 py-2 text-sm font-semibold text-foreground" onClick={() => setActiveDropdown(null)}>{feature.title}</Link>,
+                  ...feature.subFeatures.map((sub) => (
+                    <Link key={sub.href} href={sub.href} className="rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-secondary" onClick={() => setActiveDropdown(null)}>{sub.label}</Link>
+                  )),
+                ])}
+              </nav>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </header>
 
       {/* ── Main (Shopify Editions style) ── */}

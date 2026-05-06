@@ -3,8 +3,10 @@ import { createClient } from '@/lib/supabase/server';
 import { RSS_SOURCES } from '@/lib/rss/sources';
 
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
+  const { searchParams } = request.nextUrl;
   const category = searchParams.get('category'); // 'ai_tech' | 'ai_pm'
+  const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
+  const page_size = Math.min(100, Math.max(1, parseInt(searchParams.get('page_size') || '20')));
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -18,15 +20,21 @@ export async function GET(request: NextRequest) {
     : RSS_SOURCES.map(s => s.name);
 
   if (sourceNames.length === 0) {
-    return NextResponse.json({ articles: [] });
+    return NextResponse.json({ data: [], total: 0, page, page_size });
   }
+
+  // Get total count
+  const { count } = await supabase
+    .from('daily_ai_news_articles')
+    .select('id', { count: 'exact', head: true })
+    .in('source', sourceNames);
 
   const { data, error } = await supabase
     .from('daily_ai_news_articles')
     .select('*')
     .in('source', sourceNames)
     .order('published_at', { ascending: false })
-    .limit(50);
+    .range((page - 1) * page_size, page * page_size - 1);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -65,5 +73,5 @@ export async function GET(request: NextRequest) {
     };
   });
 
-  return NextResponse.json({ articles });
+  return NextResponse.json({ data: articles, total: count ?? 0, page, page_size });
 }

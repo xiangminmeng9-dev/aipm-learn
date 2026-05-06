@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { streamChatResponse } from '@/lib/ai/claude';
 import { buildCompetitiveAnalysisPrompt, COMPETITIVE_ANALYSIS_SYSTEM_PROMPT } from '@/lib/ai/prompts';
+import { validateBody, competitiveAnalysisSchema } from '@/lib/validations';
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,12 +11,13 @@ export async function POST(request: NextRequest) {
     if (!user) return NextResponse.json({ error: '请先登录' }, { status: 401 });
 
     const body = await request.json();
-    const { productName } = body;
-    if (!productName || productName.trim().length < 2) {
-      return NextResponse.json({ error: '请输入有效的产品名称（至少2个字符）' }, { status: 400 });
+    const validation = validateBody(competitiveAnalysisSchema, body);
+    if (!validation.success) {
+      return NextResponse.json({ error: validation.error }, { status: 400 });
     }
+    const { product_name } = validation.data;
 
-    const prompt = buildCompetitiveAnalysisPrompt(productName.trim());
+    const prompt = buildCompetitiveAnalysisPrompt(product_name.trim());
     const stream = streamChatResponse(
       [{ role: 'user', content: prompt }],
       { model: 'sonnet', system: COMPETITIVE_ANALYSIS_SYSTEM_PROMPT, maxTokens: 4096 }
@@ -68,7 +70,7 @@ export async function POST(request: NextRequest) {
             .from('competitive_analyses')
             .insert({
               user_id: user.id,
-              product_name: productName.trim(),
+              product_name: product_name.trim(),
               market_position: marketPosition || fallbackContent,
               feature_comparison: featureComparison,
               strengths_weaknesses: strengthsWeaknesses,

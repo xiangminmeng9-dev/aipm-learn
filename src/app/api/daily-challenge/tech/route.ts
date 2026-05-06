@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
         { system: '你是AI技术观察者。只输出JSON，不要markdown代码块。每天推送不同方向的技术动态，避免重复。summary和explanation要简洁。', maxTokens: 1024 }
       );
       let cleaned = aiResult.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      let parsed: any;
+      let parsed: Record<string, unknown>;
       try {
         parsed = JSON.parse(cleaned);
       } catch {
@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
         try { parsed = JSON.parse(fixed); } catch { throw new Error('JSON parse failed: ' + cleaned.slice(0, 200)); }
       }
       if (parsed.title) {
-        techData = parsed;
+        techData = parsed as typeof techData;
       }
     } catch (err) {
       console.error('[daily-challenge/tech] AI generation failed, using fallback:', err);

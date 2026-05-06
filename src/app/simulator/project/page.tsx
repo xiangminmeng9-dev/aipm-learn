@@ -5,12 +5,12 @@ import { PROJECT_SCENARIOS } from '@/lib/project-scenarios';
 import { cacheGet, cacheSet, cacheRemove, TTL } from '@/lib/cache';
 
 export default function ProjectSandboxPage() {
-  const [existingProjects, setExistingProjects] = useState<any[]>([]);
+  const [existingProjects, setExistingProjects] = useState<{ id: string; title: string; scenario_id: string; status: string }[]>([]);
   const [isCreating, setIsCreating] = useState(false);
 
   const fetchProjects = useCallback(async () => {
     // Read from cache for instant display
-    const cached = cacheGet<any[]>('simulator-projects');
+    const cached = cacheGet<{ id: string; title: string; scenario_id: string; status: string }[]>('simulator-projects');
     if (cached) setExistingProjects(cached);
     try {
       const res = await fetch('/api/simulator/project');

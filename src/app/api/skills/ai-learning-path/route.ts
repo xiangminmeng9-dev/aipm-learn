@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { generateText } from '@/lib/ai/claude';
 import { buildLearningPathPrompt, LEARNING_PATH_SYSTEM_PROMPT } from '@/lib/ai/prompts';
+import { validateBody, aiLearningPathSchema } from '@/lib/validations';
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,6 +11,12 @@ export async function POST(request: NextRequest) {
     if (!user) return NextResponse.json({ error: '请先登录' }, { status: 401 });
 
     const serviceClient = createServiceClient();
+
+    const body = await request.json();
+    const validation = validateBody(aiLearningPathSchema, body);
+    if (!validation.success) {
+      return NextResponse.json({ error: validation.error }, { status: 400 });
+    }
 
     // Collect weakness data from multiple sources
     const weaknessParts: string[] = [];

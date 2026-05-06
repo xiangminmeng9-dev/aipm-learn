@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { encrypt, decrypt } from '@/lib/crypto';
+import { validateBody, aiConfigSchema } from '@/lib/validations';
 
 export async function GET() {
   try {
@@ -12,6 +14,14 @@ export async function GET() {
       .select('protocol, base_url, api_key, model, updated_at')
       .eq('user_id', user.id)
       .maybeSingle();
+
+    if (data?.api_key) {
+      try {
+        data.api_key = decrypt(data.api_key);
+      } catch {
+        // Legacy unencrypted key, leave as-is
+      }
+    }
 
     return NextResponse.json({ config: data || null });
   } catch (err) {
@@ -26,17 +36,14 @@ export async function POST(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: '请先登录' }, { status: 401 });
 
-    const { protocol, base_url, api_key, model } = await request.json();
+    const body = await request.json();
+    const validation = validateBody(aiConfigSchema, body);
+    if (!validation.success) {
+      return NextResponse.json({ error: validation.error }, { status: 400 });
+    }
+    const { protocol, base_url, api_key, model } = validation.data;
 
-    if (!['anthropic', 'openai'].includes(protocol)) {
-      return NextResponse.json({ error: 'protocol 必须是 anthropic 或 openai' }, { status: 400 });
-    }
-    if (!model || typeof model !== 'string') {
-      return NextResponse.json({ error: '请输入模型名称' }, { status: 400 });
-    }
-    if (!api_key || typeof api_key !== 'string') {
-      return NextResponse.json({ error: '请输入 API Key' }, { status: 400 });
-    }
+    const encryptedKey = encrypt(api_key);
 
     const { data: existing } = await supabase
       .from('user_ai_configs')
@@ -47,13 +54,13 @@ export async function POST(request: NextRequest) {
     if (existing) {
       const { error } = await supabase
         .from('user_ai_configs')
-        .update({ protocol, base_url: base_url || '', api_key, model })
+        .update({ protocol, base_url: base_url || '', api_key: encryptedKey, model })
         .eq('user_id', user.id);
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     } else {
       const { error } = await supabase
         .from('user_ai_configs')
-        .insert({ user_id: user.id, protocol, base_url: base_url || '', api_key, model });
+        .insert({ user_id: user.id, protocol, base_url: base_url || '', api_key: encryptedKey, model });
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     }
 

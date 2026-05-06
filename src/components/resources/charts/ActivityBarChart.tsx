@@ -1,9 +1,7 @@
 'use client';
 
-import dynamic from 'next/dynamic';
 import type { EChartsOption } from 'echarts';
-
-const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false });
+import ReactECharts from '@/components/ui/EChartsWrapper';
 
 interface Props {
   data: { date: string; count: number }[];

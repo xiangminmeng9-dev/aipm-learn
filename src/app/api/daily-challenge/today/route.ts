@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
       );
       let cleaned = aiResult.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
       // Try to parse, handle truncated JSON by closing open braces
-      let parsed: any;
+      let parsed: Record<string, unknown>;
       try {
         parsed = JSON.parse(cleaned);
       } catch {
@@ -82,10 +82,10 @@ export async function GET(request: NextRequest) {
         try { parsed = JSON.parse(fixed); } catch { throw new Error('JSON parse failed even after fix: ' + cleaned.slice(0, 200)); }
       }
       if (parsed.question) {
-        question = parsed.question;
-        hint = parsed.hint || hint;
-        perfectAnswer = parsed.perfect_answer || perfectAnswer;
-        scoringRubric = parsed.scoring_rubric || scoringRubric;
+        question = (parsed.question as string) || question;
+        hint = (parsed.hint as string) || hint;
+        perfectAnswer = (parsed.perfect_answer as string) || perfectAnswer;
+        scoringRubric = (parsed.scoring_rubric as typeof scoringRubric) || scoringRubric;
       }
     } catch (err) {
       console.error('[daily-challenge/today] AI generation failed:', err);

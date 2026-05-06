@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { validateBody, createSessionSchema } from '@/lib/validations';
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,10 +13,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: '未登录', code: 'UNAUTHORIZED' }, { status: 401 });
     }
 
-    const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') ?? '1');
-    const limit = parseInt(searchParams.get('limit') ?? '20');
-    const offset = (page - 1) * limit;
+    const { searchParams } = request.nextUrl;
+    const page = Math.max(1, parseInt(searchParams.get('page') ?? '1'));
+    const page_size = Math.min(100, Math.max(1, parseInt(searchParams.get('page_size') ?? '20')));
 
     const {
       data: sessions,
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
       })
       .eq('user_id', user.id)
       .order('updated_at', { ascending: false })
-      .range(offset, offset + limit - 1);
+      .range((page - 1) * page_size, page * page_size - 1);
 
     if (error) {
       return NextResponse.json(
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const result = (sessions ?? []).map((s) => ({
+    const items = (sessions ?? []).map((s) => ({
       id: s.id,
       title: s.title,
       has_jd: !!s.jd_text,
@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
       updated_at: s.updated_at,
     }));
 
-    return NextResponse.json({ sessions: result, total: count ?? 0 });
+    return NextResponse.json({ data: items, total: count ?? 0, page, page_size });
   } catch (error) {
     console.error('Sessions list API error:', error);
     return NextResponse.json({ error: '服务器内部错误', code: 'INTERNAL_ERROR' }, { status: 500 });
@@ -65,11 +65,11 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, jd_text, resume_text } = body as {
-      title?: string;
-      jd_text?: string;
-      resume_text?: string;
-    };
+    const validation = validateBody(createSessionSchema, body);
+    if (!validation.success) {
+      return NextResponse.json({ error: validation.error, code: 'VALIDATION_ERROR' }, { status: 400 });
+    }
+    const { title, jd_text, resume_text } = validation.data;
 
     const { data: session, error } = await supabase
       .from('chat_sessions')

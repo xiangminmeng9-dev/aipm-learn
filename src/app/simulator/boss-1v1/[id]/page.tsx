@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { BOSS_TYPES } from '@/lib/boss-1v1-config';
 
 interface Message {
+  id: string;
   role: 'user' | 'assistant' | 'system';
   content: string;
 }
@@ -30,13 +31,17 @@ export default function Boss1v1ChatPage() {
   const [isSending, setIsSending] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef('');
+  const msgIdCounter = useRef(0);
+
+  const nextMsgId = () => `msg-${++msgIdCounter.current}-${Date.now()}`;
 
   useEffect(() => {
     fetch(`/api/simulator/boss-1v1/${sessionId}`)
       .then((r) => r.ok ? r.json() : null)
       .then((data) => {
         if (data) {
-          const msgs = (data.messages ?? []).filter((m: Message) => m.role !== 'system');
+          const msgs = (data.messages ?? []).filter((m: Message) => m.role !== 'system').map((m: Message) => ({ id: nextMsgId(), role: m.role, content: m.content }));
           setMessages(msgs);
           setBossInfo(data.bossConfig);
           setSessionStatus(data.session?.status ?? 'active');
@@ -57,7 +62,7 @@ export default function Boss1v1ChatPage() {
     if (!input.trim() || isSending || sessionStatus === 'completed') return;
     const userMsg = input.trim();
     setInput('');
-    setMessages((prev) => [...prev, { role: 'user', content: userMsg }]);
+    setMessages((prev) => [...prev, { id: nextMsgId(), role: 'user', content: userMsg }]);
     setIsSending(true);
 
     try {
@@ -78,11 +83,11 @@ export default function Boss1v1ChatPage() {
       // SSE streaming
       const reader = res.body?.getReader();
       const decoder = new TextDecoder();
-      let bossReply = '';
+      contentRef.current = '';
 
       if (reader) {
         // Add placeholder for boss message
-        setMessages((prev) => [...prev, { role: 'assistant', content: '' }]);
+        setMessages((prev) => [...prev, { id: nextMsgId(), role: 'assistant', content: '' }]);
 
         while (true) {
           const { done, value } = await reader.read();
@@ -96,10 +101,11 @@ export default function Boss1v1ChatPage() {
             try {
               const data = JSON.parse(line.slice(6));
               if (data.type === 'chunk') {
-                bossReply += data.content;
+                contentRef.current += data.content;
+                const currentContent = contentRef.current;
                 setMessages((prev) => {
                   const updated = [...prev];
-                  updated[updated.length - 1] = { role: 'assistant', content: bossReply };
+                  updated[updated.length - 1] = { ...updated[updated.length - 1], content: currentContent };
                   return updated;
                 });
               } else if (data.type === 'error') {
@@ -179,8 +185,8 @@ export default function Boss1v1ChatPage() {
       {/* Chat area */}
       <div className="flex-1 overflow-y-auto px-6 py-4">
         <div className="mx-auto max-w-2xl space-y-4">
-          {messages.map((msg, i) => (
-            <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+          {messages.map((msg) => (
+            <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               <div className={`flex items-start gap-2 max-w-[80%] ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
                 {msg.role === 'assistant' && (
                   <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-100 text-sm">

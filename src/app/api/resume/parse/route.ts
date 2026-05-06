@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as multipart from 'parse-multipart-data';
+import { createClient } from '@/lib/supabase/server';
 
 export const runtime = 'nodejs';
 
@@ -17,6 +18,12 @@ function extractBoundary(contentType: string, body: Buffer): string | null {
 }
 
 export async function POST(request: NextRequest) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: '未登录' }, { status: 401 });
+  }
+
   try {
     const contentType = request.headers.get('content-type') || '';
     const bodyBuffer = Buffer.from(await request.arrayBuffer());
@@ -61,7 +68,7 @@ export async function POST(request: NextRequest) {
     if (fileName.endsWith('.pdf')) {
       const pdfParse = await import('pdf-parse');
       const uint8 = new Uint8Array(fileData.data);
-      const parser = new pdfParse.PDFParse({ data: uint8, useWorker: false } as any);
+      const parser = new pdfParse.PDFParse({ data: uint8, useWorker: false } as Record<string, unknown>);
       const result = await parser.getText();
       await parser.destroy();
       return NextResponse.json({ text: typeof result === 'string' ? result : result.text ?? String(result) });

@@ -2,9 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import dynamic from 'next/dynamic';
-
-const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false });
+import ReactECharts from '@/components/ui/EChartsWrapper';
 
 /* ── Types ── */
 interface ModuleDetails {

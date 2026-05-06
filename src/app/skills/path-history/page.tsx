@@ -22,7 +22,7 @@ export default function PathHistoryPage() {
   const fetchHistory = useCallback(async (p: number) => {
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/skills/ai-learning-path/history?page=${p}&limit=20`);
+      const res = await fetch(`/api/skills/ai-learning-path/history?page=${p}&page_size=20`);
       if (res.ok) {
         const data = await res.json();
         setRecords(data.records ?? []);

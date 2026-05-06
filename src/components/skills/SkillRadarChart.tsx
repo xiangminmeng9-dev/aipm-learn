@@ -1,9 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import dynamic from 'next/dynamic';
-
-const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false });
+import ReactECharts from '@/components/ui/EChartsWrapper';
 
 interface ModuleData {
   id: string;

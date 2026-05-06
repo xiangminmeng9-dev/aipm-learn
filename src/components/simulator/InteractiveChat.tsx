@@ -5,6 +5,7 @@ import Markdown from '@/components/ui/markdown';
 import type { SimulatorStageConfig } from '@/lib/simulator-config';
 
 interface Message {
+  id: string;
   role: 'user' | 'assistant';
   content: string;
 }
@@ -27,6 +28,14 @@ export default function InteractiveChat({ stage, sessionId, scenarioId, savedMes
   const [currentSessionId, setCurrentSessionId] = useState(sessionId);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const contentRef = useRef('');
+  const msgIdCounter = useRef(0);
+  const messagesRef = useRef<Message[]>([]);
+
+  // Keep messagesRef in sync with state
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
+
+  const nextMsgId = () => `msg-${++msgIdCounter.current}-${Date.now()}`;
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -38,10 +47,10 @@ export default function InteractiveChat({ stage, sessionId, scenarioId, savedMes
 
     if (savedMessages && savedMessages.length > 0) {
       // Restore from DB
-      setMessages(savedMessages.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })));
+      setMessages(savedMessages.map(m => ({ id: nextMsgId(), role: m.role as 'user' | 'assistant', content: m.content })));
     } else if (stage.openingMessage && messages.length === 0) {
       // Show NPC opening message
-      setMessages([{ role: 'assistant', content: stage.openingMessage }]);
+      setMessages([{ id: nextMsgId(), role: 'assistant', content: stage.openingMessage }]);
     }
   }, [savedMessages, isLoadingHistory, stage.openingMessage]);
 
@@ -49,7 +58,7 @@ export default function InteractiveChat({ stage, sessionId, scenarioId, savedMes
     const text = input.trim();
     if (!text || isStreaming || isSubmitting) return;
 
-    const userMsg = { role: 'user' as const, content: text };
+    const userMsg = { id: nextMsgId(), role: 'user' as const, content: text };
     setMessages(prev => [...prev, userMsg]);
     setInput('');
 
@@ -71,7 +80,7 @@ export default function InteractiveChat({ stage, sessionId, scenarioId, savedMes
           scenario_id: scenarioId,
           session_id: currentSessionId,
           is_submission: isSubmission,
-          history: messages.filter(m => m.role === 'user' || m.role === 'assistant'),
+          history: messagesRef.current.filter(m => m.role === 'user' || m.role === 'assistant'),
         }),
         signal: abortRef.current.signal,
       });
@@ -93,8 +102,8 @@ export default function InteractiveChat({ stage, sessionId, scenarioId, savedMes
 
       if (reader) {
         let buffer = '';
-        let assistantContent = '';
-        setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
+        contentRef.current = '';
+        setMessages(prev => [...prev, { id: nextMsgId(), role: 'assistant', content: '' }]);
 
         while (true) {
           const { done, value } = await reader.read();
@@ -109,10 +118,11 @@ export default function InteractiveChat({ stage, sessionId, scenarioId, savedMes
               try {
                 const data = JSON.parse(line.slice(6));
                 if (data.type === 'chunk') {
-                  assistantContent += data.content;
+                  contentRef.current += data.content;
+                  const currentContent = contentRef.current;
                   setMessages(prev => {
                     const copy = [...prev];
-                    copy[copy.length - 1] = { role: 'assistant', content: assistantContent };
+                    copy[copy.length - 1] = { ...copy[copy.length - 1], content: currentContent };
                     return copy;
                   });
                 }
@@ -126,7 +136,7 @@ export default function InteractiveChat({ stage, sessionId, scenarioId, savedMes
       }
     } catch (err) {
       if (err instanceof Error && err.name !== 'AbortError') {
-        setMessages(prev => [...prev, { role: 'assistant', content: '网络错误，请重试。' }]);
+        setMessages(prev => [...prev, { id: nextMsgId(), role: 'assistant', content: '网络错误，请重试。' }]);
       }
     } finally {
       setIsStreaming(false);
@@ -167,8 +177,8 @@ export default function InteractiveChat({ stage, sessionId, scenarioId, savedMes
 
       {/* Messages */}
       <div className="flex-1 space-y-4 overflow-y-auto p-4">
-        {messages.map((msg, i) => (
-          <div key={i} className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
+        {messages.map((msg) => (
+          <div key={msg.id} className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
             {msg.role === 'assistant' && (
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-teal-100 text-sm">
                 {stage.npcAvatar}
