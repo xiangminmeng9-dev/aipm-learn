@@ -25,6 +25,17 @@ const DEFAULT_CONFIG: AIConfig = {
   model: 'astron-code-latest',
 };
 
+const RETRY_DELAYS = [2000, 4000, 8000];
+
+function isRateLimitError(err: unknown): boolean {
+  const msg = String(err);
+  return msg.includes('11202') || msg.includes('QpsOverFlow') || msg.includes('rate_limit') || msg.includes('429');
+}
+
+async function sleep(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
 // Request-level cache: resolved once per request, reused across AI calls
 let cachedConfig: { config: AIConfig; userId: string } | null = null;
 
@@ -34,7 +45,6 @@ async function resolveConfig(): Promise<AIConfig> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { cachedConfig = null; return DEFAULT_CONFIG; }
 
-    // Return cached config if same user within this request
     if (cachedConfig && cachedConfig.userId === user.id) {
       return cachedConfig.config;
     }
@@ -68,21 +78,85 @@ async function resolveConfig(): Promise<AIConfig> {
 }
 
 function buildAnthropic(cfg: AIConfig): Anthropic {
+  const isThirdParty = !!cfg.baseURL;
   return new Anthropic({
     apiKey: cfg.apiKey,
     baseURL: cfg.baseURL,
     timeout: 120_000,
-    maxRetries: 2,
+    maxRetries: 0,
+    // Third-party APIs (Xunfei MaaS etc.) don't understand the SDK's
+    // generated Authorization header and only accept x-api-key.
+    fetch: isThirdParty ? stripAuthFetch : undefined,
   });
 }
+
+const stripAuthFetch: typeof globalThis.fetch = (url, init) => {
+  const headers = new Headers(init?.headers);
+  headers.delete('authorization');
+  return globalThis.fetch(url, { ...init, headers });
+};
 
 function buildOpenAI(cfg: AIConfig): OpenAI {
   return new OpenAI({
     apiKey: cfg.apiKey,
     baseURL: cfg.baseURL,
     timeout: 120_000,
-    maxRetries: 2,
+    maxRetries: 0,
   });
+}
+
+async function callAnthropic(
+  cfg: AIConfig,
+  model: string,
+  maxTokens: number,
+  system: string | undefined,
+  messages: { role: 'user' | 'assistant'; content: string }[],
+  stream: boolean
+): Promise<string> {
+  const client = buildAnthropic(cfg);
+
+  if (stream) {
+    const s = client.messages.stream({
+      model,
+      max_tokens: maxTokens,
+      system: system || undefined,
+      messages,
+    });
+
+    let result = '';
+    for await (const event of s) {
+      if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+        result += event.delta.text;
+      }
+    }
+    return result;
+  }
+
+  const resp = await client.messages.create({
+    model,
+    max_tokens: maxTokens,
+    system: system || undefined,
+    messages,
+  });
+
+  return resp.content.map((c) => (c.type === 'text' ? c.text : '')).join('');
+}
+
+async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
+  let lastErr: unknown;
+  for (let i = 0; i <= RETRY_DELAYS.length; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      if (i < RETRY_DELAYS.length && isRateLimitError(err)) {
+        await sleep(RETRY_DELAYS[i]);
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw lastErr;
 }
 
 export async function generateText(
@@ -95,9 +169,8 @@ export async function generateText(
 ): Promise<string> {
   const { system, maxTokens = 4096 } = options;
   const cfg = await resolveConfig();
-  // Only use sonnet/haiku when using official Anthropic API (no custom baseURL)
-  const isOfficialAnthropic = !cfg.baseURL;
-  const model = (isOfficialAnthropic && options.model) ? options.model : cfg.model;
+  const model = cfg.model || options.model || 'sonnet';
+  const isThirdParty = !!cfg.baseURL;
 
   if (cfg.protocol === 'openai') {
     const client = buildOpenAI(cfg);
@@ -105,30 +178,19 @@ export async function generateText(
     if (system) messages.push({ role: 'system', content: system });
     messages.push({ role: 'user', content: prompt });
 
-    const resp = await client.chat.completions.create({
-      model,
-      max_tokens: maxTokens,
-      messages,
-    });
+    const resp = await withRetry(() =>
+      client.chat.completions.create({ model, max_tokens: maxTokens, messages })
+    );
     return resp.choices[0]?.message?.content ?? '';
   }
 
-  // Anthropic — use streaming to avoid timeout on slow responses
-  const client = buildAnthropic(cfg);
-  const stream = client.messages.stream({
-    model,
-    max_tokens: maxTokens,
-    system: system || undefined,
-    messages: [{ role: 'user', content: prompt }],
-  });
-
-  let result = '';
-  for await (const event of stream) {
-    if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-      result += event.delta.text;
-    }
-  }
-  return result;
+  return withRetry(() =>
+    callAnthropic(
+      cfg, model, maxTokens, system,
+      [{ role: 'user' as const, content: prompt }],
+      !isThirdParty
+    )
+  );
 }
 
 export async function generateChatResponse(
@@ -141,9 +203,8 @@ export async function generateChatResponse(
 ): Promise<string> {
   const { system, maxTokens = 4096 } = options;
   const cfg = await resolveConfig();
-  // Only use sonnet/haiku when using official Anthropic API (no custom baseURL)
-  const isOfficialAnthropic = !cfg.baseURL;
-  const model = (isOfficialAnthropic && options.model) ? options.model : cfg.model;
+  const model = cfg.model || options.model || 'sonnet';
+  const isThirdParty = !!cfg.baseURL;
 
   if (cfg.protocol === 'openai') {
     const client = buildOpenAI(cfg);
@@ -151,30 +212,15 @@ export async function generateChatResponse(
     if (system) fullMessages.push({ role: 'system', content: system });
     fullMessages.push(...messages);
 
-    const resp = await client.chat.completions.create({
-      model,
-      max_tokens: maxTokens,
-      messages: fullMessages,
-    });
+    const resp = await withRetry(() =>
+      client.chat.completions.create({ model, max_tokens: maxTokens, messages: fullMessages })
+    );
     return resp.choices[0]?.message?.content ?? '';
   }
 
-  // Anthropic — use streaming to avoid timeout
-  const client = buildAnthropic(cfg);
-  const stream = client.messages.stream({
-    model,
-    max_tokens: maxTokens,
-    system: system || undefined,
-    messages,
-  });
-
-  let result = '';
-  for await (const event of stream) {
-    if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-      result += event.delta.text;
-    }
-  }
-  return result;
+  return withRetry(() =>
+    callAnthropic(cfg, model, maxTokens, system, messages, !isThirdParty)
+  );
 }
 
 export async function* streamChatResponse(
@@ -187,9 +233,7 @@ export async function* streamChatResponse(
 ): AsyncGenerator<string> {
   const { system, maxTokens = 4096 } = options;
   const cfg = await resolveConfig();
-  // Only use sonnet/haiku when using official Anthropic API (no custom baseURL)
-  const isOfficialAnthropic = !cfg.baseURL;
-  const model = (isOfficialAnthropic && options.model) ? options.model : cfg.model;
+  const model = cfg.model || options.model || 'sonnet';
 
   if (cfg.protocol === 'openai') {
     const client = buildOpenAI(cfg);
@@ -197,14 +241,14 @@ export async function* streamChatResponse(
     if (system) fullMessages.push({ role: 'system', content: system });
     fullMessages.push(...messages);
 
-    const stream = await client.chat.completions.create({
+    const s = await client.chat.completions.create({
       model,
       max_tokens: maxTokens,
       messages: fullMessages,
       stream: true,
     });
 
-    for await (const event of stream) {
+    for await (const event of s) {
       const delta = event.choices[0]?.delta?.content;
       if (delta) yield delta;
     }
@@ -212,14 +256,14 @@ export async function* streamChatResponse(
   }
 
   const client = buildAnthropic(cfg);
-  const stream = client.messages.stream({
+  const s = client.messages.stream({
     model,
     max_tokens: maxTokens,
     system: system || undefined,
     messages,
   });
 
-  for await (const event of stream) {
+  for await (const event of s) {
     if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
       yield event.delta.text;
     }
