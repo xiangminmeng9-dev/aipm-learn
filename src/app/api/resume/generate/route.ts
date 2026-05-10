@@ -8,9 +8,7 @@ const VALID_STYLE_TYPES = ['standard', 'big_company', 'industry_tech', 'industry
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: '未登录', code: 'UNAUTHORIZED' }, { status: 401 });
@@ -26,24 +24,15 @@ export async function POST(request: NextRequest) {
     };
 
     if (!resume_text || resume_text.trim().length < 5) {
-      return NextResponse.json(
-        { error: '简历内容不能为空', code: 'VALIDATION_ERROR' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: '简历内容不能为空', code: 'VALIDATION_ERROR' }, { status: 400 });
     }
 
     if (!jd_text || jd_text.trim().length < 20) {
-      return NextResponse.json(
-        { error: 'JD内容至少需要20个字符', code: 'VALIDATION_ERROR' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'JD内容至少需要20个字符', code: 'VALIDATION_ERROR' }, { status: 400 });
     }
 
     if (!style_type || !VALID_STYLE_TYPES.includes(style_type)) {
-      return NextResponse.json(
-        { error: 'style_type 必须是: standard, big_company, industry_tech, industry_finance, industry_internet', code: 'VALIDATION_ERROR' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'style_type 必须是: standard, big_company, industry_tech, industry_finance, industry_internet', code: 'VALIDATION_ERROR' }, { status: 400 });
     }
 
     const prompt = buildResumeGeneratePrompt({
@@ -58,19 +47,84 @@ export async function POST(request: NextRequest) {
       maxTokens: 8192,
     });
 
-    // Parse JSON response (strip markdown fences if present)
-    let parsed;
+    // Parse JSON response
+    let parsed: Record<string, unknown>;
     try {
-      const cleaned = resultText
-        .trim()
-        .replace(/^```json?\s*\n?/i, '')
-        .replace(/\n?```\s*$/i, '');
+      const cleaned = resultText.trim().replace(/^```json?\s*\n?/i, '').replace(/\n?```\s*$/i, '');
       parsed = JSON.parse(cleaned);
     } catch {
-      parsed = {
-        modified_resume: resultText.trim(),
-        changes_summary: '',
-      };
+      return NextResponse.json({ modified_resume: resultText.trim(), changes_summary: '', resume_data: null });
+    }
+
+    // Determine if this is new structured format or old format
+    let modifiedResume: string;
+    let changesSummary: string;
+    let resumeData: Record<string, unknown> | null = null;
+
+    if (parsed.work_experience || parsed.name) {
+      // New structured format
+      resumeData = parsed;
+      changesSummary = (parsed.changes_summary as string) || '';
+
+      // Generate markdown for backward compat (ResumeResult display)
+      const md: string[] = [];
+      if (parsed.name) md.push('## ' + parsed.name);
+      const contact = parsed.contact as Record<string, string> | undefined;
+      if (contact) {
+        const parts = [contact.phone, contact.email, contact.location, contact.linkedin, contact.github].filter(Boolean);
+        if (parts.length) md.push(parts.join(' | '));
+      }
+      if (parsed.summary) md.push('\n> ' + parsed.summary + '\n');
+
+      const workExp = parsed.work_experience as Array<Record<string, unknown>> | undefined;
+      if (workExp?.length) {
+        md.push('\n## 工作经历');
+        for (const w of workExp) {
+          md.push('### ' + (w.position || '') + ' | ' + (w.company || ''));
+          if (w.period) md.push('*' + w.period + '*');
+          const highlights = w.highlights as string[] | undefined;
+          if (highlights) highlights.forEach(h => md.push('- ' + h));
+        }
+      }
+
+      const projects = parsed.projects as Array<Record<string, unknown>> | undefined;
+      if (projects?.length) {
+        md.push('\n## 项目经验');
+        for (const p of projects) {
+          md.push('### ' + (p.name || '') + (p.role ? ' · ' + p.role : ''));
+          if (p.period) md.push('*' + p.period + '*');
+          if (p.description) md.push(p.description as string);
+          const highlights = p.highlights as string[] | undefined;
+          if (highlights) highlights.forEach(h => md.push('- ' + h));
+        }
+      }
+
+      const education = parsed.education as Array<Record<string, unknown>> | undefined;
+      if (education?.length) {
+        md.push('\n## 教育背景');
+        for (const e of education) {
+          md.push('### ' + (e.school || '') + ' | ' + [e.degree, e.major].filter(Boolean).join(' · '));
+          if (e.period) md.push('*' + e.period + '*');
+          const highlights = e.highlights as string[] | undefined;
+          if (highlights?.length) highlights.forEach(h => md.push('- ' + h));
+        }
+      }
+
+      const skills = parsed.skills as Array<Record<string, unknown>> | undefined;
+      if (skills?.length) {
+        md.push('\n## 专业技能');
+        for (const s of skills) {
+          const items = s.items as string[] | undefined;
+          if (items) md.push('**' + (s.category || '') + '**：' + items.join('、'));
+        }
+      }
+
+      modifiedResume = md.join('\n');
+    } else {
+      // Old format
+      modifiedResume = (parsed.modified_resume as string) || '';
+      changesSummary = (parsed.changes_summary as string) || '';
+      resumeData = null;
     }
 
     // Save to resume_versions table
@@ -79,8 +133,8 @@ export async function POST(request: NextRequest) {
       .insert({
         user_id: user.id,
         original_resume_text: resume_text,
-        modified_resume: parsed.modified_resume,
-        changes_summary: parsed.changes_summary,
+        modified_resume: modifiedResume,
+        changes_summary: changesSummary,
         style_type,
         jd_text,
         company_name: company_name || null,
@@ -91,18 +145,19 @@ export async function POST(request: NextRequest) {
 
     if (insertError || !version) {
       console.error('Failed to save resume version:', insertError);
-      // Still return the result even if saving fails
       return NextResponse.json({
         id: null,
-        modified_resume: parsed.modified_resume,
-        changes_summary: parsed.changes_summary,
+        modified_resume: modifiedResume,
+        changes_summary: changesSummary,
+        resume_data: resumeData,
       });
     }
 
     return NextResponse.json({
       id: version.id,
-      modified_resume: parsed.modified_resume,
-      changes_summary: parsed.changes_summary,
+      modified_resume: modifiedResume,
+      changes_summary: changesSummary,
+      resume_data: resumeData,
     });
   } catch (error) {
     console.error('Resume generate API error:', error);

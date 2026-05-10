@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import Markdown from '@/components/ui/markdown';
 import CompetitiveScoreCard from './CompetitiveScoreCard';
 import type { DimensionScore } from '@/types';
 
@@ -171,8 +170,8 @@ export default function CompetitiveAnalysisView() {
             <span className="text-sm text-muted-foreground">AI 正在生成竞品分析...</span>
           </div>
           <div className="rounded-xl border bg-card p-5">
-            <div className="prose prose-sm max-w-none dark:prose-invert">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{streamingText}</ReactMarkdown>
+            <div>
+              <Markdown content={streamingText} />
             </div>
           </div>
         </div>
@@ -193,8 +192,8 @@ export default function CompetitiveAnalysisView() {
           <div className="space-y-4">
             {[result.marketPosition, result.featureComparison, result.strengthsWeaknesses, result.differentiationStrategy].filter(Boolean).map((section, i) => (
               <div key={i} className="rounded-xl border bg-card p-5">
-                <div className="prose prose-sm max-w-none dark:prose-invert">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{section}</ReactMarkdown>
+                <div>
+                  <Markdown content={section} />
                 </div>
               </div>
             ))}

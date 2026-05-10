@@ -16,6 +16,33 @@ interface ModuleDetails {
   dailyChallenge: { submissions: number; streak: number; avgScore: number; scoreHistory: { date: string; score: number }[]; scoreDistribution: { range: string; count: number }[]; streakCalendar: { date: string; hasSubmission: boolean }[] };
 }
 
+interface AiUsageData {
+  byModule: Record<string, { calls: number; inputTokens: number; outputTokens: number }>;
+  daily: { date: string; calls: number; tokens: number }[];
+  totalCalls: number;
+  totalTokens: number;
+}
+
+interface DurationData {
+  daily: { date: string; minutes: number; byModule: Record<string, number> }[];
+  total: number;
+  average: number;
+}
+
+interface SkillGrowthData {
+  curve: { date: string; coverage: number; tasksCompleted: number }[];
+  currentCoverage: number;
+}
+
+interface GoalData {
+  dailyMinutesTarget: number;
+  weeklySessionsTarget: number;
+  monthlyScoreTarget: number;
+  dailyProgress: number;
+  weeklyProgress: number;
+  monthlyProgress: number;
+}
+
 interface DashboardData {
   totalLearningMinutes: number;
   interviewCount: number;
@@ -29,6 +56,10 @@ interface DashboardData {
   progressCurve: { date: string; interviews: number; challenges: number; totalActivity: number; avgScore: number }[];
   scoreTrend: { date: string; score: number; type: string }[];
   moduleDetails?: ModuleDetails;
+  aiUsage?: AiUsageData;
+  duration?: DurationData;
+  skillGrowth?: SkillGrowthData;
+  goals?: GoalData;
 }
 
 /* -- Shared ECharts theme helpers -- */
@@ -82,14 +113,16 @@ function ModuleHeader({ icon, title, href, accent }: { icon: string; title: stri
 export default function LearningDashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d'>('7d');
 
   useEffect(() => {
-    fetch('/api/learning/dashboard')
+    setIsLoading(true);
+    fetch(`/api/learning/dashboard?range=${timeRange}`)
       .then((r) => r.ok ? r.json() : null)
       .then((d) => setData(d))
       .catch(() => {})
       .finally(() => setIsLoading(false));
-  }, []);
+  }, [timeRange]);
 
   if (isLoading) {
     return (
@@ -121,6 +154,13 @@ export default function LearningDashboardPage() {
             返回
           </Link>
           <h1 className="text-base font-bold text-foreground">学习数据看板</h1>
+          <div className="flex items-center gap-1 rounded-lg bg-muted p-1">
+            {(['7d', '30d', '90d'] as const).map((r) => (
+              <button key={r} onClick={() => setTimeRange(r)} className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${timeRange === r ? 'bg-indigo-600 text-white' : 'text-muted-foreground hover:text-foreground'}`}>
+                {r === '7d' ? '7天' : r === '30d' ? '30天' : '90天'}
+              </button>
+            ))}
+          </div>
           <span className="text-xs text-muted-foreground">{formatMinutes(data.totalLearningMinutes)} · {data.interviewCount} 次面试 · {data.skillCoverage}% 技能覆盖</span>
         </div>
       </header>

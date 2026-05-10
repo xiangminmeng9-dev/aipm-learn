@@ -38,6 +38,7 @@ const topShelf: BookItem[] = [
     subFeatures: [
       { label: '开发流程生成', href: '/coding/practice' },
       { label: '实操练习', href: '/coding/spec-practice' },
+      { label: '实操历史', href: '/coding/spec-history' },
       { label: '提示词范例', href: '/coding/prompts' },
       { label: '历史记录', href: '/coding/flows' },
       { label: '方法论提炼', href: '/coding/methodology' },
@@ -103,15 +104,17 @@ const bottomShelf: BookItem[] = [
     title: 'Interview',
     titleEn: 'Interview',
     label: 'AI PM 面试助手',
-    description: '面试助手 · 面试问答 · 模拟面试 · 竞品分析 · 方法论 · 练习统计',
+    description: '面试助手 · 面试问答 · 面试收藏 · 题库社区 · 面试技巧 · 模拟面试 · 竞品分析 · 方法论 · 练习统计',
     detail:
-      'AI PM 面试助手覆盖面试全流程：AI 面试助手对话、智能问答、对话式 Session、模拟面试、方法论提炼和练习统计。通过 AI 驱动的实战练习，让你在 PM 面试中脱颖而出。',
+      'AI PM 面试助手覆盖面试全流程：AI 面试助手对话、智能问答、面试收藏夹、题库社区共享、面试技巧库、模拟面试、竞品分析、方法论提炼和练习统计。通过 AI 驱动的实战练习，让你在 PM 面试中脱颖而出。',
     href: '/interview/assistant',
     theme: 'interview',
     subFeatures: [
       { label: '面试助手', href: '/interview/assistant' },
       { label: '面试问答', href: '/interview/qa' },
-      { label: '对话 Session', href: '/interview/sessions' },
+      { label: '面试收藏', href: '/interview/favorites' },
+      { label: '题库社区', href: '/interview/community' },
+      { label: '面试技巧', href: '/interview/tips' },
       { label: '模拟面试', href: '/interview/mock' },
       { label: '方法论', href: '/interview/methodology' },
       { label: '练习统计', href: '/interview/stats' },
@@ -165,6 +168,7 @@ const bottomShelf: BookItem[] = [
     theme: 'daily-challenge',
     subFeatures: [
       { label: '今日挑战', href: '/daily-challenge' },
+      { label: '答题记录', href: '/daily-challenge/history' },
       { label: '知识闪卡', href: '/daily-challenge/flashcards' },
       { label: '错题本', href: '/daily-challenge/wrong' },
       { label: '每日 AI 技术', href: '/daily-challenge/tech' },

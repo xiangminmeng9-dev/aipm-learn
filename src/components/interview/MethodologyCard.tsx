@@ -23,8 +23,11 @@ interface MethodologyCardProps {
  * - Handles nested JSON strings inside JSON values
  */
 function normalizeContent(text: string): string {
-  const trimmed = text.trim();
+  let trimmed = text.trim();
   if (!trimmed) return trimmed;
+
+  // Strip markdown code fences (```json ... ```)
+  trimmed = trimmed.replace(/^```(?:json|javascript|js)?\s*\n?/i, '').replace(/\n?```\s*$/i, '');
 
   // Try parsing as JSON
   if (trimmed.startsWith('{') || trimmed.startsWith('[')) {

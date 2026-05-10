@@ -1,15 +1,22 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: '请先登录' }, { status: 401 });
 
     const serviceClient = createServiceClient();
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    // Time range support
+    const { searchParams } = new URL(request.url);
+    const rangeParam = searchParams.get('range') || '7d';
+    const rangeDays = rangeParam === '90d' ? 90 : rangeParam === '30d' ? 30 : 7;
+    const rangeAgo = new Date();
+    rangeAgo.setDate(rangeAgo.getDate() - rangeDays);
+
+    const sevenDaysAgo = rangeAgo;
 
     // -- Coding (dev_flows) --
     let codingFlowCount = 0, codingRecent = 0;
@@ -411,8 +418,141 @@ export async function GET() {
 
     const totalLearningMinutes = interviewCount * 15 + completedTaskCount * 10;
 
+    // -- AI Usage Analytics --
+    let aiUsageByModule: Record<string, { calls: number; inputTokens: number; outputTokens: number }> = {};
+    let aiUsageDaily: { date: string; calls: number; tokens: number }[] = [];
+    let totalAiCalls = 0, totalTokens = 0;
+    try {
+      const { data: aiLogs } = await serviceClient
+        .from('user_activity_logs')
+        .select('module, input_tokens, output_tokens, created_at')
+        .eq('user_id', user.id)
+        .eq('action', 'ai_call')
+        .gte('created_at', rangeAgo.toISOString())
+        .order('created_at', { ascending: true });
+      if (aiLogs && aiLogs.length > 0) {
+        const moduleMap: Record<string, { calls: number; inputTokens: number; outputTokens: number }> = {};
+        const dailyMap: Record<string, { calls: number; tokens: number }> = {};
+        // Initialize daily map
+        for (let i = rangeDays - 1; i >= 0; i--) {
+          const d = new Date(); d.setDate(d.getDate() - i);
+          dailyMap[d.toISOString().split('T')[0]] = { calls: 0, tokens: 0 };
+        }
+        for (const log of aiLogs) {
+          const mod = log.module || 'other';
+          if (!moduleMap[mod]) moduleMap[mod] = { calls: 0, inputTokens: 0, outputTokens: 0 };
+          moduleMap[mod].calls++;
+          moduleMap[mod].inputTokens += log.input_tokens || 0;
+          moduleMap[mod].outputTokens += log.output_tokens || 0;
+          const date = new Date(log.created_at).toISOString().split('T')[0];
+          if (date in dailyMap) {
+            dailyMap[date].calls++;
+            dailyMap[date].tokens += (log.input_tokens || 0) + (log.output_tokens || 0);
+          }
+        }
+        aiUsageByModule = moduleMap;
+        totalAiCalls = aiLogs.length;
+        totalTokens = aiLogs.reduce((s, l) => s + (l.input_tokens || 0) + (l.output_tokens || 0), 0);
+        aiUsageDaily = Object.entries(dailyMap).sort(([a], [b]) => a.localeCompare(b)).map(([date, v]) => ({ date: date.slice(5), ...v }));
+      }
+    } catch {}
+
+    // -- Real Learning Duration --
+    let durationDaily: { date: string; minutes: number; byModule: Record<string, number> }[] = [];
+    let totalDurationMinutes = 0, avgDailyMinutes = 0;
+    try {
+      const { data: durationLogs } = await serviceClient
+        .from('user_activity_logs')
+        .select('module, duration_seconds, created_at')
+        .eq('user_id', user.id)
+        .eq('action', 'page_view')
+        .gte('created_at', rangeAgo.toISOString())
+        .order('created_at', { ascending: true });
+      if (durationLogs && durationLogs.length > 0) {
+        const dailyMap: Record<string, { seconds: number; byModule: Record<string, number> }> = {};
+        for (let i = rangeDays - 1; i >= 0; i--) {
+          const d = new Date(); d.setDate(d.getDate() - i);
+          dailyMap[d.toISOString().split('T')[0]] = { seconds: 0, byModule: {} };
+        }
+        for (const log of durationLogs) {
+          const date = new Date(log.created_at).toISOString().split('T')[0];
+          if (date in dailyMap) {
+            const secs = log.duration_seconds || 0;
+            dailyMap[date].seconds += secs;
+            const mod = log.module || 'other';
+            dailyMap[date].byModule[mod] = (dailyMap[date].byModule[mod] || 0) + secs;
+          }
+        }
+        durationDaily = Object.entries(dailyMap).sort(([a], [b]) => a.localeCompare(b)).map(([date, v]) => ({
+          date: date.slice(5),
+          minutes: Math.round(v.seconds / 60),
+          byModule: Object.fromEntries(Object.entries(v.byModule).map(([m, s]) => [m, Math.round(s / 60)])),
+        }));
+        totalDurationMinutes = Math.round(durationLogs.reduce((s, l) => s + (l.duration_seconds || 0), 0) / 60);
+        avgDailyMinutes = durationDaily.length > 0 ? Math.round(totalDurationMinutes / durationDaily.filter((d) => d.minutes > 0).length) : 0;
+      }
+    } catch {}
+
+    // -- Skill Growth Over Time --
+    let skillGrowthCurve: { date: string; coverage: number; tasksCompleted: number }[] = [];
+    try {
+      const { data: progressData } = await serviceClient
+        .from('learning_progress')
+        .select('completed_at, status')
+        .eq('user_id', user.id)
+        .eq('status', 'completed')
+        .gte('completed_at', rangeAgo.toISOString())
+        .order('completed_at', { ascending: true });
+      if (progressData && progressData.length > 0) {
+        let cumulative = 0;
+        const map: Record<string, number> = {};
+        for (const p of progressData) {
+          const date = new Date(p.completed_at).toISOString().split('T')[0];
+          cumulative++;
+          map[date] = cumulative;
+        }
+        const baseCompleted = completedTaskCount - cumulative;
+        skillGrowthCurve = Object.entries(map).sort(([a], [b]) => a.localeCompare(b)).map(([date, tasks]) => ({
+          date: date.slice(5),
+          coverage: totalTaskCount > 0 ? Math.round(((baseCompleted + tasks) / totalTaskCount) * 100) : 0,
+          tasksCompleted: baseCompleted + tasks,
+        }));
+      }
+    } catch {}
+
+    // -- User Goals --
+    let userGoals = { dailyMinutesTarget: 30, weeklySessionsTarget: 5, monthlyScoreTarget: 75 };
+    try {
+      const { data: goals } = await serviceClient
+        .from('user_daily_goals')
+        .select('daily_minutes_target, weekly_sessions_target, monthly_score_target')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (goals) userGoals = { dailyMinutesTarget: goals.daily_minutes_target, weeklySessionsTarget: goals.weekly_sessions_target, monthlyScoreTarget: goals.monthly_score_target };
+    } catch {}
+
+    // Calculate goal progress
+    const todayStr = new Date().toISOString().split('T')[0];
+    const todayDuration = durationDaily.find((d) => {
+      const fullDate = new Date();
+      fullDate.setDate(fullDate.getDate() - (rangeDays - 1 - durationDaily.indexOf(d)));
+      return fullDate.toISOString().split('T')[0] === todayStr;
+    })?.minutes || 0;
+
+    const weekStart = new Date();
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+    let weeklySessions = 0;
+    try {
+      const { count: wCount } = await serviceClient
+        .from('assistant_qa_records')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .gte('created_at', weekStart.toISOString());
+      weeklySessions = wCount ?? 0;
+    } catch {}
+
     return NextResponse.json({
-      totalLearningMinutes, interviewCount, avgScore, challengeCount, skillCoverage,
+      totalLearningMinutes: totalDurationMinutes || totalLearningMinutes, interviewCount, avgScore, challengeCount, skillCoverage,
       totalModules, completedModules: skillModules.filter((m) => m.completed === m.total && m.total > 0).length,
       totalTasks: totalTaskCount, completedTasks: completedTaskCount,
       progressCurve, scoreTrend,
@@ -425,6 +565,15 @@ export async function GET() {
         resume: { versions: resumeVersions, matchScore: resumeMatchScore, matchTrend: resumeMatchTrend, jobStats: resumeJobStats },
         resources: { count: resourcesCount, articlesRead, byCategory: resourcesByCategory, readingPace },
         dailyChallenge: { submissions: challengeCount, streak: dailyStreak, avgScore: challengeAvgScore, scoreHistory: challengeScoreHistory, scoreDistribution: challengeScoreDist, streakCalendar: challengeStreakCalendar },
+      },
+      aiUsage: { byModule: aiUsageByModule, daily: aiUsageDaily, totalCalls: totalAiCalls, totalTokens },
+      duration: { daily: durationDaily, total: totalDurationMinutes, average: avgDailyMinutes },
+      skillGrowth: { curve: skillGrowthCurve, currentCoverage: skillCoverage },
+      goals: {
+        ...userGoals,
+        dailyProgress: todayDuration,
+        weeklyProgress: weeklySessions,
+        monthlyProgress: avgScore,
       },
     });
   } catch (err) {

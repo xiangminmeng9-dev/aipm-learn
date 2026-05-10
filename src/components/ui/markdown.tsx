@@ -42,7 +42,7 @@ export default function Markdown({ content, className = '', enableECharts = fals
 
   return (
     <div
-      className={`max-w-none break-words overflow-wrap-anywhere hyphens-auto text-muted-foreground leading-relaxed [&_h1]:text-foreground [&_h1]:font-semibold [&_h2]:text-foreground [&_h2]:font-semibold [&_h3]:text-foreground [&_h3]:font-semibold [&_strong]:text-foreground [&_a]:text-indigo-600 [&_a]:no-underline [&_a:hover]:underline [&_code]:rounded-md [&_code]:bg-secondary [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:text-indigo-600 [&_code]:text-sm [&_code]:before:content-none [&_code]:after:content-none [&_pre]:bg-muted [&_pre]:border [&_pre]:border-border [&_pre]:rounded-xl [&_pre]:text-base [&_pre]:overflow-x-auto ${className}`}
+      className={`prose prose-sm max-w-none dark:prose-invert break-words overflow-wrap-anywhere hyphens-auto leading-relaxed ${className}`}
     >
       <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>{content}</ReactMarkdown>
     </div>

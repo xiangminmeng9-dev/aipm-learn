@@ -30,7 +30,7 @@ export default function LoginForm() {
         setLoading(false);
         return;
       }
-      const next = searchParams.get('next') || '/interview/qa';
+      const next = searchParams.get('next') || '/';
       router.push(next);
       router.refresh();
     } catch {

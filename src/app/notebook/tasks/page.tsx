@@ -14,6 +14,8 @@ import {
 } from '@dnd-kit/core';
 import { useDraggable } from '@dnd-kit/core';
 import { type Task, getTasks, createTask, createTasksBatch, updateTask, deleteTask } from '@/lib/notebook-store';
+import { useToast } from '@/components/ui/toast';
+import { Skeleton } from '@/components/ui/skeleton';
 
 function localDateStr(d: Date = new Date()): string {
   const y = d.getFullYear();
@@ -439,24 +441,17 @@ export default function DailyTasksPage() {
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
+  const toast = useToast();
+
   const fetchTasks = useCallback(async () => {
+    setIsLoading(true);
     const { tasks: t, authed } = await getTasks(selectedDate);
     setTasks(t);
     setIsAuthed(authed);
     setIsLoading(false);
   }, [selectedDate]);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const { tasks: t, authed } = await getTasks(selectedDate);
-      if (cancelled) return;
-      setTasks(t);
-      setIsAuthed(authed);
-      setIsLoading(false);
-    })();
-    return () => { cancelled = true; };
-  }, [selectedDate]);
+  useEffect(() => { fetchTasks(); }, [fetchTasks]);
 
   // Assign columns (only for scheduled tasks)
   const scheduledTasks = useMemo(() => getScheduledTasks(tasks), [tasks]);
@@ -630,7 +625,15 @@ export default function DailyTasksPage() {
   const showNowLine = isToday;
 
   if (isLoading) {
-    return <div className="flex h-full items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" /></div>;
+    return (
+      <div className="min-h-full p-6 md:p-8 space-y-4">
+        <Skeleton className="h-8 w-56" />
+        <div className="flex gap-2"><Skeleton className="h-10 w-20" /><Skeleton className="h-10 w-28" /></div>
+        <div className="rounded-2xl border border-border bg-card p-4 space-y-2">
+          {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
+        </div>
+      </div>
+    );
   }
 
   return (

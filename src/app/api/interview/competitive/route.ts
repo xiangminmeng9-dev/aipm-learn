@@ -15,9 +15,9 @@ export async function POST(request: NextRequest) {
     if (!validation.success) {
       return NextResponse.json({ error: validation.error }, { status: 400 });
     }
-    const { product_name } = validation.data;
+    const { productName } = validation.data;
 
-    const prompt = buildCompetitiveAnalysisPrompt(product_name.trim());
+    const prompt = buildCompetitiveAnalysisPrompt(productName.trim());
     const stream = streamChatResponse(
       [{ role: 'user', content: prompt }],
       { model: 'sonnet', system: COMPETITIVE_ANALYSIS_SYSTEM_PROMPT, maxTokens: 4096 }
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
             .from('competitive_analyses')
             .insert({
               user_id: user.id,
-              product_name: product_name.trim(),
+              product_name: productName.trim(),
               market_position: marketPosition || fallbackContent,
               feature_comparison: featureComparison,
               strengths_weaknesses: strengthsWeaknesses,

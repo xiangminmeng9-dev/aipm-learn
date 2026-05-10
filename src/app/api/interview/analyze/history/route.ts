@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = request.nextUrl;
     const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
-    const page_size = Math.min(100, Math.max(1, parseInt(searchParams.get('page_size') || '20')));
+    const page_size = Math.min(1000, Math.max(1, parseInt(searchParams.get('page_size') || '1000')));
 
     // Get total count
     const { count } = await supabase

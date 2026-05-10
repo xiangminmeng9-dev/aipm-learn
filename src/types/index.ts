@@ -519,6 +519,60 @@ export interface SimulatorMessage {
   created_at: string;
 }
 
+// --- User Question Bookmark ---
+export interface UserQuestionBookmark {
+  id: string;
+  user_id: string;
+  question_id: string;
+  mastery_level: 'mastered' | 'learning' | 'review';
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BookmarkWithQuestion extends UserQuestionBookmark {
+  question_text: string;
+  type_name: string | null;
+  type_id: string | null;
+}
+
+// --- Community Question ---
+export interface CommunityQuestion {
+  id: string;
+  text: string;
+  type_id: string | null;
+  user_id: string;
+  status: 'active' | 'removed';
+  created_at: string;
+  upvotes: number;
+  downvotes: number;
+  user_vote?: 1 | -1 | null;
+  type_name?: string | null;
+}
+
+// --- Interview Tip ---
+export interface InterviewTip {
+  id: string;
+  title: string;
+  content: string;
+  category: string;
+  tags: string[];
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+// --- Learning Reminder ---
+export interface LearningReminder {
+  id: string;
+  user_id: string;
+  reminder_time: string;
+  enabled_days: number[];
+  enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 // --- AI Learning Path (Weakness-based) ---
 export interface RecommendedModule {
   name: string;

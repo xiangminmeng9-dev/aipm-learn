@@ -6,6 +6,9 @@ import ResumeUploader from '@/components/resume/ResumeUploader';
 import JdInput from '@/components/resume/JdInput';
 import VersionSelector from '@/components/resume/VersionSelector';
 import ResumeResult from '@/components/resume/ResumeResult';
+import dynamic from 'next/dynamic';
+
+const ResumePDFExportButton = dynamic(() => import('@/components/resume/ResumePDFExportButton'), { ssr: false });
 
 interface AtsDimension {
   name: string;
@@ -110,6 +113,7 @@ export default function ResumePage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [modifiedResume, setModifiedResume] = useState('');
   const [changesSummary, setChangesSummary] = useState('');
+  const [resumeData, setResumeData] = useState<Record<string, unknown> | null>(null);
   const [generateError, setGenerateError] = useState('');
 
   const persistRef = useRef(false);
@@ -203,6 +207,7 @@ export default function ResumePage() {
       }
       setModifiedResume(data.modified_resume || '');
       setChangesSummary(data.changes_summary || '');
+      setResumeData(data.resume_data || null);
     } catch {
       setGenerateError('网络错误，请重试');
     } finally {
@@ -559,6 +564,14 @@ export default function ResumePage() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
               >
+                <ResumePDFExportButton
+                  modifiedResume={modifiedResume}
+                  analysis={analysis}
+                  changesSummary={changesSummary}
+                  companyName={companyName}
+                  positionName={positionName}
+                  resumeData={resumeData}
+                />
                 <ResumeResult modifiedResume={modifiedResume} changesSummary={changesSummary} />
               </motion.div>
             )}

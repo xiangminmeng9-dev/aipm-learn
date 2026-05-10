@@ -50,10 +50,12 @@ export default function ResumeResult({ modifiedResume, changesSummary }: ResumeR
       )}
 
       {/* Modified resume */}
-      <div className="rounded-xl border border-border bg-card p-6">
-        <div className="mb-4 flex items-center gap-2">
-          <div className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
-          <h3 className="text-sm font-semibold text-foreground">修改后的简历</h3>
+      <div data-resume-print className="rounded-xl border border-border bg-card p-6">
+        <div className="mb-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
+            <h3 className="text-sm font-semibold text-foreground">修改后的简历</h3>
+          </div>
         </div>
         <Markdown content={modifiedResume} />
       </div>

@@ -11,8 +11,7 @@ export async function GET() {
       .from('assistant_qa_records')
       .select('id, question, category, answer, evaluation, created_at')
       .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(20);
+      .order('created_at', { ascending: false });
 
     if (!records) return NextResponse.json({ records: [] });
 

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Sidebar from '@/components/layout/CodingSidebar';
 import ResponsiveSidebar from '@/components/layout/ResponsiveSidebar';
+import ActivityTracker from '@/components/tracking/ActivityTracker';
 
 export const metadata: Metadata = {
   title: 'AI Coding',
@@ -10,6 +11,7 @@ export const metadata: Metadata = {
 export default function CodingLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-screen">
+      <ActivityTracker module="coding" />
       <ResponsiveSidebar><Sidebar /></ResponsiveSidebar>
       <main className="flex-1 overflow-y-auto bg-background">{children}</main>
     </div>

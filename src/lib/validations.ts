@@ -41,7 +41,7 @@ export const submitAnswerSchema = z.object({
 });
 
 export const competitiveAnalysisSchema = z.object({
-  product_name: z.string().min(1, '请输入产品名称').max(100),
+  productName: z.string().min(1, '请输入产品名称').max(100),
 });
 
 // -- Skills --
@@ -73,6 +73,37 @@ export const dailyChallengeSubmitSchema = z.object({
 // -- Resume --
 export const resumeParseSchema = z.object({
   text: z.string().min(1, '请输入简历内容').max(50000).optional(),
+});
+
+// -- Bookmarks --
+export const bookmarkQuestionSchema = z.object({
+  question_id: z.string().uuid('无效的问题 ID'),
+  mastery_level: z.enum(['mastered', 'learning', 'review']).optional(),
+  notes: z.string().max(2000).optional(),
+});
+
+export const updateBookmarkSchema = z.object({
+  id: z.string().uuid('无效的书签 ID'),
+  mastery_level: z.enum(['mastered', 'learning', 'review']).optional(),
+  notes: z.string().max(2000).optional(),
+});
+
+// -- Community --
+export const submitCommunityQuestionSchema = z.object({
+  text: z.string().min(5, '问题至少 5 个字符').max(500, '问题最多 500 个字符'),
+  type_id: z.string().uuid('请选择问题类型').optional(),
+});
+
+export const communityVoteSchema = z.object({
+  question_id: z.string().uuid('无效的问题 ID'),
+  vote: z.union([z.literal(1), z.literal(-1)]),
+});
+
+// -- Learning Reminder --
+export const learningReminderSchema = z.object({
+  reminder_time: z.string().regex(/^\d{2}:\d{2}$/, '时间格式无效（HH:MM）').optional(),
+  enabled_days: z.array(z.number().min(1).max(7)).optional(),
+  enabled: z.boolean().optional(),
 });
 
 // -- Helper --

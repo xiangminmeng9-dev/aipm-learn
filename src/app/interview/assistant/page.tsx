@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Markdown from '@/components/ui/markdown';
+import { useToast } from '@/components/ui/toast';
 import { createClient } from '@/lib/supabase/client';
 
 interface HistoryRecord {
@@ -31,6 +32,7 @@ export default function InterviewAssistantPage() {
   const [showHistory, setShowHistory] = useState(false);
   const [userAnswer, setUserAnswer] = useState('');
   const [isEvaluating, setIsEvaluating] = useState(false);
+  const toast = useToast();
   const [evaluation, setEvaluation] = useState<Evaluation | null>(null);
   const [isAuthed, setIsAuthed] = useState(true);
 
@@ -150,7 +152,7 @@ export default function InterviewAssistantPage() {
   const handleEvaluate = async () => {
     if (!userAnswer.trim() || isEvaluating) return;
     if (!currentRecordId) {
-      alert('记录ID缺失，请重新提问后再试');
+      toast.error('记录ID缺失，请重新提问后再试');
       return;
     }
     setIsEvaluating(true);
@@ -180,10 +182,10 @@ export default function InterviewAssistantPage() {
         setEvaluation(data.evaluation);
       } else {
         const data = await res.json();
-        alert(data.error || '评分失败');
+        toast.error(data.error || '评分失败');
       }
     } catch {
-      alert('评分请求失败');
+      toast.error('评分请求失败');
     } finally {
       setIsEvaluating(false);
     }
@@ -192,7 +194,7 @@ export default function InterviewAssistantPage() {
   const categories = ['AI产品思维', '需求分析', '竞品分析', '算法沟通', '数据指标', '产品设计', '项目管理', '用户研究'];
 
   return (
-    <div className="min-h-screen bg-background">
+    <>
       <header className="sticky top-0 z-40 border-b border-border bg-card/80 backdrop-blur">
         <div className="flex items-center justify-between px-6 py-3">
           <div className="flex items-center gap-3">
@@ -211,7 +213,7 @@ export default function InterviewAssistantPage() {
         </div>
       </header>
 
-      <div className="mx-auto max-w-4xl px-6 py-6">
+      <div className="px-6 py-6">
         {!isAuthed && (
           <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center">
             <p className="text-amber-800 font-medium">请先登录后使用面试助手</p>
@@ -401,6 +403,6 @@ export default function InterviewAssistantPage() {
           </div>
         )}
       </div>
-    </div>
+    </>
   );
 }

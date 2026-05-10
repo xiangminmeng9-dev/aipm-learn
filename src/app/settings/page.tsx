@@ -6,6 +6,7 @@ import Link from 'next/link';
 type Protocol = 'anthropic' | 'openai';
 
 import { ThemeToggle } from '@/components/ui/theme-toggle';
+import LearningReminderSettings from '@/components/reminder/LearningReminderSettings';
 
 export default function SettingsPage() {
   const [protocol, setProtocol] = useState<Protocol>('anthropic');
@@ -162,6 +163,11 @@ export default function SettingsPage() {
               查看看板
             </Link>
           </div>
+        </div>
+
+        {/* 学习提醒 */}
+        <div className="mb-6 rounded-2xl border border-border bg-card p-6 shadow-sm">
+          <LearningReminderSettings />
         </div>
 
         {/* 外观设置 */}

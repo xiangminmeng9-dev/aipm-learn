@@ -38,27 +38,22 @@ export default function ResourcesSidebar() {
   return (
     <aside className="flex h-full flex-col border-r border-border bg-card">
       <div className="border-b border-border px-5 py-5">
-        <Link href="/" className="inline-flex items-center gap-1.5 text-base text-muted-foreground transition-colors hover:text-primary">
+        <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-primary">
           <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
           </svg>
           返回首页
         </Link>
-        <h2 className="mt-3 text-xl font-semibold text-foreground">学习资源库</h2>
+        <h2 className="mt-3 text-lg font-semibold text-foreground">学习资源库</h2>
       </div>
       <nav className="flex-1 space-y-1 px-3 py-4">
         {navItems.map((item) => {
           const isActive = item.exact ? pathname === item.href : (pathname === item.href || pathname.startsWith(item.href + '/'));
           return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-lg transition-all duration-200 ${
-                isActive
-                  ? 'bg-indigo-50 text-indigo-600 font-medium'
-                  : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
-              }`}
-            >
+            <Link key={item.href} href={item.href}
+              className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-base transition-all duration-200 ${
+                isActive ? 'bg-indigo-50 text-indigo-600 font-medium' : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+              }`}>
               <span className={isActive ? 'text-indigo-600' : 'text-muted-foreground'}>{item.icon}</span>
               <span>{item.label}</span>
               {isActive && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-indigo-600" />}
@@ -70,7 +65,7 @@ export default function ResourcesSidebar() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-base text-muted-foreground">在线</span>
+            <span className="text-sm text-muted-foreground">在线</span>
           </div>
           <ThemeToggle compact />
         </div>

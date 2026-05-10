@@ -40,13 +40,9 @@ export async function GET(
       .order('created_at', { ascending: false })
       .limit(5);
 
+    const qt = methodology.question_types as unknown as { id: string; name: string } | null;
     return NextResponse.json({
-      type: methodology.question_types
-        ? {
-            id: (methodology.question_types as unknown as { id: string; name: string }).id,
-            name: (methodology.question_types as unknown as { id: string; name: string }).name,
-          }
-        : { id: methodology.type_id, name: '未知类型' },
+      type: qt ? { id: qt.id, name: qt.name } : { id: methodology.type_id, name: '未知类型' },
       framework: methodology.framework,
       key_steps: methodology.key_steps as string[],
       typical_cases: methodology.typical_cases as string[],

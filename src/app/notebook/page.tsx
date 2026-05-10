@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { type Note, getNotes, createNote, updateNote, deleteNote } from '@/lib/notebook-store';
+import { useToast } from '@/components/ui/toast';
+import { Skeleton, CardSkeleton } from '@/components/ui/skeleton';
 
 /* ---------------------------- Config ---------------------------- */
 
@@ -232,58 +234,57 @@ export default function NotesPage() {
   const [newTitle, setNewTitle] = useState('');
   const [newCategory, setNewCategory] = useState('general');
   const [filterCategory, setFilterCategory] = useState<string | null>(null);
+  const toast = useToast();
 
   const fetchNotes = useCallback(async () => {
+    setIsLoading(true);
     const { notes: n, authed } = await getNotes(filterCategory ?? undefined);
     setNotes(n);
     setIsAuthed(authed);
     setIsLoading(false);
   }, [filterCategory]);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const { notes: n, authed } = await getNotes(filterCategory ?? undefined);
-      if (cancelled) return;
-      setNotes(n);
-      setIsAuthed(authed);
-      setIsLoading(false);
-    })();
-    return () => { cancelled = true; };
-  }, [filterCategory]);
+  useEffect(() => { fetchNotes(); }, [fetchNotes]);
 
   const handleCreate = async () => {
     if (!newTitle.trim()) return;
     const { note } = await createNote(newTitle.trim(), newCategory);
     setNewTitle('');
     setIsCreating(false);
-    setEditingNote(note);
+    if (note) setEditingNote(note);
     fetchNotes();
   };
 
   const handleUpdate = async (id: string, updates: Partial<Note>) => {
-    const { note } = await updateNote(id, updates);
-    setEditingNote(note);
-    fetchNotes();
+    setNotes(prev => prev.map(n => n.id === id ? { ...n, ...updates } : n));
+    try {
+      const { note } = await updateNote(id, updates);
+      if (note) setEditingNote(note);
+    } catch { fetchNotes(); }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('确定删除此笔记？')) return;
-    await deleteNote(id);
+    setNotes(prev => prev.filter(n => n.id !== id));
     if (editingNote?.id === id) setEditingNote(null);
-    fetchNotes();
+    toast.success('已删除');
+    await deleteNote(id);
   };
 
   const handlePin = async (id: string) => {
     const note = notes.find((n) => n.id === id);
-    if (note) await updateNote(id, { pinned: !note.pinned });
-    fetchNotes();
+    if (!note) return;
+    setNotes(prev => prev.map(n => n.id === id ? { ...n, pinned: !n.pinned } : n));
+    await updateNote(id, { pinned: !note.pinned });
   };
 
   if (isLoading) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+      <div className="min-h-full p-6 md:p-8 space-y-4">
+        <Skeleton className="h-8 w-48" />
+        <div className="flex gap-2"><Skeleton className="h-10 w-20" /><Skeleton className="h-10 w-20" /><Skeleton className="h-10 w-20" /></div>
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+          {Array.from({ length: 8 }).map((_, i) => <CardSkeleton key={i} />)}
+        </div>
       </div>
     );
   }

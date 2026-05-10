@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import ResumeSidebar from '@/components/layout/ResumeSidebar';
 import ResponsiveSidebar from '@/components/layout/ResponsiveSidebar';
+import ActivityTracker from '@/components/tracking/ActivityTracker';
 
 export const metadata: Metadata = {
   title: '简历解析',
@@ -10,6 +11,7 @@ export const metadata: Metadata = {
 export default function ResumeLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-screen">
+      <ActivityTracker module="resume" />
       <ResponsiveSidebar><ResumeSidebar /></ResponsiveSidebar>
       <main className="flex-1 overflow-y-auto bg-background">{children}</main>
     </div>

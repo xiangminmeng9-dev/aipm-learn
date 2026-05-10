@@ -2,6 +2,38 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { generateOrUpdateMethodology, MIN_SOURCE_COUNT } from '@/lib/ai/methodology';
 
+export async function GET() {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: '请先登录' }, { status: 401 });
+
+    const { data } = await supabase
+      .from('interview_methodologies')
+      .select('id, type_id, framework, key_steps, typical_cases, source_count, updated_at, question_types(id, name)')
+      .eq('user_id', user.id)
+      .order('updated_at', { ascending: false });
+
+    const methodologies = (data ?? []).map((m) => {
+      const qt = m.question_types as unknown as { id: string; name: string } | null;
+      return {
+        id: m.id,
+        type: { id: qt?.id ?? m.type_id, name: qt?.name ?? '未知类型' },
+        framework: m.framework,
+        key_steps: m.key_steps,
+        typical_cases: m.typical_cases,
+        source_count: m.source_count,
+        updated_at: m.updated_at,
+      };
+    });
+
+    return NextResponse.json({ methodologies });
+  } catch (err) {
+    console.error('Methodology GET error:', err);
+    return NextResponse.json({ error: '获取失败' }, { status: 500 });
+  }
+}
+
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();

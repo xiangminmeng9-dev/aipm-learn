@@ -43,12 +43,26 @@ export async function GET(request: NextRequest) {
       maxTokens: 256,
     });
 
-    let questionData;
+    let questionData: { question?: string; question_category?: string };
     try {
-      const cleaned = result.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '');
+      // Try multiple extraction strategies
+      let cleaned = result.trim();
+      // Remove markdown code fences
+      cleaned = cleaned.replace(/```(?:json)?\s*/gi, '').replace(/```\s*/gi, '');
+      // Find the first { and last }
+      const start = cleaned.indexOf('{');
+      const end = cleaned.lastIndexOf('}');
+      if (start >= 0 && end > start) cleaned = cleaned.slice(start, end + 1);
       questionData = JSON.parse(cleaned);
+      if (!questionData.question) throw new Error('Missing question field');
     } catch {
-      return NextResponse.json({ error: '题目生成失败，请重试' }, { status: 500 });
+      // Fallback: extract question from text
+      const lines = result.split('\n').filter(l => l.trim());
+      const qLine = lines.find(l => l.includes('question') || l.includes('题目'));
+      questionData = {
+        question: qLine?.replace(/.*?["':：]\s*/, '').replace(/[",{}]/g, '').trim() || '请分析一个你参与过的AI产品项目，阐述产品定位、核心功能、数据指标和技术方案',
+        question_category: '产品规划',
+      };
     }
 
     return NextResponse.json({
