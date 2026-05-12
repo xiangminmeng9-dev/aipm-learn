@@ -206,12 +206,17 @@ function InlineSelectCell({ value, options, onSave }: { value:string; options:st
   );
 }
 
-// ── Kanban card ─────────────────────────────────────────
-function KanbanCard({ record, onEdit, onDelete }: { record:AppRecord; onEdit:(r:AppRecord)=>void; onDelete:(id:string)=>void }) {
+// ── Kanban card with drag support ─────────────────────────────────────────
+function KanbanCard({ record, onEdit, onDelete, onDragStart, onDragEnd }: { record:AppRecord; onEdit:(r:AppRecord)=>void; onDelete:(id:string)=>void; onDragStart:(r:AppRecord)=>void; onDragEnd:()=>void }) {
   const stageDef = KANBAN_STAGES.find(s=>s.key===record.stage);
   const showInterviewTime = INTERVIEW_STATUSES.includes(record.status) && record.interviewTime;
   return (
-    <div className="group/card rounded-lg border border-border bg-muted/50 hover:bg-muted hover:border-border p-4 cursor-pointer transition-all duration-200 ease-out">
+    <div
+      draggable
+      onDragStart={(e) => { e.dataTransfer.setData('text/plain', record.id); onDragStart(record); }}
+      onDragEnd={onDragEnd}
+      className="group/card rounded-lg border border-border bg-muted/50 hover:bg-muted hover:border-border p-4 cursor-grab active:cursor-grabbing transition-all duration-200 ease-out"
+    >
       <div className="flex items-start justify-between gap-2 mb-2">
         <div className="flex items-center gap-2 min-w-0">
           <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -414,6 +419,9 @@ export default function ApplicationTracker() {
   const [showFilters, setShowFilters] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>('');
   const [filterSource, setFilterSource] = useState<string>('');
+  // Drag and drop state
+  const [draggingRecord, setDraggingRecord] = useState<AppRecord|null>(null);
+  const [dragOverStage, setDragOverStage] = useState<KanbanStage|null>(null);
   const timeFiltered = useMemo(() => {
     if (timeFilter==='all') return records;
     const now = new Date(); const cutoff = new Date();
@@ -518,6 +526,47 @@ export default function ApplicationTracker() {
     }
   };
 
+  // Drag and drop handlers
+  const handleDragStart = (record: AppRecord) => {
+    setDraggingRecord(record);
+  };
+
+  const handleDragEnd = () => {
+    setDraggingRecord(null);
+    setDragOverStage(null);
+  };
+
+  const handleDragOver = (e: React.DragEvent, stage: KanbanStage) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverStage(stage);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverStage(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, targetStage: KanbanStage) => {
+    e.preventDefault();
+    const recordId = e.dataTransfer.getData('text/plain');
+    if (!recordId) return;
+
+    const stageDef = KANBAN_STAGES.find(s => s.key === targetStage);
+    if (!stageDef) return;
+
+    // Update the record's stage and status
+    setRecords((prev) => prev.map((r) => {
+      if (r.id !== recordId) return r;
+      return { ...r, stage: targetStage, status: stageDef.label };
+    }));
+
+    // Persist to API
+    apiPatch(recordId, { status: stageDef.label });
+
+    setDraggingRecord(null);
+    setDragOverStage(null);
+  };
+
   const total = timeFiltered.length;
 
   // Split stages into 2 rows: top 4, bottom 3
@@ -600,9 +649,14 @@ export default function ApplicationTracker() {
               <div className="flex-1 grid grid-cols-4 gap-3 min-h-0">
                 {topRow.map((stage)=>{
                   const isCollapsed=collapsed.has(stage.key);
+                  const isDragOver=dragOverStage===stage.key;
                   const toggle=()=>{setCollapsed((prev)=>{const n=new Set(prev);if(n.has(stage.key))n.delete(stage.key);else n.add(stage.key);return n;});};
                   return (
-                    <div key={stage.key} className="flex flex-col min-h-0">
+                    <div key={stage.key} className="flex flex-col min-h-0"
+                      onDragOver={(e)=>handleDragOver(e,stage.key)}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e)=>handleDrop(e,stage.key)}
+                    >
                       <button onClick={toggle}
                         className="shrink-0 flex items-center justify-between mb-2 px-1.5 py-1.5 rounded hover:bg-muted transition-colors cursor-pointer group/header">
                         <div className="flex items-center gap-2">
@@ -616,8 +670,8 @@ export default function ApplicationTracker() {
                         </span>
                       </button>
                       {!isCollapsed&&(
-                        <div className="flex-1 space-y-2 overflow-y-auto pr-0.5 pb-2">
-                          {grouped[stage.key].map((r)=>(<KanbanCard key={r.id} record={r} onEdit={(rec)=>{setEditing(rec);setDialogOpen(true);}} onDelete={deleteRecord} />))}
+                        <div className={`flex-1 space-y-2 overflow-y-auto pr-0.5 pb-2 rounded-lg transition-colors ${isDragOver?'bg-[#7C3AED]/10 border-2 border-dashed border-[#7C3AED]/40':''}`}>
+                          {grouped[stage.key].map((r)=>(<KanbanCard key={r.id} record={r} onEdit={(rec)=>{setEditing(rec);setDialogOpen(true);}} onDelete={deleteRecord} onDragStart={handleDragStart} onDragEnd={handleDragEnd} />))}
                           {grouped[stage.key].length===0&&<div className="rounded-lg border border-dashed border-border py-8 px-3 text-center"><p className="text-[15px] text-muted-foreground">拖拽卡片至此</p></div>}
                         </div>
                       )}
@@ -630,9 +684,14 @@ export default function ApplicationTracker() {
               <div className="flex-1 grid grid-cols-3 gap-3 min-h-0">
                 {bottomRow.map((stage)=>{
                   const isCollapsed=collapsed.has(stage.key);
+                  const isDragOver=dragOverStage===stage.key;
                   const toggle=()=>{setCollapsed((prev)=>{const n=new Set(prev);if(n.has(stage.key))n.delete(stage.key);else n.add(stage.key);return n;});};
                   return (
-                    <div key={stage.key} className="flex flex-col min-h-0">
+                    <div key={stage.key} className="flex flex-col min-h-0"
+                      onDragOver={(e)=>handleDragOver(e,stage.key)}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e)=>handleDrop(e,stage.key)}
+                    >
                       <button onClick={toggle}
                         className="shrink-0 flex items-center justify-between mb-2 px-1.5 py-1.5 rounded hover:bg-muted transition-colors cursor-pointer group/header">
                         <div className="flex items-center gap-2">
@@ -646,8 +705,8 @@ export default function ApplicationTracker() {
                         </span>
                       </button>
                       {!isCollapsed&&(
-                        <div className="flex-1 space-y-2 overflow-y-auto pr-0.5 pb-2">
-                          {grouped[stage.key].map((r)=>(<KanbanCard key={r.id} record={r} onEdit={(rec)=>{setEditing(rec);setDialogOpen(true);}} onDelete={deleteRecord} />))}
+                        <div className={`flex-1 space-y-2 overflow-y-auto pr-0.5 pb-2 rounded-lg transition-colors ${isDragOver?'bg-[#7C3AED]/10 border-2 border-dashed border-[#7C3AED]/40':''}`}>
+                          {grouped[stage.key].map((r)=>(<KanbanCard key={r.id} record={r} onEdit={(rec)=>{setEditing(rec);setDialogOpen(true);}} onDelete={deleteRecord} onDragStart={handleDragStart} onDragEnd={handleDragEnd} />))}
                           {grouped[stage.key].length===0&&<div className="rounded-lg border border-dashed border-border py-8 px-3 text-center"><p className="text-[15px] text-muted-foreground">拖拽卡片至此</p></div>}
                         </div>
                       )}

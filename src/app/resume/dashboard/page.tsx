@@ -281,14 +281,14 @@ export default function DashboardPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">投递看板</h1>
-          <p className="mt-1 text-sm text-muted-foreground">全面追踪投递数据，优化求职策略</p>
+          <p className="mt-1 text-sm font-medium text-muted-foreground">全面追踪投递数据，优化求职策略</p>
         </div>
         <div className="flex items-center gap-1 rounded-lg bg-muted p-1">
           {(['7d', '30d', 'all'] as const).map((r) => (
             <button
               key={r}
               onClick={() => setRange(r)}
-              className={`rounded-md px-4 py-1.5 text-xs font-medium transition-colors ${
+              className={`rounded-md px-4 py-1.5 text-xs font-semibold transition-colors ${
                 range === r ? 'bg-indigo-600 text-white' : 'text-muted-foreground hover:text-foreground'
               }`}
             >
