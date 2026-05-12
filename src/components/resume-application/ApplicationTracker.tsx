@@ -284,8 +284,9 @@ function RecordDialog({ open, onClose, onSave, editing }: {
   const companyRef = useRef<HTMLInputElement>(null);
   const isEdit = !!editing;
 
-  const stageDef = KANBAN_STAGES.find(s=>s.key===stage);
-  const showInterviewTime = stageDef && INTERVIEW_STATUSES.includes(stageDef.label);
+  // 计算当前阶段是否为面试状态
+  const currentStageDef = KANBAN_STAGES.find(s=>s.key===stage);
+  const showInterviewTime = currentStageDef && INTERVIEW_STATUSES.includes(currentStageDef.label);
 
   useEffect(() => {
     if (open) {
@@ -309,16 +310,26 @@ function RecordDialog({ open, onClose, onSave, editing }: {
 
   const submit = () => {
     if (!company.trim() || !position.trim()) return;
-    const stageDef = KANBAN_STAGES.find(s=>s.key===stage)!;
-    const isInterviewStatus = INTERVIEW_STATUSES.includes(stageDef.label);
+    const submitStageDef = KANBAN_STAGES.find(s=>s.key===stage)!;
+    const isInterviewStatus = INTERVIEW_STATUSES.includes(submitStageDef.label);
+    const finalInterviewDate = isInterviewStatus ? (interviewDate || appliedAt) : undefined;
+    const finalInterviewTime = isInterviewStatus ? interviewTime : undefined;
+
+    console.log('Saving record:', {
+      stage,
+      status: submitStageDef.label,
+      isInterviewStatus,
+      interviewDate: finalInterviewDate,
+      interviewTime: finalInterviewTime,
+    });
+
     onSave({
       id: editing?.id || Date.now().toString(),
       company: company.trim(), position: position.trim(),
-      stage, status: stageDef.label, match, source, city: city.trim(),
+      stage, status: submitStageDef.label, match, source, city: city.trim(),
       appliedAt, updatedAt: isEdit ? editing!.updatedAt : '刚刚',
-      // 面试日期：如果有输入就用输入的，否则用投递日期
-      interviewDate: isInterviewStatus ? (interviewDate || appliedAt) : undefined,
-      interviewTime: isInterviewStatus ? interviewTime : undefined,
+      interviewDate: finalInterviewDate,
+      interviewTime: finalInterviewTime,
       tags: tags.split(/[,，]/).map(t=>t.trim()).filter(Boolean),
       notes: notes.trim(),
     });
