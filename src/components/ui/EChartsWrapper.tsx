@@ -20,24 +20,36 @@ export const highDPIChartOption = {
   line: {
     smooth: false,
     symbol: 'circle',
-    symbolSize: 8,
+    symbolSize: 10,
     lineStyle: {
-      width: 2,
+      width: 3,
     },
   },
   // 清晰的文字
   textStyle: {
     fontFamily: '"Inter", "SF Pro Display", -apple-system, sans-serif',
-    fontWeight: 500,
+    fontWeight: 600,
+  },
+  // 柱状图清晰
+  bar: {
+    barBorderWidth: 1,
+  },
+  // 饼图清晰
+  pie: {
+    label: {
+      fontWeight: 600,
+    },
   },
 };
 
-// 获取设备像素比
+// 获取设备像素比 - 强制使用更高比例
 export function getDevicePixelRatio() {
   if (typeof window !== 'undefined') {
-    return window.devicePixelRatio || 2;
+    const dpr = window.devicePixelRatio || 2;
+    // 强制至少2倍像素密度，确保2K清晰度
+    return Math.max(dpr, 2.5);
   }
-  return 2;
+  return 3;
 }
 
 export default ReactECharts;
