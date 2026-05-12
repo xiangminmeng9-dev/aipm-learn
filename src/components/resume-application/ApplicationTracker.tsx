@@ -26,6 +26,7 @@ interface AppRecord {
   tags:        string[];
   notes:       string;
   interviewTime?: string; // 面试时间，格式 "HH:mm"
+  interviewDate?: string; // 面试日期，格式 "YYYY-MM-DD"
 }
 
 // ── Kanban stage config ─────────────────────────────────
@@ -276,6 +277,7 @@ function RecordDialog({ open, onClose, onSave, editing }: {
   const [source, setSource] = useState(editing?.source||'Boss直聘');
   const [city, setCity] = useState(editing?.city||'');
   const [appliedAt, setAppliedAt] = useState(editing?.appliedAt||new Date().toISOString().slice(0,10));
+  const [interviewDate, setInterviewDate] = useState(editing?.interviewDate||'');
   const [interviewTime, setInterviewTime] = useState(editing?.interviewTime||'');
   const [tags, setTags] = useState(editing?.tags.join(',')||'');
   const [notes, setNotes] = useState(editing?.notes||'');
@@ -285,7 +287,7 @@ function RecordDialog({ open, onClose, onSave, editing }: {
   const stageDef = KANBAN_STAGES.find(s=>s.key===stage);
   const showInterviewTime = stageDef && INTERVIEW_STATUSES.includes(stageDef.label);
 
-  useEffect(() => { if (open) { setCompany(editing?.company||''); setPosition(editing?.position||''); setStage(editing?.stage||'applied'); setMatch(editing?.match??50); setSource(editing?.source||'Boss直聘'); setCity(editing?.city||''); setAppliedAt(editing?.appliedAt||new Date().toISOString().slice(0,10)); setInterviewTime(editing?.interviewTime||''); setTags(editing?.tags.join(',')||''); setNotes(editing?.notes||''); setTimeout(()=>companyRef.current?.focus(),50); } }, [open, editing]);
+  useEffect(() => { if (open) { setCompany(editing?.company||''); setPosition(editing?.position||''); setStage(editing?.stage||'applied'); setMatch(editing?.match??50); setSource(editing?.source||'Boss直聘'); setCity(editing?.city||''); setAppliedAt(editing?.appliedAt||new Date().toISOString().slice(0,10)); setInterviewDate(editing?.interviewDate||''); setInterviewTime(editing?.interviewTime||''); setTags(editing?.tags.join(',')||''); setNotes(editing?.notes||''); setTimeout(()=>companyRef.current?.focus(),50); } }, [open, editing]);
 
   if (!open) return null;
 
@@ -297,6 +299,7 @@ function RecordDialog({ open, onClose, onSave, editing }: {
       company: company.trim(), position: position.trim(),
       stage, status: stageDef.label, match, source, city: city.trim(),
       appliedAt, updatedAt: isEdit ? editing!.updatedAt : '刚刚',
+      interviewDate: INTERVIEW_STATUSES.includes(stageDef.label) ? interviewDate : undefined,
       interviewTime: INTERVIEW_STATUSES.includes(stageDef.label) ? interviewTime : undefined,
       tags: tags.split(/[,，]/).map(t=>t.trim()).filter(Boolean),
       notes: notes.trim(),
@@ -304,39 +307,48 @@ function RecordDialog({ open, onClose, onSave, editing }: {
     onClose();
   };
 
-  const inputCls = "w-full rounded-lg border border-border bg-muted px-3 py-2.5 text-[16px] text-foreground outline-none focus:border-[#7C3AED]/40 focus:shadow-[0_0_12px_rgba(124,58,237,0.08)] transition-all placeholder:text-muted-foreground";
+  const inputCls = "w-full rounded-lg border-2 border-border bg-muted px-3 py-2.5 text-[16px] font-medium text-foreground outline-none focus:border-[#7C3AED]/40 focus:shadow-[0_0_12px_rgba(124,58,237,0.08)] transition-all placeholder:text-muted-foreground";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative rounded-xl border border-border bg-card shadow-2xl shadow-black/50 w-full max-w-lg p-6">
+      <div className="relative rounded-xl border-2 border-border bg-card shadow-2xl shadow-black/50 w-full max-w-lg p-6">
         <div className="flex items-center justify-between mb-5">
-          <h3 className="text-[18px] font-semibold text-foreground">{isEdit?'编辑投递':'新增投递'}</h3>
+          <h3 className="text-[18px] font-bold text-foreground">{isEdit?'编辑投递':'新增投递'}</h3>
           <button onClick={onClose} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-muted-foreground transition-colors"><X className="h-5 w-5" /></button>
         </div>
         <div className="grid grid-cols-2 gap-3.5">
-          <div><label className="block text-[14px] text-muted-foreground mb-1.5">公司 *</label><input ref={companyRef} className={inputCls} placeholder="公司名" value={company} onChange={(e)=>setCompany(e.target.value)} onKeyDown={(e)=>e.key==='Enter'&&submit()} /></div>
-          <div><label className="block text-[14px] text-muted-foreground mb-1.5">职位 *</label><input className={inputCls} placeholder="职位名" value={position} onChange={(e)=>setPosition(e.target.value)} onKeyDown={(e)=>e.key==='Enter'&&submit()} /></div>
-          <div><label className="block text-[14px] text-muted-foreground mb-1.5">阶段</label>
+          <div><label className="block text-[14px] font-medium text-muted-foreground mb-1.5">公司 *</label><input ref={companyRef} className={inputCls} placeholder="公司名" value={company} onChange={(e)=>setCompany(e.target.value)} onKeyDown={(e)=>e.key==='Enter'&&submit()} /></div>
+          <div><label className="block text-[14px] font-medium text-muted-foreground mb-1.5">职位 *</label><input className={inputCls} placeholder="职位名" value={position} onChange={(e)=>setPosition(e.target.value)} onKeyDown={(e)=>e.key==='Enter'&&submit()} /></div>
+          <div><label className="block text-[14px] font-medium text-muted-foreground mb-1.5">阶段</label>
             <select className={inputCls} value={stage} onChange={(e)=>setStage(e.target.value as KanbanStage)}>
               {KANBAN_STAGES.map(s=><option key={s.key} value={s.key}>{s.label}</option>)}
             </select>
           </div>
-          <div><label className="block text-[14px] text-muted-foreground mb-1.5">匹配度</label>
-            <div className="flex items-center gap-2"><input type="range" min={0} max={100} value={match} onChange={(e)=>setMatch(Number(e.target.value))} className="flex-1 accent-[#7C3AED]" /><span className="text-[16px] font-medium text-foreground w-10 tabular-nums">{match}%</span></div>
+          <div><label className="block text-[14px] font-medium text-muted-foreground mb-1.5">匹配度</label>
+            <div className="flex items-center gap-2"><input type="range" min={0} max={100} value={match} onChange={(e)=>setMatch(Number(e.target.value))} className="flex-1 accent-[#7C3AED]" /><span className="text-[16px] font-semibold text-foreground w-10 tabular-nums">{match}%</span></div>
           </div>
-          {/* 面试时间 - 仅在面试相关状态时显示 */}
+          {/* 面试日期和时间 - 仅在面试相关状态时显示 */}
           {showInterviewTime && (
-            <div className="col-span-2">
-              <label className="block text-[14px] text-muted-foreground mb-1.5">面试时间</label>
-              <div className="flex items-center gap-2">
-                <Clock className="h-5 w-5 text-[#FBBF24]" />
-                <input type="time" className={inputCls} value={interviewTime} onChange={(e)=>setInterviewTime(e.target.value)} />
-                {interviewTime && <span className="text-[14px] text-muted-foreground">{interviewTime}</span>}
+            <>
+              <div className="col-span-2">
+                <label className="block text-[14px] font-medium text-muted-foreground mb-1.5">面试日期</label>
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-[#FBBF24]" />
+                  <input type="date" className={inputCls} value={interviewDate} onChange={(e)=>setInterviewDate(e.target.value)} />
+                </div>
               </div>
-            </div>
+              <div className="col-span-2">
+                <label className="block text-[14px] font-medium text-muted-foreground mb-1.5">面试时间</label>
+                <div className="flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-[#FBBF24]" />
+                  <input type="time" className={inputCls} value={interviewTime} onChange={(e)=>setInterviewTime(e.target.value)} />
+                  {interviewTime && <span className="text-[14px] font-medium text-muted-foreground">{interviewTime}</span>}
+                </div>
+              </div>
+            </>
           )}
-          <div><label className="block text-[14px] text-muted-foreground mb-1.5">渠道</label>
+          <div><label className="block text-[14px] font-medium text-muted-foreground mb-1.5">渠道</label>
             <select className={inputCls} value={source} onChange={(e)=>setSource(e.target.value)}>{ALL_SOURCES.map(s=><option key={s} value={s}>{s}</option>)}</select>
           </div>
           <div><label className="block text-[14px] text-muted-foreground mb-1.5">城市</label><input className={inputCls} placeholder="如 北京" value={city} onChange={(e)=>setCity(e.target.value)} /></div>
@@ -384,7 +396,13 @@ export default function ApplicationTracker() {
   const [records, setRecords] = useState<AppRecord[]>(() => loadFromStorage());
 
   // Keep localStorage in sync with records
-  useEffect(() => { saveToStorage(records); }, [records]);
+  useEffect(() => {
+    saveToStorage(records);
+    // 触发自定义事件通知其他页面更新
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('applicationsUpdated'));
+    }
+  }, [records]);
 
   // Also try loading from API on mount and merge
   useEffect(() => {

@@ -33,6 +33,7 @@ interface LocalRecord {
   source?: string;
   match?: number;
   interviewTime?: string;
+  interviewDate?: string;
 }
 
 const STORAGE_KEY = 'resume_tracker_records';
@@ -46,13 +47,13 @@ function getUpcomingTasks(records: LocalRecord[]): (LocalRecord & { daysUntil: n
   const todayStr = now.toISOString().slice(0, 10);
   const interviewStatuses = ['笔/面试', '面试中', 'OC'];
   const upcoming = records
-    .filter(r => interviewStatuses.includes(r.status))
+    .filter(r => interviewStatuses.includes(r.status) && r.interviewDate)
     .map(r => {
-      const diffTime = new Date(r.appliedAt).getTime() - now.getTime();
+      const diffTime = new Date(r.interviewDate!).getTime() - now.getTime();
       const daysUntil = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
       return { ...r, daysUntil };
     })
-    .filter(r => r.daysUntil <= 7 && r.daysUntil >= 0)
+    .filter(r => r.daysUntil <= 7 && r.daysUntil >= -1)
     .sort((a, b) => a.daysUntil - b.daysUntil)
     .slice(0, 5);
   return upcoming;
@@ -111,6 +112,21 @@ export default function CalendarPage() {
 
   useEffect(() => { fetchCalendar(); }, [fetchCalendar]);
 
+  // 监听 storage 变化，实时更新日历
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const localRecords = loadFromStorage();
+      setAllRecords(localRecords);
+    };
+    window.addEventListener('storage', handleStorageChange);
+    // 也监听自定义事件
+    window.addEventListener('applicationsUpdated', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('applicationsUpdated', handleStorageChange);
+    };
+  }, []);
+
   const dayMap = new Map(days.map((d) => [d.date, d]));
   const upcomingTasks = getUpcomingTasks(allRecords);
 
@@ -130,8 +146,19 @@ export default function CalendarPage() {
 
   const getInterviewTimes = (dateStr: string) => {
     return allRecords
-      .filter(r => r.appliedAt === dateStr && ['笔/面试', '面试中', 'OC'].includes(r.status) && r.interviewTime)
+      .filter(r => r.interviewDate === dateStr && ['笔/面试', '面试中', 'OC'].includes(r.status) && r.interviewTime)
       .sort((a, b) => (a.interviewTime || '').localeCompare(b.interviewTime || ''));
+  };
+
+  // 按面试日期分组的面试记录
+  const getInterviewsByDate = (dateStr: string) => {
+    return allRecords
+      .filter(r => r.interviewDate === dateStr && ['笔/面试', '面试中', 'OC'].includes(r.status))
+      .map(r => ({
+        company_name: r.company,
+        position_name: r.position,
+        status: r.status as '初面' | '二面' | '终面',
+      }));
   };
 
   return (
@@ -172,47 +199,57 @@ export default function CalendarPage() {
                   const isToday = dateStr === today;
                   const isSelected = dateStr === selectedDate;
                   const interviewTimes = getInterviewTimes(dateStr);
+                  const interviewsByDate = getInterviewsByDate(dateStr);
+                  const hasContent = dayData || interviewTimes.length > 0 || interviewsByDate.length > 0;
                   return (
                     <button key={dateStr} onClick={() => setSelectedDate(isSelected ? null : dateStr)}
                       className={`min-h-[80px] rounded-xl flex flex-col items-start p-2.5 text-left transition-all duration-200 ${
-                        isSelected ? 'bg-primary/20 border border-primary/40 text-foreground' :
-                        isToday ? 'bg-primary/10 border border-primary/20' :
-                        'border border-border hover:bg-muted hover:border-primary/20'
+                        isSelected ? 'bg-primary/20 border-2 border-primary/40 text-foreground' :
+                        isToday ? 'bg-primary/10 border-2 border-primary/20' :
+                        'border-2 border-border hover:bg-muted hover:border-primary/20'
                       }`}>
-                      <span className={`text-base font-semibold leading-none ${isToday && !isSelected ? 'text-primary' : isSelected ? 'text-foreground' : 'text-muted-foreground'}`}>{day}</span>
-                      {dayData && (
+                      <span className={`text-base font-bold leading-none ${isToday && !isSelected ? 'text-primary' : isSelected ? 'text-foreground' : 'text-muted-foreground'}`}>{day}</span>
+                      {hasContent && (
                         <div className="mt-1.5 w-full space-y-1">
-                          {dayData.applications_count > 0 && (<div className={`text-xs leading-tight font-medium ${isSelected ? 'text-foreground' : 'text-primary'}`}>{dayData.applications_count} 家投递</div>)}
+                          {dayData && dayData.applications_count > 0 && (<div className={`text-xs leading-tight font-semibold ${isSelected ? 'text-foreground' : 'text-primary'}`}>{dayData.applications_count} 家投递</div>)}
                           {interviewTimes.slice(0, 2).map((r, idx) => (
-                            <div key={idx} className="text-xs leading-tight flex items-center gap-1 text-amber-600">
+                            <div key={idx} className="text-xs leading-tight flex items-center gap-1 text-amber-600 font-medium">
                               <Clock className="h-3 w-3" /><span>{r.interviewTime}</span><span className="truncate">{r.company}</span>
                             </div>
                           ))}
-                          {dayData.interviews.slice(0, 2).map((iv, idx) => {
+                          {interviewsByDate.slice(0, 2).map((iv, idx) => {
                             const style = statusStyle[iv.status] || 'text-muted-foreground';
-                            return (<div key={idx} className={`text-xs leading-tight truncate ${isSelected ? 'text-foreground' : style.split(' ')[0]}`}>{iv.company_name}<span className={`ml-1 rounded px-1 py-px text-[11px] ${isSelected ? 'text-foreground/80' : style}`}>{iv.status}</span></div>);
+                            return (<div key={idx} className={`text-xs leading-tight truncate font-medium ${isSelected ? 'text-foreground' : style.split(' ')[0]}`}>{iv.company_name}<span className={`ml-1 rounded px-1 py-px text-[11px] font-medium ${isSelected ? 'text-foreground/80' : style}`}>{iv.status}</span></div>);
                           })}
-                          {(dayData.interviews.length > 2 || interviewTimes.length > 2) && (<div className={`text-xs ${isSelected ? 'text-muted-foreground' : 'text-muted-foreground'}`}>+{dayData.interviews.length + interviewTimes.length - 2}</div>)}
+                          {((dayData?.interviews?.length || 0) + interviewTimes.length + interviewsByDate.length > 2) && (<div className={`text-xs font-medium ${isSelected ? 'text-muted-foreground' : 'text-muted-foreground'}`}>+{(dayData?.interviews?.length || 0) + interviewTimes.length + interviewsByDate.length - 2}</div>)}
                         </div>
                       )}
                     </button>
                   );
                 })}
               </div>
-              {selectedDay && (
-                <div className="mt-5 rounded-xl border border-border bg-muted/50 p-4">
-                  <h3 className="text-base font-semibold text-foreground mb-3">{selectedDay.date}</h3>
+              {selectedDate && (
+                <div className="mt-5 rounded-xl border-2 border-border bg-muted/50 p-4">
+                  <h3 className="text-base font-bold text-foreground mb-3">{selectedDate}</h3>
                   <div className="space-y-2.5">
-                    {getInterviewTimes(selectedDay.date).map((r, i) => (
-                      <div key={i} className="flex items-center gap-2 text-sm">
-                        <Clock className="h-4 w-4 text-amber-600" /><span className="text-amber-600 font-medium">{r.interviewTime}</span>
+                    {getInterviewTimes(selectedDate).map((r, i) => (
+                      <div key={i} className="flex items-center gap-2 text-sm font-medium">
+                        <Clock className="h-4 w-4 text-amber-600" /><span className="text-amber-600 font-semibold">{r.interviewTime}</span>
                         <span className="text-foreground">{r.company}</span><span className="text-muted-foreground">—</span><span className="text-foreground">{r.position}</span>
                       </div>
                     ))}
-                    {selectedDay.applications_count > 0 && (<div className="flex items-center gap-2 text-sm text-primary font-medium"><Building2 className="h-4 w-4" /> {selectedDay.applications_count} 家投递</div>)}
-                    {selectedDay.interviews.map((iv, i) => {
-                      const style = statusStyle[iv.status] || 'text-muted-foreground bg-muted';
-                      return (
+                    {getInterviewsByDate(selectedDate).map((iv, i) => (
+                      <div key={i} className="flex items-center gap-2 text-sm font-medium">
+                        <span className="text-foreground">{iv.company_name}</span><span className="text-muted-foreground">—</span><span className="text-foreground">{iv.position_name}</span>
+                        <span className={`rounded-md px-2 py-0.5 text-xs font-semibold ${statusStyle[iv.status] || 'text-muted-foreground bg-muted'}`}>{iv.status}</span>
+                      </div>
+                    ))}
+                    {dayMap.get(selectedDate)?.applications_count > 0 && (<div className="flex items-center gap-2 text-sm text-primary font-semibold"><Building2 className="h-4 w-4" /> {dayMap.get(selectedDate)?.applications_count} 家投递</div>)}
+                    {dayMap.get(selectedDate)?.has_note && <span className="text-xs font-medium text-amber-600">含有备注</span>}
+                    {!dayMap.get(selectedDate) && getInterviewTimes(selectedDate).length === 0 && getInterviewsByDate(selectedDate).length === 0 && (<p className="text-sm font-medium text-muted-foreground">当天无投递或面试记录</p>)}
+                  </div>
+                </div>
+              )}
                         <div key={i} className="flex items-center gap-2 text-sm">
                           <span className="text-foreground">{iv.company_name}</span><span className="text-muted-foreground">—</span><span className="text-foreground">{iv.position_name}</span>
                           <span className={`rounded-md px-2 py-0.5 text-xs font-medium ${style}`}>{iv.status}</span>
