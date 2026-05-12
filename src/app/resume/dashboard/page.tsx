@@ -145,17 +145,23 @@ function computeStatsFromLocal(records: LocalRecord[], range: '7d' | '30d' | 'al
     .map(([city, count]) => ({ city, count }))
     .sort((a, b) => b.count - a.count);
 
-  // Position category conversion - 基于公司名推断类别
+  // Position category conversion - 基于职位名推断类别
   const categoryMap = new Map<string, { total: number; interviews: number; offers: number }>();
   for (const r of filteredRecords) {
-    // 简单推断类别（可后续优化）
+    // 更精确的类别推断
     let category = '未分类';
-    if (r.position.includes('产品') || r.position.includes('PM')) category = '产品';
-    else if (r.position.includes('运营')) category = '运营';
-    else if (r.position.includes('技术') || r.position.includes('开发') || r.position.includes('工程师')) category = '技术';
-    else if (r.position.includes('设计')) category = '设计';
-    else if (r.position.includes('数据')) category = '数据';
-    else if (r.position.includes('市场') || r.position.includes('营销')) category = '市场';
+    const pos = r.position.toLowerCase();
+
+    // 检查是否包含多个关键词，优先匹配更具体的
+    if (pos.includes('产品运营')) category = '产品运营';
+    else if (pos.includes('产品') || pos.includes('pm')) category = '产品';
+    else if (pos.includes('运营')) category = '运营';
+    else if (pos.includes('技术') || pos.includes('开发') || pos.includes('工程师') || pos.includes('前端') || pos.includes('后端') || pos.includes('全栈')) category = '技术';
+    else if (pos.includes('设计') || pos.includes('ui') || pos.includes('ux')) category = '设计';
+    else if (pos.includes('数据') || pos.includes('分析')) category = '数据';
+    else if (pos.includes('市场') || pos.includes('营销') || pos.includes('推广')) category = '市场';
+    else if (pos.includes('销售') || pos.includes('商务')) category = '销售';
+    else if (pos.includes('人力') || pos.includes('hr')) category = '人力';
 
     const entry = categoryMap.get(category) || { total: 0, interviews: 0, offers: 0 };
     entry.total++;

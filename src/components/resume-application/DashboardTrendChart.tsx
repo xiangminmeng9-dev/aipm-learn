@@ -15,10 +15,30 @@ export default function DashboardTrendChart({ applicationTrend }: Props) {
   };
 
   const dates = applicationTrend.map((t) => t.date);
-  const totalCounts = applicationTrend.map((t) => t.count);
-  const interviewCounts = applicationTrend.map((t) => t.interviews);
-  const offerCounts = applicationTrend.map((t) => t.offers);
-  const acceptedCounts = applicationTrend.map((t) => t.accepted);
+
+  // 计算累积值
+  let cumulativeTotal = 0;
+  let cumulativeInterviews = 0;
+  let cumulativeOffers = 0;
+  let cumulativeAccepted = 0;
+
+  const cumulativeData = applicationTrend.map((t) => {
+    cumulativeTotal += t.count;
+    cumulativeInterviews += t.interviews;
+    cumulativeOffers += t.offers;
+    cumulativeAccepted += t.accepted;
+    return {
+      total: cumulativeTotal,
+      interviews: cumulativeInterviews,
+      offers: cumulativeOffers,
+      accepted: cumulativeAccepted,
+    };
+  });
+
+  const totalCounts = cumulativeData.map((d) => d.total);
+  const interviewCounts = cumulativeData.map((d) => d.interviews);
+  const offerCounts = cumulativeData.map((d) => d.offers);
+  const acceptedCounts = cumulativeData.map((d) => d.accepted);
 
   const option = {
     tooltip: {
@@ -54,7 +74,7 @@ export default function DashboardTrendChart({ applicationTrend }: Props) {
         name: '总投递',
         type: 'line' as const,
         data: totalCounts,
-        smooth: true,
+        smooth: false, // 折线图，不是曲线
         symbol: 'circle' as const,
         symbolSize: 6,
         lineStyle: { width: 3, color: '#6366F1' },
@@ -74,7 +94,7 @@ export default function DashboardTrendChart({ applicationTrend }: Props) {
         name: '面试',
         type: 'line' as const,
         data: interviewCounts,
-        smooth: true,
+        smooth: false,
         symbol: 'circle' as const,
         symbolSize: 5,
         lineStyle: { width: 2.5, color: '#F59E0B' },
@@ -94,7 +114,7 @@ export default function DashboardTrendChart({ applicationTrend }: Props) {
         name: 'Offer',
         type: 'line' as const,
         data: offerCounts,
-        smooth: true,
+        smooth: false,
         symbol: 'circle' as const,
         symbolSize: 5,
         lineStyle: { width: 2.5, color: '#10B981' },
@@ -114,7 +134,7 @@ export default function DashboardTrendChart({ applicationTrend }: Props) {
         name: '已接受',
         type: 'line' as const,
         data: acceptedCounts,
-        smooth: true,
+        smooth: false,
         symbol: 'circle' as const,
         symbolSize: 5,
         lineStyle: { width: 2.5, color: '#8B5CF6' },
@@ -134,11 +154,11 @@ export default function DashboardTrendChart({ applicationTrend }: Props) {
   };
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-5">
+    <div className="rounded-2xl border-2 border-border bg-card p-5">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-foreground">投递趋势</h3>
+        <h3 className="text-sm font-bold text-foreground">投递趋势（累积）</h3>
         <div className="relative">
-          <select className="appearance-none text-xs text-muted-foreground bg-transparent pr-4 py-1 outline-none cursor-pointer hover:text-foreground transition-colors">
+          <select className="appearance-none text-xs font-medium text-muted-foreground bg-transparent pr-4 py-1 outline-none cursor-pointer hover:text-foreground transition-colors">
             <option>近7天</option>
             <option>近30天</option>
             <option>全部</option>

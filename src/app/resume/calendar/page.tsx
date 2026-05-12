@@ -55,7 +55,7 @@ function getUpcomingTasks(records: LocalRecord[]): (LocalRecord & { daysUntil: n
     })
     .filter(r => r.daysUntil <= 7 && r.daysUntil >= -1)
     .sort((a, b) => a.daysUntil - b.daysUntil)
-    .slice(0, 5);
+    .slice(0, 10); // 显示最多10个
   return upcoming;
 }
 
@@ -232,6 +232,9 @@ export default function CalendarPage() {
                               <span className="truncate">{r.company_name}</span>
                             </div>
                           ))}
+                          {interviewsByDate.length > 3 && (
+                            <div className="text-xs font-medium text-muted-foreground">+{interviewsByDate.length - 3} 更多</div>
+                          )}
                         </div>
                       )}
                     </button>
