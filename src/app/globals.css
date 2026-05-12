@@ -134,9 +134,31 @@
   body {
     @apply bg-background text-foreground;
     letter-spacing: -0.01em;
+    /* 提高渲染清晰度 */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
   h1, h2, h3, h4, h5, h6 {
     letter-spacing: -0.02em;
+    /* 标题更加锐利 */
+    font-weight: 600;
+    -webkit-font-smoothing: antialiased;
+  }
+  /* 全局锐利清晰优化 */
+  * {
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+  }
+  /* 文字锐利 */
+  p, span, li, a, label, input, textarea, select, button {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  /* 图标锐利 */
+  svg {
+    shape-rendering: crispEdges;
   }
 }
 
@@ -227,49 +249,51 @@
   --sidebar-daily-active: #A78BFA;
 }
 
-/* Scrollbar */
+/* Scrollbar - 更清晰的滚动条 */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.15);
-  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  border: 1px solid transparent;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.25);
+  background: rgba(0, 0, 0, 0.35);
 }
 
-/* Card style */
+/* Card style - 更锐利的卡片 */
 .app-card {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 10px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
-  transition: box-shadow 0.12s ease;
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
 }
 .app-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border-color: rgba(79, 70, 229, 0.2);
 }
 
-/* Input style */
+/* Input style - 更清晰的输入框 */
 .app-input {
   background: var(--card);
-  border: 1px solid var(--border);
+  border: 1.5px solid var(--border);
   border-radius: 8px;
   color: var(--foreground);
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 }
 .app-input::placeholder {
   color: var(--muted-foreground);
 }
 .app-input:focus {
-  border-color: var(--ring);
+  border-color: var(--primary);
   outline: none;
-  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.15);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
 }
 
 /* Primary button - solid indigo */
@@ -277,8 +301,9 @@
   background: #4F46E5;
   border-radius: 8px;
   color: white;
-  font-weight: 500;
+  font-weight: 600;
   transition: background 0.15s ease;
+  border: none;
 }
 .app-btn-primary:hover {
   background: #4338CA;
@@ -290,19 +315,54 @@
   opacity: 0.5;
 }
 
-/* Outline button */
+/* Outline button - 更锐利 */
 .app-btn-outline {
   background: var(--card);
-  border: 1px solid var(--border);
+  border: 1.5px solid var(--border);
   border-radius: 8px;
-  color: var(--muted-foreground);
+  color: var(--foreground);
   font-weight: 500;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 }
 .app-btn-outline:hover {
   background: var(--muted);
-  border-color: var(--muted-foreground);
-  color: var(--foreground);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+/* 全局锐利边框 */
+.border-sharp {
+  border-width: 1.5px;
+}
+
+/* 清晰的阴影 */
+.shadow-sharp {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 0 1px rgba(0, 0, 0, 0.04);
+}
+
+.shadow-sharp-md {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1), 0 0 1px rgba(0, 0, 0, 0.05);
+}
+
+.shadow-sharp-lg {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12), 0 0 1px rgba(0, 0, 0, 0.06);
+}
+
+/* 文字锐利 - 高对比度 */
+.text-sharp {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-weight: 500;
+}
+
+/* 标题锐利 */
+.heading-sharp {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-weight: 600;
+  letter-spacing: -0.02em;
 }
 
 /* Gradient text - indigo */
@@ -316,7 +376,7 @@
 /* Gradient border */
 .gradient-border {
   position: relative;
-  border: 1px solid #4F46E5;
+  border: 1.5px solid #4F46E5;
 }
 
 /* Page transition */
