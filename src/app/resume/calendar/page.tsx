@@ -119,7 +119,6 @@ export default function CalendarPage() {
       setAllRecords(localRecords);
     };
     window.addEventListener('storage', handleStorageChange);
-    // 也监听自定义事件
     window.addEventListener('applicationsUpdated', handleStorageChange);
     return () => {
       window.removeEventListener('storage', handleStorageChange);
@@ -142,15 +141,15 @@ export default function CalendarPage() {
   for (let d = 1; d <= lastDay.getDate(); d++) cells.push(d);
 
   const today = new Date().toISOString().slice(0, 10);
-  const selectedDay = selectedDate ? dayMap.get(selectedDate) : null;
 
+  // 获取指定日期的面试记录（带时间）
   const getInterviewTimes = (dateStr: string) => {
     return allRecords
       .filter(r => r.interviewDate === dateStr && ['笔/面试', '面试中', 'OC'].includes(r.status) && r.interviewTime)
       .sort((a, b) => (a.interviewTime || '').localeCompare(b.interviewTime || ''));
   };
 
-  // 按面试日期分组的面试记录
+  // 获取指定日期的所有面试记录
   const getInterviewsByDate = (dateStr: string) => {
     return allRecords
       .filter(r => r.interviewDate === dateStr && ['笔/面试', '面试中', 'OC'].includes(r.status))
@@ -158,8 +157,13 @@ export default function CalendarPage() {
         company_name: r.company,
         position_name: r.position,
         status: r.status as '初面' | '二面' | '终面',
+        interviewTime: r.interviewTime,
       }));
   };
+
+  const selectedDayData = selectedDate ? dayMap.get(selectedDate) : null;
+  const selectedInterviews = selectedDate ? getInterviewsByDate(selectedDate) : [];
+  const selectedInterviewTimes = selectedDate ? getInterviewTimes(selectedDate) : [];
 
   return (
     <div className="h-full flex flex-col overflow-hidden bg-background">
@@ -172,15 +176,15 @@ export default function CalendarPage() {
       <div className="relative z-10 flex-1 overflow-y-auto px-5 py-4">
         <div className="flex items-center justify-between mb-5">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-foreground">投递日历</h1>
-            <p className="mt-1 text-sm text-muted-foreground">按日历视图查看你的投递节奏和面试安排</p>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">投递日历</h1>
+            <p className="mt-1 text-sm font-medium text-muted-foreground">按日历视图查看你的投递节奏和面试安排</p>
           </div>
         </div>
 
-        <div className="rounded-xl border border-border bg-card p-5">
+        <div className="rounded-xl border-2 border-border bg-card p-5">
           <div className="flex items-center justify-between mb-5">
             <button onClick={prevMonth} className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"><ChevronLeft className="h-5 w-5" /></button>
-            <h2 className="text-lg font-semibold text-foreground">{year} 年 {month} 月</h2>
+            <h2 className="text-lg font-bold text-foreground">{year} 年 {month} 月</h2>
             <button onClick={nextMonth} className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"><ChevronRight className="h-5 w-5" /></button>
           </div>
 
@@ -189,7 +193,7 @@ export default function CalendarPage() {
           ) : (
             <>
               <div className="grid grid-cols-7 mb-2">
-                {WEEKDAYS.map((w) => (<div key={w} className="py-2.5 text-center text-sm font-medium text-muted-foreground">{w}</div>))}
+                {WEEKDAYS.map((w) => (<div key={w} className="py-2.5 text-center text-sm font-semibold text-muted-foreground">{w}</div>))}
               </div>
               <div className="grid grid-cols-7 gap-2">
                 {cells.map((day, i) => {
@@ -217,51 +221,59 @@ export default function CalendarPage() {
                               <Clock className="h-3 w-3" /><span>{r.interviewTime}</span><span className="truncate">{r.company}</span>
                             </div>
                           ))}
-                          {interviewsByDate.slice(0, 2).map((iv, idx) => {
+                          {interviewsByDate.filter(r => !r.interviewTime).slice(0, 2).map((iv, idx) => {
                             const style = statusStyle[iv.status] || 'text-muted-foreground';
                             return (<div key={idx} className={`text-xs leading-tight truncate font-medium ${isSelected ? 'text-foreground' : style.split(' ')[0]}`}>{iv.company_name}<span className={`ml-1 rounded px-1 py-px text-[11px] font-medium ${isSelected ? 'text-foreground/80' : style}`}>{iv.status}</span></div>);
                           })}
-                          {((dayData?.interviews?.length || 0) + interviewTimes.length + interviewsByDate.length > 2) && (<div className={`text-xs font-medium ${isSelected ? 'text-muted-foreground' : 'text-muted-foreground'}`}>+{(dayData?.interviews?.length || 0) + interviewTimes.length + interviewsByDate.length - 2}</div>)}
                         </div>
                       )}
                     </button>
                   );
                 })}
               </div>
+
+              {/* 选中日期的详情 */}
               {selectedDate && (
                 <div className="mt-5 rounded-xl border-2 border-border bg-muted/50 p-4">
                   <h3 className="text-base font-bold text-foreground mb-3">{selectedDate}</h3>
                   <div className="space-y-2.5">
-                    {getInterviewTimes(selectedDate).map((r, i) => (
+                    {/* 面试时间列表 */}
+                    {selectedInterviewTimes.map((r, i) => (
                       <div key={i} className="flex items-center gap-2 text-sm font-medium">
-                        <Clock className="h-4 w-4 text-amber-600" /><span className="text-amber-600 font-semibold">{r.interviewTime}</span>
-                        <span className="text-foreground">{r.company}</span><span className="text-muted-foreground">—</span><span className="text-foreground">{r.position}</span>
+                        <Clock className="h-4 w-4 text-amber-600" />
+                        <span className="text-amber-600 font-semibold">{r.interviewTime}</span>
+                        <span className="text-foreground">{r.company}</span>
+                        <span className="text-muted-foreground">—</span>
+                        <span className="text-foreground">{r.position}</span>
+                        <span className={`rounded-md px-2 py-0.5 text-xs font-semibold ${statusStyle[r.status] || 'text-muted-foreground bg-muted'}`}>{r.status}</span>
                       </div>
                     ))}
-                    {getInterviewsByDate(selectedDate).map((iv, i) => (
+                    {/* 其他面试记录 */}
+                    {selectedInterviews.filter(r => !r.interviewTime).map((iv, i) => (
                       <div key={i} className="flex items-center gap-2 text-sm font-medium">
-                        <span className="text-foreground">{iv.company_name}</span><span className="text-muted-foreground">—</span><span className="text-foreground">{iv.position_name}</span>
+                        <span className="text-foreground">{iv.company_name}</span>
+                        <span className="text-muted-foreground">—</span>
+                        <span className="text-foreground">{iv.position_name}</span>
                         <span className={`rounded-md px-2 py-0.5 text-xs font-semibold ${statusStyle[iv.status] || 'text-muted-foreground bg-muted'}`}>{iv.status}</span>
                       </div>
                     ))}
-                    {dayMap.get(selectedDate)?.applications_count > 0 && (<div className="flex items-center gap-2 text-sm text-primary font-semibold"><Building2 className="h-4 w-4" /> {dayMap.get(selectedDate)?.applications_count} 家投递</div>)}
-                    {dayMap.get(selectedDate)?.has_note && <span className="text-xs font-medium text-amber-600">含有备注</span>}
-                    {!dayMap.get(selectedDate) && getInterviewTimes(selectedDate).length === 0 && getInterviewsByDate(selectedDate).length === 0 && (<p className="text-sm font-medium text-muted-foreground">当天无投递或面试记录</p>)}
+                    {/* 投递记录 */}
+                    {selectedDayData && selectedDayData.applications_count > 0 && (
+                      <div className="flex items-center gap-2 text-sm text-primary font-semibold">
+                        <Building2 className="h-4 w-4" /> {selectedDayData.applications_count} 家投递
+                      </div>
+                    )}
+                    {/* 备注 */}
+                    {selectedDayData?.has_note && <span className="text-xs font-medium text-amber-600">含有备注</span>}
+                    {/* 无记录提示 */}
+                    {(!selectedDayData || selectedDayData.applications_count === 0) && selectedInterviewTimes.length === 0 && selectedInterviews.filter(r => !r.interviewTime).length === 0 && (
+                      <p className="text-sm font-medium text-muted-foreground">当天无投递或面试记录</p>
+                    )}
                   </div>
                 </div>
               )}
-                        <div key={i} className="flex items-center gap-2 text-sm">
-                          <span className="text-foreground">{iv.company_name}</span><span className="text-muted-foreground">—</span><span className="text-foreground">{iv.position_name}</span>
-                          <span className={`rounded-md px-2 py-0.5 text-xs font-medium ${style}`}>{iv.status}</span>
-                        </div>
-                      );
-                    })}
-                    {selectedDay.has_note && <span className="text-xs text-amber-600">含有备注</span>}
-                    {selectedDay.applications_count === 0 && selectedDay.interviews.length === 0 && getInterviewTimes(selectedDay.date).length === 0 && (<p className="text-sm text-muted-foreground">当天无投递记录</p>)}
-                  </div>
-                </div>
-              )}
-              <div className="mt-4 flex items-center gap-5 text-xs text-muted-foreground">
+
+              <div className="mt-4 flex items-center gap-5 text-xs font-medium text-muted-foreground">
                 <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-primary" /> 投递</span>
                 <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> 面试</span>
                 <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-amber-500" /> 备注</span>
@@ -270,28 +282,29 @@ export default function CalendarPage() {
           )}
         </div>
 
+        {/* 即将到来的面试 */}
         {upcomingTasks.length > 0 && (
-          <div className="mt-5 rounded-xl border border-border bg-card p-5">
+          <div className="mt-5 rounded-xl border-2 border-border bg-card p-5">
             <div className="flex items-center gap-2 mb-4">
               <CalendarIcon className="h-5 w-5 text-primary" />
-              <h3 className="text-base font-semibold text-foreground">即将到来的面试</h3>
+              <h3 className="text-base font-bold text-foreground">即将到来的面试</h3>
             </div>
             <div className="space-y-3">
               {upcomingTasks.map((task) => (
-                <div key={task.id} className="flex items-center justify-between rounded-lg border border-border bg-muted/50 px-4 py-3">
+                <div key={task.id} className="flex items-center justify-between rounded-lg border-2 border-border bg-muted/50 px-4 py-3">
                   <div className="flex items-center gap-3">
                     <div className="flex flex-col items-center justify-center w-12 h-12 rounded-lg bg-primary/10 border border-primary/20">
                       <span className="text-lg font-bold text-primary">{task.daysUntil === 0 ? '今' : task.daysUntil === 1 ? '明' : task.daysUntil}</span>
                       {task.daysUntil > 1 && <span className="text-[10px] text-muted-foreground">天后</span>}
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-foreground">{task.company}</p>
-                      <p className="text-xs text-muted-foreground">{task.position}</p>
+                      <p className="text-sm font-semibold text-foreground">{task.company}</p>
+                      <p className="text-xs font-medium text-muted-foreground">{task.position}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    {task.interviewTime && (<span className="flex items-center gap-1 text-sm text-amber-600"><Clock className="h-4 w-4" />{task.interviewTime}</span>)}
-                    <span className={`rounded-md px-2.5 py-1 text-xs font-medium ${statusStyle[task.status] || 'text-muted-foreground bg-muted'}`}>{task.status}</span>
+                    {task.interviewTime && (<span className="flex items-center gap-1 text-sm font-semibold text-amber-600"><Clock className="h-4 w-4" />{task.interviewTime}</span>)}
+                    <span className={`rounded-md px-2.5 py-1 text-xs font-semibold ${statusStyle[task.status] || 'text-muted-foreground bg-muted'}`}>{task.status}</span>
                   </div>
                 </div>
               ))}

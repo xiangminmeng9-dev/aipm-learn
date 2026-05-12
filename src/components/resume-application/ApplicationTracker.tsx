@@ -579,10 +579,19 @@ export default function ApplicationTracker() {
     const stageDef = KANBAN_STAGES.find(s => s.key === targetStage);
     if (!stageDef) return;
 
-    // Update the record's stage and status
+    // Update the record's stage and status, preserving interview data
     setRecords((prev) => prev.map((r) => {
       if (r.id !== recordId) return r;
-      return { ...r, stage: targetStage, status: stageDef.label };
+      // 如果拖到面试状态，保留面试日期和时间
+      const isInterviewStatus = INTERVIEW_STATUSES.includes(stageDef.label);
+      return {
+        ...r,
+        stage: targetStage,
+        status: stageDef.label,
+        // 如果之前没有面试日期，且拖到面试状态，使用投递日期作为默认面试日期
+        interviewDate: isInterviewStatus ? (r.interviewDate || r.appliedAt) : undefined,
+        interviewTime: isInterviewStatus ? r.interviewTime : undefined,
+      };
     }));
 
     // Persist to API
