@@ -287,20 +287,38 @@ function RecordDialog({ open, onClose, onSave, editing }: {
   const stageDef = KANBAN_STAGES.find(s=>s.key===stage);
   const showInterviewTime = stageDef && INTERVIEW_STATUSES.includes(stageDef.label);
 
-  useEffect(() => { if (open) { setCompany(editing?.company||''); setPosition(editing?.position||''); setStage(editing?.stage||'applied'); setMatch(editing?.match??50); setSource(editing?.source||'Boss直聘'); setCity(editing?.city||''); setAppliedAt(editing?.appliedAt||new Date().toISOString().slice(0,10)); setInterviewDate(editing?.interviewDate||''); setInterviewTime(editing?.interviewTime||''); setTags(editing?.tags.join(',')||''); setNotes(editing?.notes||''); setTimeout(()=>companyRef.current?.focus(),50); } }, [open, editing]);
+  useEffect(() => {
+    if (open) {
+      setCompany(editing?.company||'');
+      setPosition(editing?.position||'');
+      setStage(editing?.stage||'applied');
+      setMatch(editing?.match??50);
+      setSource(editing?.source||'Boss直聘');
+      setCity(editing?.city||'');
+      setAppliedAt(editing?.appliedAt||new Date().toISOString().slice(0,10));
+      // 如果没有面试日期，默认使用投递日期
+      setInterviewDate(editing?.interviewDate || editing?.appliedAt || '');
+      setInterviewTime(editing?.interviewTime||'');
+      setTags(editing?.tags.join(',')||'');
+      setNotes(editing?.notes||'');
+      setTimeout(()=>companyRef.current?.focus(),50);
+    }
+  }, [open, editing]);
 
   if (!open) return null;
 
   const submit = () => {
     if (!company.trim() || !position.trim()) return;
     const stageDef = KANBAN_STAGES.find(s=>s.key===stage)!;
+    const isInterviewStatus = INTERVIEW_STATUSES.includes(stageDef.label);
     onSave({
       id: editing?.id || Date.now().toString(),
       company: company.trim(), position: position.trim(),
       stage, status: stageDef.label, match, source, city: city.trim(),
       appliedAt, updatedAt: isEdit ? editing!.updatedAt : '刚刚',
-      interviewDate: INTERVIEW_STATUSES.includes(stageDef.label) ? interviewDate : undefined,
-      interviewTime: INTERVIEW_STATUSES.includes(stageDef.label) ? interviewTime : undefined,
+      // 面试日期：如果有输入就用输入的，否则用投递日期
+      interviewDate: isInterviewStatus ? (interviewDate || appliedAt) : undefined,
+      interviewTime: isInterviewStatus ? interviewTime : undefined,
       tags: tags.split(/[,，]/).map(t=>t.trim()).filter(Boolean),
       notes: notes.trim(),
     });
