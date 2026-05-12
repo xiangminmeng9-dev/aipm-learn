@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import GradientBackground from '@/components/ui/gradient-background';
 
 interface FlashCard {
   id: string;
@@ -121,8 +122,9 @@ export default function FlashcardsPage() {
   const currentCard = dueCards[currentIndex];
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-40 border-b border-border bg-card/80 backdrop-blur">
+    <div className="h-full bg-background">
+      <GradientBackground />
+      <header className="relative z-10 sticky top-0 z-40 border-b border-border bg-card/80 backdrop-blur">
         <div className="flex items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
             <Link href="/daily-challenge" className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">

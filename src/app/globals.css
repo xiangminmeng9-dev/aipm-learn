@@ -74,14 +74,15 @@
   --chart-4: #10B981;
   --chart-5: #F59E0B;
   --radius: 0.5rem;
+  /* Light mode sidebar - white/light gray background */
   --sidebar: #FFFFFF;
-  --sidebar-foreground: #6B7280;
+  --sidebar-foreground: #374151;
   --sidebar-primary: #4F46E5;
   --sidebar-primary-foreground: #FFFFFF;
   --sidebar-accent: #EEF2FF;
   --sidebar-accent-foreground: #4F46E5;
   --sidebar-border: #E5E7EB;
-  --sidebar-ring: #4F46E5;
+  --sidebar-ring: #6366F1;
 }
 
 .dark {
@@ -109,14 +110,14 @@
   --chart-4: #10B981;
   --chart-5: #F59E0B;
   --radius: 0.5rem;
-  --sidebar: #1E293B;
-  --sidebar-foreground: #94A3B8;
-  --sidebar-primary: #4F46E5;
-  --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #312E81;
-  --sidebar-accent-foreground: #C7D2FE;
-  --sidebar-border: #334155;
-  --sidebar-ring: #818CF8;
+  --sidebar: #0A0A10;
+  --sidebar-foreground: #9494A0;
+  --sidebar-primary: #E2E8F0;
+  --sidebar-primary-foreground: #0A0A10;
+  --sidebar-accent: #161628;
+  --sidebar-accent-foreground: #D0D0DC;
+  --sidebar-border: #1C1C2E;
+  --sidebar-ring: #6366F1;
 }
 
 @layer base {
@@ -137,6 +138,93 @@
   h1, h2, h3, h4, h5, h6 {
     letter-spacing: -0.02em;
   }
+}
+
+/* 功能区侧边栏主题色 - 明亮模式统一白色 */
+:root {
+  /* 明亮模式 - 所有侧边栏白色底色 */
+  --sidebar-coding: #FFFFFF;
+  --sidebar-coding-accent: #EEF2FF;
+  --sidebar-coding-border: #E5E7EB;
+  --sidebar-coding-active: #4F46E5;
+
+  --sidebar-skills: #FFFFFF;
+  --sidebar-skills-accent: #EEF2FF;
+  --sidebar-skills-border: #E5E7EB;
+  --sidebar-skills-active: #4F46E5;
+
+  --sidebar-notebook: #FFFFFF;
+  --sidebar-notebook-accent: #EEF2FF;
+  --sidebar-notebook-border: #E5E7EB;
+  --sidebar-notebook-active: #4F46E5;
+
+  --sidebar-interview: #FFFFFF;
+  --sidebar-interview-accent: #EEF2FF;
+  --sidebar-interview-border: #E5E7EB;
+  --sidebar-interview-active: #4F46E5;
+
+  --sidebar-resume: #FFFFFF;
+  --sidebar-resume-accent: #EEF2FF;
+  --sidebar-resume-border: #E5E7EB;
+  --sidebar-resume-active: #4F46E5;
+
+  --sidebar-resources: #FFFFFF;
+  --sidebar-resources-accent: #EEF2FF;
+  --sidebar-resources-border: #E5E7EB;
+  --sidebar-resources-active: #4F46E5;
+
+  --sidebar-simulator: #FFFFFF;
+  --sidebar-simulator-accent: #EEF2FF;
+  --sidebar-simulator-border: #E5E7EB;
+  --sidebar-simulator-active: #4F46E5;
+
+  --sidebar-daily: #FFFFFF;
+  --sidebar-daily-accent: #EEF2FF;
+  --sidebar-daily-border: #E5E7EB;
+  --sidebar-daily-active: #4F46E5;
+}
+
+.dark {
+  /* 暗黑模式保持原来的深色侧边栏 */
+  --sidebar-coding: #0A0A10;
+  --sidebar-coding-accent: #161628;
+  --sidebar-coding-border: #1C1C2E;
+  --sidebar-coding-active: #A78BFA;
+
+  --sidebar-skills: #0A0A10;
+  --sidebar-skills-accent: #161628;
+  --sidebar-skills-border: #1C1C2E;
+  --sidebar-skills-active: #A78BFA;
+
+  --sidebar-notebook: #0A0A10;
+  --sidebar-notebook-accent: #161628;
+  --sidebar-notebook-border: #1C1C2E;
+  --sidebar-notebook-active: #A78BFA;
+
+  --sidebar-interview: #0A0A10;
+  --sidebar-interview-accent: #161628;
+  --sidebar-interview-border: #1C1C2E;
+  --sidebar-interview-active: #A78BFA;
+
+  --sidebar-resume: #0A0A10;
+  --sidebar-resume-accent: #161628;
+  --sidebar-resume-border: #1C1C2E;
+  --sidebar-resume-active: #A78BFA;
+
+  --sidebar-resources: #0A0A10;
+  --sidebar-resources-accent: #161628;
+  --sidebar-resources-border: #1C1C2E;
+  --sidebar-resources-active: #A78BFA;
+
+  --sidebar-simulator: #0A0A10;
+  --sidebar-simulator-accent: #161628;
+  --sidebar-simulator-border: #1C1C2E;
+  --sidebar-simulator-active: #A78BFA;
+
+  --sidebar-daily: #0A0A10;
+  --sidebar-daily-accent: #161628;
+  --sidebar-daily-border: #1C1C2E;
+  --sidebar-daily-active: #A78BFA;
 }
 
 /* Scrollbar */

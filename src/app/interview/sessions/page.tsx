@@ -12,6 +12,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import GradientBackground from '@/components/ui/gradient-background';
 
 interface SessionListItem {
   id: string;
@@ -76,7 +77,9 @@ export default function SessionsPage() {
   }, []);
 
   return (
-    <div className="p-8">
+    <>
+      <GradientBackground />
+      <div className="relative z-10 p-8">
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">对话 Session</h1>
@@ -177,5 +180,6 @@ export default function SessionsPage() {
         </div>
       )}
     </div>
+    </>
   );
 }

@@ -5,6 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import CompetitiveScoreCard from '@/components/interview/CompetitiveScoreCard';
 import type { CompetitiveAnalysis, DimensionScore } from '@/types';
+import GradientBackground from '@/components/ui/gradient-background';
 
 interface HistoryRecord {
   id: string;
@@ -49,7 +50,9 @@ export default function CompHistoryPage() {
   const totalPages = Math.ceil(total / 20);
 
   return (
-    <div className="space-y-6 p-8">
+    <>
+      <GradientBackground />
+      <div className="relative z-10 space-y-6 p-8">
       <div>
         <h1 className="text-3xl font-semibold text-foreground">竞品分析历史</h1>
         <p className="mt-2 text-muted-foreground">查看所有竞品分析记录和评分详情</p>
@@ -138,5 +141,6 @@ export default function CompHistoryPage() {
         </div>
       )}
     </div>
+    </>
   );
 }

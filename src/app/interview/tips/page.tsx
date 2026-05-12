@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import GradientBackground from '@/components/ui/gradient-background';
 
 interface Tip {
   id: string;
@@ -45,7 +46,9 @@ export default function TipsPage() {
   }
 
   return (
-    <div className="flex h-full flex-col overflow-y-auto p-6">
+    <>
+      <GradientBackground />
+      <div className="relative z-10 flex h-full flex-col overflow-y-auto p-6">
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-foreground">面试技巧库</h2>
         <p className="mt-1 text-sm text-muted-foreground">结构化面试方法论，覆盖从准备到谈判的全流程</p>
@@ -122,5 +125,6 @@ export default function TipsPage() {
         </div>
       )}
     </div>
+    </>
   );
 }

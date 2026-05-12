@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { cacheGet, cacheSet, TTL } from '@/lib/cache';
+import GradientBackground from '@/components/ui/gradient-background';
 import SkillModuleCard from '@/components/skills/SkillModuleCard';
 import CustomModuleDialog from '@/components/skills/CustomModuleDialog';
 import SkillTreeChart from '@/components/skills/SkillTreeChart';
@@ -94,8 +95,9 @@ export default function SkillsTreePage() {
 
   return (
     <div className="p-8">
+      <GradientBackground />
       {/* Header */}
-      <div className="mb-6 flex items-start justify-between">
+      <div className="relative z-10 mb-6 flex items-start justify-between">
         <div>
           <h1 className="text-3xl font-semibold text-foreground">AI PM 技能树</h1>
           <p className="mt-2 text-base text-muted-foreground">从零基础到 AI 产品经理，循序渐进的学习路径</p>
@@ -150,14 +152,14 @@ export default function SkillsTreePage() {
       </div>
 
       {isLoading ? (
-        <div className="flex justify-center py-16">
+        <div className="relative z-10 flex justify-center py-16">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
         </div>
       ) : (
         <>
           {/* Overall progress + Radar */}
           {modules.length > 0 && (
-            <div className="mb-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="relative z-10 mb-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="rounded-2xl border border-border bg-card p-6">
                 <div className="flex items-center justify-between text-base">
                   <span className="text-muted-foreground">
@@ -175,14 +177,14 @@ export default function SkillsTreePage() {
 
           {/* Tree view */}
           {viewMode === 'tree' && modules.length > 0 && (
-            <div className="rounded-2xl border border-border bg-card p-4">
+            <div className="relative z-10 rounded-2xl border border-border bg-card p-4">
               <SkillTreeChart data={graphData} onNodeClick={handleNodeClick} />
             </div>
           )}
 
           {/* Card view */}
           {viewMode === 'cards' && (
-            <div className="space-y-10">
+            <div className="relative z-10 space-y-10">
               {modulesByLevel.map(({ level, config, modules: levelModules }) => (
                 <div key={level}>
                   <div className="mb-4 flex items-center gap-3">
@@ -220,7 +222,9 @@ export default function SkillsTreePage() {
 
           {/* Knowledge graph view */}
           {viewMode === 'graph' && (
-            <KnowledgeGraph modules={modules} />
+            <div className="relative z-10">
+              <KnowledgeGraph modules={modules} />
+            </div>
           )}
         </>
       )}

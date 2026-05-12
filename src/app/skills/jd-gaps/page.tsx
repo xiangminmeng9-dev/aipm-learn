@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import type { LearningResource, UserTaskResource } from '@/types';
 import AddResourceDialog from '@/components/skills/AddResourceDialog';
+import GradientBackground from '@/components/ui/gradient-background';
 
 const RESOURCE_ICONS: Record<string, string> = { article: '📄', video: '🎬', book: '📚', note: '📝' };
 const RESOURCE_COLORS: Record<string, string> = {
@@ -128,8 +129,9 @@ export default function JdGapsPage() {
   const completedCount = tasks.filter((t) => t.status === 'completed').length;
 
   return (
-    <div className="min-h-screen bg-muted">
-      <div className="mx-auto max-w-3xl px-4 py-8">
+    <div className="h-full bg-muted">
+      <GradientBackground />
+      <div className="relative z-10 px-4 py-8">
         <div className="mb-6 flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => router.push('/skills/tree')}>
             <ArrowLeft className="h-5 w-5" />

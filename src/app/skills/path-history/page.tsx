@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import GradientBackground from '@/components/ui/gradient-background';
 import LearningPathCard from '@/components/skills/LearningPathCard';
 import type { RecommendedModule } from '@/types';
 
@@ -44,24 +45,25 @@ export default function PathHistoryPage() {
 
   return (
     <div className="space-y-6 p-8">
-      <div>
+      <GradientBackground />
+      <div className="relative z-10">
         <h1 className="text-3xl font-semibold text-foreground">路径历史</h1>
         <p className="mt-2 text-muted-foreground">查看所有 AI 生成的学习路径记录</p>
       </div>
 
       {isLoading ? (
-        <div className="flex justify-center py-12">
+        <div className="relative z-10 flex justify-center py-12">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
         </div>
       ) : records.length === 0 ? (
-        <div className="py-16 text-center">
+        <div className="relative z-10 py-16 text-center">
           <p className="text-muted-foreground">还没有学习路径记录</p>
           <a href="/skills/ai-learning-path" className="mt-2 inline-block text-sm text-indigo-600 hover:underline dark:text-indigo-400">
             去生成学习路径
           </a>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="relative z-10 space-y-3">
           {records.map((record) => (
             <div
               key={record.id}

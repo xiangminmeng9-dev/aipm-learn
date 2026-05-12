@@ -7,6 +7,7 @@ import remarkGfm from 'remark-gfm';
 import { type Note, getNotes, createNote, updateNote, deleteNote } from '@/lib/notebook-store';
 import { useToast } from '@/components/ui/toast';
 import { Skeleton, CardSkeleton } from '@/components/ui/skeleton';
+import GradientBackground from '@/components/ui/gradient-background';
 
 /* ---------------------------- Config ---------------------------- */
 
@@ -291,6 +292,7 @@ export default function NotesPage() {
 
   return (
     <div className="min-h-full p-6 md:p-8">
+      <GradientBackground />
       {/* Header */}
       <div
         className="relative mb-8 overflow-hidden rounded-2xl"
@@ -385,7 +387,7 @@ export default function NotesPage() {
       </AnimatePresence>
 
       {/* Notes grid - rectangular cards */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+      <div className="relative z-10 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
         <AnimatePresence mode="popLayout">
           {notes.map((note) => (
             <NoteCard

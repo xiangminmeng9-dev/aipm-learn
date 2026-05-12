@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import MethodologyCard from '@/components/interview/MethodologyCard';
+import GradientBackground from '@/components/ui/gradient-background';
 
 interface Methodology {
   id: string;
@@ -69,7 +70,9 @@ export default function MethodologyPage() {
   };
 
   return (
-    <div className="p-8">
+    <>
+      <GradientBackground />
+      <div className="relative z-10 p-8">
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-foreground">方法论提炼</h1>
         <p className="mt-1 text-base text-muted-foreground">基于练习历史动态生成的方法论，类型不封顶</p>
@@ -103,5 +106,6 @@ export default function MethodologyPage() {
         </div>
       )}
     </div>
+    </>
   );
 }

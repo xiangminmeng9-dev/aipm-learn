@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Markdown from '@/components/ui/markdown';
 import { useToast } from '@/components/ui/toast';
 import { createClient } from '@/lib/supabase/client';
+import GradientBackground from '@/components/ui/gradient-background';
 
 interface HistoryRecord {
   id: string;
@@ -195,6 +196,7 @@ export default function InterviewAssistantPage() {
 
   return (
     <>
+      <GradientBackground />
       <header className="sticky top-0 z-40 border-b border-border bg-card/80 backdrop-blur">
         <div className="flex items-center justify-between px-6 py-3">
           <div className="flex items-center gap-3">
@@ -213,7 +215,7 @@ export default function InterviewAssistantPage() {
         </div>
       </header>
 
-      <div className="px-6 py-6">
+      <div className="relative z-10 px-6 py-6">
         {!isAuthed && (
           <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center">
             <p className="text-amber-800 font-medium">请先登录后使用面试助手</p>

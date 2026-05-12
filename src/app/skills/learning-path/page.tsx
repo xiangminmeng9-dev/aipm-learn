@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { cacheGet, cacheSet, cacheRemove, TTL } from '@/lib/cache';
+import GradientBackground from '@/components/ui/gradient-background';
 
 interface SavedPath {
   id: string;
@@ -172,9 +173,12 @@ export default function LearningPathPage() {
   const priorityColor = (p: string) => p === 'high' ? 'text-rose-600' : p === 'medium' ? 'text-amber-600' : 'text-muted-foreground';
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-8">
-      <h1 className="text-lg font-bold text-foreground">学习路径规划</h1>
-      <p className="mt-1 text-sm text-muted-foreground">AI 根据你的目标岗位生成个性化学习路径，自动关联技能树</p>
+    <div className="px-6 py-8">
+      <GradientBackground />
+      <div className="relative z-10">
+        <h1 className="text-lg font-bold text-foreground">学习路径规划</h1>
+        <p className="mt-1 text-sm text-muted-foreground">AI 根据你的目标岗位生成个性化学习路径，自动关联技能树</p>
+      </div>
 
       {/* 已保存的路径 */}
       {savedPaths.length > 0 && !path && (

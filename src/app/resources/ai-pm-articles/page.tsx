@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import GradientBackground from '@/components/ui/gradient-background';
 
 interface Article {
   id: string;
@@ -50,8 +51,9 @@ export default function AiPmArticlesPage() {
 
   return (
     <div className="flex h-full flex-col bg-background">
+      <GradientBackground />
       {/* Header */}
-      <div className="shrink-0 border-b border-border bg-card px-6 py-4">
+      <div className="relative z-10 shrink-0 border-b border-border bg-card px-6 py-4">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-lg font-semibold text-foreground">AI PM 文章</h1>
@@ -77,7 +79,7 @@ export default function AiPmArticlesPage() {
       </div>
 
       {/* Grid */}
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="relative z-10 flex-1 overflow-y-auto p-6">
         {loading ? (
           <div className="flex items-center justify-center py-20 text-sm text-muted-foreground">加载中...</div>
         ) : filtered.length === 0 ? (

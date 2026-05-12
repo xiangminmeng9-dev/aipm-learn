@@ -8,6 +8,7 @@ import SourceDistributionChart from '@/components/resources/charts/SourceDistrib
 import ActivityBarChart from '@/components/resources/charts/ActivityBarChart';
 import GrowthTimelineChart from '@/components/resources/charts/GrowthTimelineChart';
 import FolderTreemapChart from '@/components/resources/charts/FolderTreemapChart';
+import GradientBackground from '@/components/ui/gradient-background';
 
 const navCards = [
   {
@@ -93,14 +94,15 @@ export default function ResourcesPage() {
 
   return (
     <div className="flex h-full flex-col bg-background">
+      <GradientBackground />
       {/* Header */}
-      <div className="shrink-0 border-b border-border bg-card px-6 py-4">
+      <div className="relative z-10 shrink-0 border-b border-border bg-card px-6 py-4">
         <h1 className="text-lg font-semibold text-foreground">资源库</h1>
         <p className="text-xs text-muted-foreground">资源种类、数量与分布一览</p>
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-5">
+      <div className="relative z-10 flex-1 overflow-y-auto p-6 space-y-5">
         {/* Stat cards */}
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {statCards.map((card) => (

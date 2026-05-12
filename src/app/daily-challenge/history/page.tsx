@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import GradientBackground from '@/components/ui/gradient-background';
 
 interface HistoryRecord {
   submission_id: string;
@@ -91,8 +92,9 @@ export default function HistoryPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-8">
-      <div className="mb-6">
+    <div className="px-6 py-8">
+      <GradientBackground />
+      <div className="relative z-10 mb-6">
         <h1 className="text-lg font-bold text-foreground">答题记录</h1>
         <p className="mt-1 text-sm text-muted-foreground">回顾每次挑战的题目、回答和评分</p>
       </div>

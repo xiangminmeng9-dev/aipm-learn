@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import Markdown from '@/components/ui/markdown';
+import GradientBackground from '@/components/ui/gradient-background';
 
 /* ---------------------------- Section Config ---------------------------- */
 
@@ -149,12 +150,13 @@ export default function CodingFlowsPage() {
 
   return (
     <div className="flex h-full flex-col bg-background">
+      <GradientBackground />
       {isLoading ? (
-        <div className="flex flex-1 items-center justify-center">
+        <div className="relative z-10 flex flex-1 items-center justify-center">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
         </div>
       ) : flows.length === 0 ? (
-        <div className="flex flex-1 items-center justify-center">
+        <div className="relative z-10 flex flex-1 items-center justify-center">
           <div className="rounded-xl border border-dashed border-border bg-card px-12 py-16 text-center">
             <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-secondary">
               <svg className="h-6 w-6 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -166,7 +168,7 @@ export default function CodingFlowsPage() {
           </div>
         </div>
       ) : (
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="relative z-10 flex-1 overflow-y-auto p-6">
           <div className="space-y-3">
             {flows.map((flow) => {
               const id = flow.id as string;

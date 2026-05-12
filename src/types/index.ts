@@ -590,3 +590,95 @@ export interface AiLearningPath {
   created_at: string;
 }
 
+// ============================================================
+// Resume Application Tracker
+// ============================================================
+
+export interface ResumeRepositoryItem {
+  id: string;
+  user_id: string;
+  company_name: string;
+  position_name: string;
+  jd_text: string;
+  jd_link: string | null;
+  file_name: string | null;
+  file_url: string | null;
+  resume_text: string;
+  resume_version_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type ApplicationChannel = 'BOSS' | '猎头' | '官网' | '内推' | '脉脉' | '其他';
+export type ApplicationStatus =
+  | '已投递'
+  | '简历筛选'
+  | '初面'
+  | '二面'
+  | '终面'
+  | '已发offer'
+  | '已接受'
+  | '已拒绝';
+
+export interface StatusHistoryEntry {
+  status: ApplicationStatus;
+  date: string;
+  note?: string;
+}
+
+export interface ResumeApplication {
+  id: string;
+  user_id: string;
+  company_name: string;
+  position_name: string;
+  channel: ApplicationChannel;
+  status: ApplicationStatus;
+  applied_at: string;
+  notes: string | null;
+  city: string | null;
+  position_category: string | null;
+  resume_version_id: string | null;
+  status_history: StatusHistoryEntry[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DashboardStats {
+  total_applications: number;
+  interview_count: number;
+  interview_pass_rate: number;
+  offers_received: number;
+  offer_acceptance_rate: number;
+  rejection_count: number;
+  rejection_reasons: { reason: string; count: number }[];
+  channel_distribution: { channel: string; count: number; percentage: number }[];
+  status_distribution: { status: string; count: number }[];
+  application_trend: { date: string; count: number; interviews: number; offers: number; accepted: number }[];
+  status_timeline: { date: string; status: string; count: number }[];
+  city_distribution: { city: string; count: number }[];
+  position_category_conversion: { category: string; total: number; interviews: number; offers: number }[];
+  funnel_stages: { stage: string; count: number }[];
+  recent_reviews: {
+    id: string;
+    company_name: string;
+    position_name: string;
+    status: ApplicationStatus;
+    notes: string | null;
+    updated_at: string;
+  }[];
+  // 环比变化
+  total_applications_change?: number;
+  interview_count_change?: number;
+  interview_pass_rate_change?: number;
+  offers_received_change?: number;
+  offer_acceptance_rate_change?: number;
+  rejection_count_change?: number;
+}
+
+export interface ApplicationCalendarDay {
+  date: string;
+  applications_count: number;
+  interviews: { company_name: string; position_name: string; status: ApplicationStatus }[];
+  has_note: boolean;
+}
+

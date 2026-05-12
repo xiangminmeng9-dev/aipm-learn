@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { cacheGet, cacheSet, TTL } from '@/lib/cache';
+import GradientBackground from '@/components/ui/gradient-background';
 
 export default function DailyChallengePage() {
   const [challenge, setChallenge] = useState<{ id: string; question: string; category: string; difficulty: string; hint: string; perfect_answer: string } | null>(null);
@@ -108,9 +109,10 @@ export default function DailyChallengePage() {
   const diffLabel = challenge?.difficulty === 'easy' ? '简单' : challenge?.difficulty === 'hard' ? '困难' : '中等';
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-8">
+    <div className="px-6 py-8">
+      <GradientBackground />
       {/* Streak banner */}
-      <div className="mb-6 flex items-center gap-4">
+      <div className="relative z-10 mb-6 flex items-center gap-4">
         <div className="flex items-center gap-2 rounded-xl bg-amber-50 px-4 py-2">
           <span className="text-lg">🔥</span>
           <span className="text-sm font-bold text-amber-700">{streak} 天连续打卡</span>

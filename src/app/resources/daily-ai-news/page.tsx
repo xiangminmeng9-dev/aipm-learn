@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { DailyAiNewsArticle, DailyAiNewsDigest } from '@/types';
 import { cacheGet, cacheSet, TTL } from '@/lib/cache';
+import GradientBackground from '@/components/ui/gradient-background';
 
 function getTodayShanghai(): string {
   return new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Shanghai' });
@@ -88,8 +89,9 @@ export default function DailyAiNewsPage() {
 
   return (
     <div className="flex h-full flex-col bg-background">
+      <GradientBackground />
       {/* Header */}
-      <div className="shrink-0 border-b border-border bg-card px-6 py-4">
+      <div className="relative z-10 shrink-0 border-b border-border bg-card px-6 py-4">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-lg font-semibold text-foreground">每日 AI 大事</h1>
@@ -116,7 +118,7 @@ export default function DailyAiNewsPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="relative z-10 flex-1 overflow-y-auto p-6">
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />

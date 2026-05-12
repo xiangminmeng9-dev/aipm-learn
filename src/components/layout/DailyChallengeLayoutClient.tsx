@@ -20,9 +20,9 @@ export default function DailyChallengeLayoutClient({ children }: { children: Rea
   return (
     <div className="flex h-screen bg-background">
       <ActivityTracker module="daily-challenge" />
-      <aside className="sticky top-0 hidden h-screen w-60 shrink-0 border-r border-border bg-card lg:block">
+      <aside className="sticky top-0 hidden h-screen w-60 shrink-0 border-r bg-card lg:block" style={{ backgroundColor: 'var(--sidebar-daily)', borderColor: 'var(--sidebar-daily-border)' }}>
         <div className="flex h-full flex-col">
-          <div className="border-b border-border px-5 py-5">
+          <div className="border-b px-5 py-5" style={{ borderColor: 'var(--sidebar-daily-border)' }}>
             <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-primary">
               <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
@@ -37,16 +37,17 @@ export default function DailyChallengeLayoutClient({ children }: { children: Rea
               return (
                 <Link key={item.href} href={item.href}
                   className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-base transition-all duration-200 ${
-                    isActive ? 'bg-amber-50 text-amber-700 font-medium' : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
-                  }`}>
-                  <span className={isActive ? 'text-amber-600' : 'text-muted-foreground'}>{item.icon}</span>
+                    isActive ? 'font-medium' : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                  }`}
+                  style={isActive ? { backgroundColor: 'var(--sidebar-daily-accent)', color: 'var(--sidebar-daily-active)' } : {}}>
+                  <span style={isActive ? { color: 'var(--sidebar-daily-active)' } : {}}>{item.icon}</span>
                   <span>{item.label}</span>
-                  {isActive && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-amber-500" />}
+                  {isActive && <span className="ml-auto h-1.5 w-1.5 rounded-full" style={{ backgroundColor: 'var(--sidebar-daily-active)' }} />}
                 </Link>
               );
             })}
           </nav>
-          <div className="border-t border-border px-5 py-4">
+          <div className="border-t px-5 py-4" style={{ borderColor: 'var(--sidebar-daily-border)' }}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -57,12 +58,15 @@ export default function DailyChallengeLayoutClient({ children }: { children: Rea
           </div>
         </div>
       </aside>
-      <main className="flex-1 overflow-y-auto bg-background">
-        <div className="border-b border-border bg-card px-6 py-3 lg:hidden">
-          <h1 className="text-base font-bold text-foreground">每日挑战</h1>
-        </div>
-        {children}
-      </main>
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <div className="h-1 shrink-0 bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-400" />
+        <main className="flex-1 overflow-y-auto bg-background">
+          <div className="border-b border-border bg-card px-6 py-3 lg:hidden">
+            <h1 className="text-base font-bold text-foreground">每日挑战</h1>
+          </div>
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

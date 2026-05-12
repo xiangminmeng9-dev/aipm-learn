@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback, memo } from 'react';
 import Link from 'next/link';
 import { useToast } from '@/components/ui/toast';
 import { CardSkeleton } from '@/components/ui/skeleton';
+import PageShell from '@/components/layout/PageShell';
+import GradientBackground from '@/components/ui/gradient-background';
 
 interface Bookmark {
   id: string; question_id: string; mastery_level: string; notes: string | null;
@@ -24,7 +26,7 @@ const BookmarkCard = memo(function BookmarkCard({
   onDelete: (id: string) => void;
 }) {
   return (
-    <div className="rounded-xl border border-border bg-card p-4 hover:shadow-sm transition-shadow">
+    <div className="group rounded-lg border border-border bg-card p-4 transition-shadow hover:shadow-sm">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium text-foreground leading-relaxed">{b.question_text}</p>
@@ -109,12 +111,9 @@ export default function FavoritesPage() {
   const totalPages = Math.ceil(total / pageSize);
 
   return (
-    <div className="flex h-full flex-col overflow-y-auto p-6">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-foreground">面试收藏</h2>
-        <p className="mt-1 text-sm text-muted-foreground">收藏的面试题目，标注掌握程度，针对性复习</p>
-      </div>
-
+    <>
+      <GradientBackground />
+      <PageShell title="面试收藏" description="收藏的题目，标注掌握程度针对性复习" icon="⭐" stats={[{ label: '总收藏', value: total }]}>
       <div className="mb-4 flex flex-wrap items-center gap-2">
         {[{ value: '', label: '全部' }, { value: 'mastered', label: '已掌握' }, { value: 'learning', label: '学习中' }, { value: 'review', label: '需复习' }].map((t) => (
           <button key={t.value} onClick={() => { setMasteryFilter(t.value); setPage(1); }}
@@ -144,12 +143,13 @@ export default function FavoritesPage() {
       )}
 
       {totalPages > 1 && (
-        <div className="mt-4 flex items-center justify-center gap-2">
-          <button disabled={page <= 1} onClick={() => setPage(p => p - 1)} className="rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground disabled:opacity-30 hover:bg-muted active:scale-95 transition-all">上一页</button>
-          <span className="text-xs text-muted-foreground">{page} / {totalPages}</span>
-          <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)} className="rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground disabled:opacity-30 hover:bg-muted active:scale-95 transition-all">下一页</button>
+        <div className="mt-6 flex items-center justify-center gap-3">
+          <button disabled={page <= 1} onClick={() => setPage(p => p - 1)} className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground disabled:opacity-30 hover:bg-muted">上一页</button>
+          <span className="text-xs tabular-nums text-muted-foreground">{page} / {totalPages}</span>
+          <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)} className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground disabled:opacity-30 hover:bg-muted">下一页</button>
         </div>
       )}
-    </div>
+    </PageShell>
+    </>
   );
 }

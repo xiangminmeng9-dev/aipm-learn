@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import SpecScoreCard from '@/components/coding/SpecScoreCard';
+import GradientBackground from '@/components/ui/gradient-background';
 import type { SpecPractice } from '@/types';
 
 export default function SpecHistoryPage() {
@@ -35,7 +36,9 @@ export default function SpecHistoryPage() {
   const totalPages = Math.ceil(total / 20);
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="flex h-full flex-col bg-background">
+      <GradientBackground />
+      <div className="relative z-10 p-8 space-y-6">
       <div>
         <h1 className="text-3xl font-semibold text-foreground">实操历史</h1>
         <p className="mt-2 text-muted-foreground">查看所有实操练习记录和评分详情</p>
@@ -132,6 +135,7 @@ export default function SpecHistoryPage() {
           )}
         </div>
       )}
+      </div>
     </div>
   );
 }

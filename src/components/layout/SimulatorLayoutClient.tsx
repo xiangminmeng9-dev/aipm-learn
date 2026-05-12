@@ -22,9 +22,9 @@ export default function SimulatorLayoutClient({ children }: { children: React.Re
   return (
     <div className="flex h-screen bg-background">
       <ActivityTracker module="simulator" />
-      <aside className="sticky top-0 hidden h-screen w-60 shrink-0 border-r border-border bg-card lg:block">
+      <aside className="sticky top-0 hidden h-screen w-60 shrink-0 border-r bg-card lg:block" style={{ backgroundColor: 'var(--sidebar-simulator)', borderColor: 'var(--sidebar-simulator-border)' }}>
         <div className="flex h-full flex-col">
-          <div className="border-b border-border px-5 py-5">
+          <div className="border-b px-5 py-5" style={{ borderColor: 'var(--sidebar-simulator-border)' }}>
             <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-primary">
               <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
@@ -39,16 +39,17 @@ export default function SimulatorLayoutClient({ children }: { children: React.Re
               return (
                 <Link key={item.href} href={item.href}
                   className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-base transition-all duration-200 ${
-                    isActive ? 'bg-teal-50 text-teal-700 font-medium' : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
-                  }`}>
-                  <span className={isActive ? 'text-teal-600' : 'text-muted-foreground'}>{item.icon}</span>
+                    isActive ? 'font-medium' : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                  }`}
+                  style={isActive ? { backgroundColor: 'var(--sidebar-simulator-accent)', color: 'var(--sidebar-simulator-active)' } : {}}>
+                  <span style={isActive ? { color: 'var(--sidebar-simulator-active)' } : {}}>{item.icon}</span>
                   <span>{item.label}</span>
-                  {isActive && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-teal-500" />}
+                  {isActive && <span className="ml-auto h-1.5 w-1.5 rounded-full" style={{ backgroundColor: 'var(--sidebar-simulator-active)' }} />}
                 </Link>
               );
             })}
           </nav>
-          <div className="border-t border-border px-5 py-4">
+          <div className="border-t px-5 py-4" style={{ borderColor: 'var(--sidebar-simulator-border)' }}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -59,12 +60,15 @@ export default function SimulatorLayoutClient({ children }: { children: React.Re
           </div>
         </div>
       </aside>
-      <main className="flex-1 overflow-y-auto bg-background">
-        <div className="border-b border-border bg-card px-6 py-3 lg:hidden">
-          <h1 className="text-base font-bold text-foreground">模拟器</h1>
-        </div>
-        {children}
-      </main>
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <div className="h-1 shrink-0 bg-gradient-to-r from-teal-600 via-emerald-500 to-teal-400" />
+        <main className="flex-1 overflow-y-auto bg-background">
+          <div className="border-b border-border bg-card px-6 py-3 lg:hidden">
+            <h1 className="text-base font-bold text-foreground">模拟器</h1>
+          </div>
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

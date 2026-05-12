@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { BOSS_TYPES, BossType } from '@/lib/boss-1v1-config';
+import GradientBackground from '@/components/ui/gradient-background';
 
 interface Session {
   id: string;
@@ -58,14 +59,15 @@ export default function Boss1v1Page() {
   const activeBoss = BOSS_TYPES.find((b) => b.id === selectedBoss);
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-8">
-      <div className="mb-6">
+    <div className="px-6 py-8">
+      <GradientBackground />
+      <div className="relative z-10 mb-6">
         <h1 className="text-lg font-bold text-foreground">Boss 1V1</h1>
         <p className="mt-1 text-sm text-muted-foreground">模拟向上汇报、需求评审、资源争取等软技能场景</p>
       </div>
 
       {/* Boss type selection */}
-      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="relative z-10 mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         {BOSS_TYPES.map((boss) => (
           <button
             key={boss.id}
@@ -85,7 +87,7 @@ export default function Boss1v1Page() {
 
       {/* Scenario selection */}
       {activeBoss && (
-        <div className="mb-6">
+        <div className="relative z-10 mb-6">
           <h3 className="mb-3 text-sm font-semibold text-foreground">选择场景</h3>
           <div className="grid grid-cols-2 gap-3">
             {activeBoss.scenarios.map((scenario) => (
@@ -117,7 +119,7 @@ export default function Boss1v1Page() {
 
       {/* History sessions */}
       {sessions.length > 0 && (
-        <div className="mt-8">
+        <div className="relative z-10 mt-8">
           <h3 className="mb-3 text-sm font-semibold text-foreground">历史会话</h3>
           <div className="space-y-2">
             {sessions.map((s) => {

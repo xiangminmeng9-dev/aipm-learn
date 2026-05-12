@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { PROJECT_SCENARIOS } from '@/lib/project-scenarios';
 import { cacheGet, cacheSet, cacheRemove, TTL } from '@/lib/cache';
+import GradientBackground from '@/components/ui/gradient-background';
 
 export default function ProjectSandboxPage() {
   const [existingProjects, setExistingProjects] = useState<{ id: string; title: string; scenario_id: string; status: string }[]>([]);
@@ -47,11 +48,12 @@ export default function ProjectSandboxPage() {
 
   return (
     <div className="p-6 md:p-8">
-      <h1 className="text-lg font-bold text-foreground">项目实战沙盒</h1>
-      <p className="mt-1 text-sm text-muted-foreground">选择一个虚拟 AI 产品项目，从 0 到 1 完成完整产出，AI 评审团队会逐项审查</p>
+      <GradientBackground />
+      <h1 className="relative z-10 text-lg font-bold text-foreground">项目实战沙盒</h1>
+      <p className="relative z-10 mt-1 text-sm text-muted-foreground">选择一个虚拟 AI 产品项目，从 0 到 1 完成完整产出，AI 评审团队会逐项审查</p>
 
       {existingProjects.length > 0 && (
-        <div className="mt-6 rounded-2xl border border-border bg-card p-4">
+        <div className="relative z-10 mt-6 rounded-2xl border border-border bg-card p-4">
           <h3 className="text-sm font-semibold text-foreground mb-3">进行中的项目</h3>
           <div className="space-y-2">
             {existingProjects.filter(p => p.status === 'in_progress').map((p) => (
@@ -64,7 +66,7 @@ export default function ProjectSandboxPage() {
         </div>
       )}
 
-      <div className="mt-6 grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
+      <div className="relative z-10 mt-6 grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
         {PROJECT_SCENARIOS.map((scenario) => {
           const existing = existingProjects.find(p => p.scenario_id === scenario.id);
           return (

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { generateText } from '@/lib/ai/claude';
-import { buildJdAnalysisPrompt, JD_ANALYSIS_SYSTEM_PROMPT, buildSkillMatchingPrompt, SKILL_MATCHING_SYSTEM_PROMPT } from '@/lib/ai/prompts';
+import { buildCombinedJdAnalysisPrompt, COMBINED_JD_ANALYSIS_SYSTEM_PROMPT, buildSkillMatchingPrompt, SKILL_MATCHING_SYSTEM_PROMPT } from '@/lib/ai/prompts';
 
 export async function GET() {
   try {
@@ -42,9 +42,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '请先登录' }, { status: 401 });
     }
 
-    // Step 1: Call AI to analyze JD
-    const prompt = buildJdAnalysisPrompt(jdText);
-    const aiResponse = await generateText(prompt, { system: JD_ANALYSIS_SYSTEM_PROMPT, maxTokens: 2048 });
+    // Fetch modules first so we can do extraction + matching in one AI call
+    const { data: modules } = await supabase
+      .from('skill_modules')
+      .select('id, name, description')
+      .limit(20);
+
+    const moduleList = (modules || []).map((m: { id: string; name: string; description?: string }) => ({
+      id: m.id,
+      name: m.name,
+      description: m.description,
+    }));
+
+    const defaultModules = moduleList.length > 0 ? moduleList : [
+      { id: 'm1', name: 'AI 产品基础', description: 'AI 产品经理核心概念、AI 技术栈概览' },
+      { id: 'm2', name: 'LLM 技术原理', description: '大语言模型原理、Prompt Engineering、RAG、Agent' },
+      { id: 'm3', name: 'AI 产品设计', description: 'AI 产品设计方法、用户体验、交互设计' },
+      { id: 'm4', name: '数据与评估', description: 'AI 产品数据指标、A/B 测试、效果评估' },
+      { id: 'm5', name: 'AI 工程实践', description: 'MLOps、模型部署、性能优化' },
+      { id: 'm6', name: '行业应用', description: 'AI 在各行业的应用案例和商业模式' },
+    ];
+
+    // Single AI call: extract skills + match with modules
+    const prompt = buildCombinedJdAnalysisPrompt(jdText, defaultModules);
+    const aiResponse = await generateText(prompt, { system: COMBINED_JD_ANALYSIS_SYSTEM_PROMPT, maxTokens: 4096 });
 
     let parsed;
     try {
@@ -71,66 +92,47 @@ export async function POST(request: NextRequest) {
       };
     });
 
-    // Step 2: Fetch skill modules for gap analysis
-    const { data: modules } = await supabase
-      .from('skill_modules')
-      .select('id, name, description')
-      .limit(20);
-
-    const moduleList = (modules || []).map((m: { id: string; name: string; description?: string }) => ({
-      id: m.id,
-      name: m.name,
-      description: m.description,
-    }));
-
-    const defaultModules = moduleList.length > 0 ? moduleList : [
-      { id: 'm1', name: 'AI 产品基础', description: 'AI 产品经理核心概念、AI 技术栈概览' },
-      { id: 'm2', name: 'LLM 技术原理', description: '大语言模型原理、Prompt Engineering、RAG、Agent' },
-      { id: 'm3', name: 'AI 产品设计', description: 'AI 产品设计方法、用户体验、交互设计' },
-      { id: 'm4', name: '数据与评估', description: 'AI 产品数据指标、A/B 测试、效果评估' },
-      { id: 'm5', name: 'AI 工程实践', description: 'MLOps、模型部署、性能优化' },
-      { id: 'm6', name: '行业应用', description: 'AI 在各行业的应用案例和商业模式' },
-    ];
-
-    // Step 3: Call AI for skill matching / gap analysis
+    // Parse matches and gaps from the combined response
     let skillModuleMatches: { skill_name: string; module_id: string | null; module_name: string; match_score: number }[] = [];
     let gaps: { skill_name: string; category: string; suggestion: string; related_module_id: string | null; related_module_name: string | null }[] = [];
 
-    try {
-      const matchPrompt = buildSkillMatchingPrompt(skills, defaultModules);
-      const matchResponse = await generateText(matchPrompt, { system: SKILL_MATCHING_SYSTEM_PROMPT, maxTokens: 2048 });
-      const matchJson = matchResponse.match(/\{[\s\S]*\}/);
-      if (matchJson) {
-        const matchParsed = JSON.parse(matchJson[0]);
-        skillModuleMatches = (matchParsed.matches || []).map((m: Record<string, unknown>) => ({
-          skill_name: String(m.skill_name || m.skill || ''),
-          module_id: m.module_id ? String(m.module_id) : null,
-          module_name: String(m.module_name || ''),
-          match_score: typeof m.match_score === 'number' ? m.match_score : 50,
-        }));
-        // If AI didn't return skill_name, pair matches with skills by index
-        if (skillModuleMatches.length > 0 && !skillModuleMatches[0].skill_name) {
-          skillModuleMatches = skillModuleMatches.map((m, i) => ({
-            ...m,
-            skill_name: i < skills.length ? skills[i].skill_name : m.module_name,
-          }));
-        }
-        gaps = (matchParsed.gaps || []).map((g: unknown) => {
-          if (typeof g === 'string') {
-            return { skill_name: g, category: '未分类', suggestion: '建议深入学习', related_module_id: null, related_module_name: null };
-          }
-          const obj = g as Record<string, unknown>;
-          return {
-            skill_name: String(obj.skill_name || ''),
-            category: String(obj.category || '未分类'),
-            suggestion: String(obj.suggestion || ''),
-            related_module_id: obj.related_module_id ? String(obj.related_module_id) : null,
-            related_module_name: obj.related_module_name ? String(obj.related_module_name) : null,
-          };
-        });
+    const matchData = parsed.matches || [];
+    skillModuleMatches = matchData.map((m: Record<string, unknown>) => ({
+      skill_name: String(m.skill_name || m.skill || ''),
+      module_id: m.module_id ? String(m.module_id) : null,
+      module_name: String(m.module_name || ''),
+      match_score: typeof m.match_score === 'number' ? m.match_score : 50,
+    }));
+    if (skillModuleMatches.length > 0 && !skillModuleMatches[0].skill_name) {
+      skillModuleMatches = skillModuleMatches.map((m, i) => ({
+        ...m,
+        skill_name: i < skills.length ? skills[i].skill_name : m.module_name,
+      }));
+    }
+
+    gaps = (parsed.gaps || []).map((g: unknown) => {
+      if (typeof g === 'string') {
+        return { skill_name: g, category: '未分类', suggestion: '建议深入学习', related_module_id: null, related_module_name: null };
       }
-    } catch (err) {
-      console.error('Skill matching failed, continuing without:', err);
+      const obj = g as Record<string, unknown>;
+      return {
+        skill_name: String(obj.skill_name || ''),
+        category: String(obj.category || '未分类'),
+        suggestion: String(obj.suggestion || ''),
+        related_module_id: obj.related_module_id ? String(obj.related_module_id) : null,
+        related_module_name: obj.related_module_name ? String(obj.related_module_name) : null,
+      };
+    });
+
+    // Fallback: if no gaps from AI, treat all extracted skills as gaps
+    if (gaps.length === 0 && skills.length > 0 && skillModuleMatches.length === 0) {
+      gaps = skills.map((s) => ({
+        skill_name: s.skill_name,
+        category: s.category,
+        suggestion: `建议学习 ${s.skill_name} 相关知识和实践`,
+        related_module_id: null,
+        related_module_name: null,
+      }));
     }
 
     const result = {

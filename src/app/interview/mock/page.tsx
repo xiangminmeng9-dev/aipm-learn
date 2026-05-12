@@ -7,6 +7,7 @@ import { cacheGet, cacheSet, cacheRemove, TTL } from '@/lib/cache';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
+import GradientBackground from '@/components/ui/gradient-background';
 
 interface QuestionType {
   id: string;
@@ -157,7 +158,9 @@ export default function MockConfigPage() {
   const questionCounts: (3 | 5 | 8 | 10)[] = [3, 5, 8, 10];
 
   return (
-    <div className="p-8">
+    <>
+      <GradientBackground />
+      <div className="relative z-10 p-8">
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-foreground">模拟面试</h1>
         <p className="mt-1 text-base text-muted-foreground">选择类型和题数，开始模拟面试</p>
@@ -323,5 +326,6 @@ export default function MockConfigPage() {
         </div>
       )}
     </div>
+    </>
   );
 }

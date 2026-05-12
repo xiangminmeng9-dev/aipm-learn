@@ -127,8 +127,9 @@ export async function POST(request: NextRequest) {
           sections,
         })}\n\n`));
 
-        // Trigger methodology update (non-blocking)
+        // Trigger methodology update + achievement check (non-blocking)
         triggerMethodologyUpdate(user.id, typeId).catch(() => {});
+        fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/user/achievements`, { method: 'POST' }).catch(() => {});
 
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'done' })}\n\n`));
       } catch (err) {

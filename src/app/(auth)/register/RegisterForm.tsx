@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { setCacheUserId, cacheClear } from '@/lib/cache';
 
 export default function RegisterForm() {
   const [email, setEmail] = useState('');
@@ -20,9 +21,14 @@ export default function RegisterForm() {
     if (password.length < 6) { setError('密码至少需要 6 个字符'); return; }
     setLoading(true);
     const supabase = createClient();
-    const { error } = await supabase.auth.signUp({ email, password });
+    const { data, error } = await supabase.auth.signUp({ email, password });
     if (error) { setError(error.message); setLoading(false); return; }
-    router.push('/interview/qa');
+    // Clear cache and set user ID for new user
+    cacheClear();
+    if (data.session?.user?.id) {
+      setCacheUserId(data.session.user.id);
+    }
+    router.push('/');
     router.refresh();
   }
 

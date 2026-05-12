@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { cacheGet, cacheSet, TTL } from '@/lib/cache';
+import GradientBackground from '@/components/ui/gradient-background';
 
 interface TechItem {
   id?: string;
@@ -86,15 +87,16 @@ export default function DailyTechPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="h-full bg-background flex items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-40 border-b border-border bg-card/80 backdrop-blur">
+    <div className="h-full bg-background">
+      <GradientBackground />
+      <header className="relative z-10 sticky top-0 z-40 border-b border-border bg-card/80 backdrop-blur">
         <div className="flex items-center justify-between px-6 py-3">
           <h1 className="text-base font-semibold text-foreground">每日 AI 技术</h1>
           <button

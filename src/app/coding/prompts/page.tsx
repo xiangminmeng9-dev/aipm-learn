@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { PROMPT_EXAMPLES, PROMPT_CATEGORIES, DIFFICULTY_CONFIG, type PromptExample } from '@/lib/coding/prompts-data';
+import GradientBackground from '@/components/ui/gradient-background';
 
 export default function CodingPromptsPage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -32,8 +33,9 @@ export default function CodingPromptsPage() {
 
   return (
     <div className="flex h-full flex-col bg-background">
+      <GradientBackground />
       {/* Header */}
-      <div className="shrink-0 border-b border-border bg-card px-6 py-4">
+      <div className="relative z-10 shrink-0 border-b border-border bg-card px-6 py-4">
         <h1 className="text-lg font-semibold text-foreground">AI Coding 提示词范例</h1>
         <p className="text-xs text-muted-foreground">精选完整项目级 AI Coding 提示词，覆盖系统设计、AI 应用、前后端开发等场景</p>
         <div className="mt-3">
@@ -81,7 +83,7 @@ export default function CodingPromptsPage() {
       </div>
 
       {/* Grid */}
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="relative z-10 flex-1 overflow-y-auto p-6">
         <div className="mb-3 text-[11px] text-muted-foreground">共 {filtered.length} 个提示词</div>
         {filtered.length === 0 ? (
           <div className="flex items-center justify-center py-20 text-sm text-muted-foreground">没有找到匹配的提示词</div>

@@ -16,6 +16,7 @@ import { useDraggable } from '@dnd-kit/core';
 import { type Task, getTasks, createTask, createTasksBatch, updateTask, deleteTask } from '@/lib/notebook-store';
 import { useToast } from '@/components/ui/toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import GradientBackground from '@/components/ui/gradient-background';
 
 function localDateStr(d: Date = new Date()): string {
   const y = d.getFullYear();
@@ -638,6 +639,7 @@ export default function DailyTasksPage() {
 
   return (
     <div className="min-h-full p-6 md:p-8">
+      <GradientBackground />
       {/* Header */}
       <div className="relative mb-6 overflow-hidden rounded-2xl" style={{ backgroundImage: `url('https://images.unsplash.com/photo-1506784983877-45594efa4cbe?w=1600&q=80&auto=format')`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
         <div className="absolute inset-0 bg-gradient-to-r from-indigo-900/75 via-violet-800/55 to-blue-900/70" />
@@ -717,7 +719,7 @@ export default function DailyTasksPage() {
       </AnimatePresence>
 
       {/* Timeline */}
-      <div className="rounded-2xl border border-border bg-card overflow-hidden">
+      <div className="relative z-10 rounded-2xl border border-border bg-card overflow-hidden">
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <div className="flex">
             {/* Hour labels column */}

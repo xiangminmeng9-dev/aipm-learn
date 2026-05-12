@@ -15,6 +15,7 @@ export default function InterviewLayout({ children }: { children: React.ReactNod
       <ActivityTracker module="interview" />
       <ResponsiveSidebar><Sidebar /></ResponsiveSidebar>
       <div className="flex flex-1 flex-col overflow-hidden">
+        <div className="h-1 shrink-0 bg-gradient-to-r from-purple-600 via-violet-500 to-fuchsia-500" />
         <LearningReminderBanner />
         <main className="flex-1 overflow-y-auto bg-background">{children}</main>
       </div>

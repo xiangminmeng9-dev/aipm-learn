@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { SIMULATOR_SCENARIOS, DIFFICULTY_LABELS, SimulatorScenario } from '@/lib/simulator-config';
 import StageRoadmap from '@/components/simulator/StageRoadmap';
 import { cacheGet, cacheSet, TTL } from '@/lib/cache';
+import GradientBackground from '@/components/ui/gradient-background';
 
 interface StageScore {
   score: number;
@@ -124,12 +125,13 @@ export default function SimulatorPage() {
   // Scenario selection screen
   if (!selectedScenario) {
     return (
-      <div className="mx-auto max-w-4xl px-6 py-8">
-        <div className="mb-6">
+      <div className="px-6 py-8">
+        <GradientBackground />
+        <div className="relative z-10 mb-6">
           <h1 className="text-lg font-bold text-foreground">工作流程模拟</h1>
           <p className="mt-1 text-sm text-muted-foreground">选择一个项目场景，体验完整的AI PM工作流程</p>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="relative z-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {SIMULATOR_SCENARIOS.map((scenario) => {
             const diff = DIFFICULTY_LABELS[scenario.difficulty];
             const progress = scenarioProgress[scenario.id];
@@ -185,7 +187,8 @@ export default function SimulatorPage() {
   // Stage roadmap screen
   return (
     <div className="mx-auto max-w-3xl px-6 py-8">
-      <div className="mb-6">
+      <GradientBackground />
+      <div className="relative z-10 mb-6">
         <button onClick={handleBackToScenarios} className="mb-3 text-sm text-muted-foreground hover:text-foreground">
           ← 返回场景选择
         </button>
@@ -198,12 +201,14 @@ export default function SimulatorPage() {
         </div>
       </div>
 
-      <StageRoadmap
-        stages={selectedScenario.stages}
-        currentStageId={currentStageId}
-        stageScores={stageScores}
-        onSelectStage={handleSelectStage}
-      />
+      <div className="relative z-10">
+        <StageRoadmap
+          stages={selectedScenario.stages}
+          currentStageId={currentStageId}
+          stageScores={stageScores}
+          onSelectStage={handleSelectStage}
+        />
+      </div>
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import GradientBackground from '@/components/ui/gradient-background';
 
 interface BookmarkedTech {
   tech_date: string;
@@ -51,15 +52,16 @@ export default function BookmarkedTechPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-muted flex items-center justify-center">
+      <div className="h-full bg-muted flex items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-muted">
-      <div className="mx-auto max-w-3xl px-4 py-8">
+    <div className="h-full bg-muted">
+      <GradientBackground />
+      <div className="relative z-10 px-4 py-8">
         <div className="mb-6 flex items-center gap-3">
           <button
             onClick={() => router.push('/skills/tree')}

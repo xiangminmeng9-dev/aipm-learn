@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { type Note, type Task, getNotes, getTasks } from '@/lib/notebook-store';
+import GradientBackground from '@/components/ui/gradient-background';
 
 /* ---------------------------- Glass Button ---------------------------- */
 
@@ -105,6 +106,7 @@ export default function AIAnalysisPage() {
 
   return (
     <div className="min-h-full p-6 md:p-8">
+      <GradientBackground />
       {/* Header */}
       <div className="relative mb-8 overflow-hidden rounded-2xl" style={{ backgroundImage: `url('https://images.unsplash.com/photo-1677442136019-2022d5e1d84a?w=1200&q=80&auto=format')`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
         <div className="absolute inset-0 bg-gradient-to-r from-violet-800/80 via-purple-700/60 to-fuchsia-800/70" />
@@ -157,7 +159,7 @@ export default function AIAnalysisPage() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="rounded-2xl border border-border bg-card p-6"
+            className="relative z-10 rounded-2xl border border-border bg-card p-6"
           >
             <div className="prose prose-sm max-w-none">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{analysis}</ReactMarkdown>

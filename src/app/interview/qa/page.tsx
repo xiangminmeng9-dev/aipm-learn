@@ -6,6 +6,7 @@ import AnalysisResult from '@/components/interview/AnalysisResult';
 import TrendingQuestions from '@/components/interview/TrendingQuestions';
 import Markdown from '@/components/ui/markdown';
 import type { AnalysisResult as AnalysisResultType } from '@/types';
+import GradientBackground from '@/components/ui/gradient-background';
 
 function frequencyStyle(freq: string) {
   switch (freq) {
@@ -181,7 +182,9 @@ export default function QAPage() {
   }, [fetchFrequency]);
 
   return (
-    <div className="p-8 space-y-8">
+    <>
+      <GradientBackground />
+      <div className="relative z-10 p-8 space-y-8">
       <div>
         <h1 className="text-4xl font-semibold text-foreground">面试问答</h1>
         <p className="mt-2 text-base text-muted-foreground">输入面试问题，获取四部分深度分析</p>
@@ -288,5 +291,6 @@ export default function QAPage() {
         </div>
       )}
     </div>
+    </>
   );
 }

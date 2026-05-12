@@ -36,16 +36,23 @@ async function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-// Request-level cache: resolved once per request, reused across AI calls
-let cachedConfig: { config: AIConfig; userId: string } | null = null;
+// TTL cache: avoid DB lookups on every AI call within the same session
+interface CachedConfigEntry {
+  config: AIConfig;
+  userId: string;
+  expiresAt: number;
+}
+const CONFIG_CACHE_TTL_MS = 60_000; // 60s
+let cachedConfig: CachedConfigEntry | null = null;
 
 async function resolveConfig(): Promise<AIConfig> {
+  const now = Date.now();
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { cachedConfig = null; return DEFAULT_CONFIG; }
 
-    if (cachedConfig && cachedConfig.userId === user.id) {
+    if (cachedConfig && cachedConfig.userId === user.id && cachedConfig.expiresAt > now) {
       return cachedConfig.config;
     }
 
@@ -68,7 +75,7 @@ async function resolveConfig(): Promise<AIConfig> {
         apiKey,
         model: data.model,
       };
-      cachedConfig = { config, userId: user.id };
+      cachedConfig = { config, userId: user.id, expiresAt: now + CONFIG_CACHE_TTL_MS };
       return config;
     }
   } catch {
@@ -105,6 +112,25 @@ function buildOpenAI(cfg: AIConfig): OpenAI {
   });
 }
 
+function makeCacheSystem(system: string | undefined) {
+  if (!system) return undefined;
+  return [
+    { type: 'text' as const, text: system, cache_control: { type: 'ephemeral' as const } },
+  ];
+}
+
+function makeCacheMessages(messages: { role: 'user' | 'assistant'; content: string }[]) {
+  return messages.map((m, i) => {
+    // Cache the last user message if it's long enough (prompt caching requires >1024 tokens for text blocks)
+    const shouldCache = m.role === 'user' && i === messages.length - 1 && m.content.length > 1500;
+    if (!shouldCache) return m;
+    return {
+      role: m.role,
+      content: [{ type: 'text' as const, text: m.content, cache_control: { type: 'ephemeral' as const } }],
+    };
+  });
+}
+
 async function callAnthropic(
   cfg: AIConfig,
   model: string,
@@ -114,13 +140,16 @@ async function callAnthropic(
   stream: boolean
 ): Promise<string> {
   const client = buildAnthropic(cfg);
+  const isThirdParty = !!cfg.baseURL;
+  const cachedSystem = isThirdParty ? (system || undefined) : makeCacheSystem(system);
+  const cachedMessages = isThirdParty ? messages : makeCacheMessages(messages);
 
   if (stream) {
     const s = client.messages.stream({
       model,
       max_tokens: maxTokens,
-      system: system || undefined,
-      messages,
+      system: cachedSystem as Parameters<typeof client.messages.stream>[0]['system'],
+      messages: cachedMessages as Parameters<typeof client.messages.stream>[0]['messages'],
     });
 
     let result = '';
@@ -135,11 +164,13 @@ async function callAnthropic(
   const resp = await client.messages.create({
     model,
     max_tokens: maxTokens,
-    system: system || undefined,
-    messages,
+    system: cachedSystem as Parameters<typeof client.messages.create>[0]['system'],
+    messages: cachedMessages as Parameters<typeof client.messages.create>[0]['messages'],
   });
 
-  return resp.content.map((c) => (c.type === 'text' ? c.text : '')).join('');
+  return (resp as { content: { type: string; text?: string }[] }).content
+    .map((c) => (c.type === 'text' && c.text ? c.text : ''))
+    .join('');
 }
 
 async function withRetry<T>(fn: () => Promise<T>): Promise<T> {

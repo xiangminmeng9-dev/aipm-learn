@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import GradientBackground from '@/components/ui/gradient-background';
 
 interface WrongQuestion {
   submission_id: string;
@@ -70,8 +71,9 @@ export default function WrongQuestionsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-8">
-      <div className="mb-6">
+    <div className="px-6 py-8">
+      <GradientBackground />
+      <div className="relative z-10 mb-6">
         <h1 className="text-lg font-bold text-foreground">错题本</h1>
         <p className="mt-1 text-sm text-muted-foreground">得分低于 60 的题目，按类别自动分类，支持重做</p>
       </div>

@@ -148,7 +148,7 @@ export default function SettingsPage() {
         </div>
       </header>
 
-      <div className="mx-auto max-w-3xl px-8 py-8">
+      <div className="px-8 py-8">
         {/* 学习数据看板 */}
         <div className="mb-6 rounded-2xl border border-border bg-card p-6 shadow-sm">
           <div className="flex items-center justify-between">

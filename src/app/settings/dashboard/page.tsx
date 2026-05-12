@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import ReactECharts from '@/components/ui/EChartsWrapper';
+import AchievementBadges from '@/components/achievements/AchievementBadges';
 
 /* -- Types -- */
 interface ModuleDetails {
@@ -641,6 +642,11 @@ export default function LearningDashboardPage() {
               series: [{ type: 'bar', data: d.dailyChallenge.streakCalendar.map((x) => x.hasSubmission ? 1 : 0), itemStyle: { color: (params: { dataIndex: number }) => d.dailyChallenge.streakCalendar[params.dataIndex]?.hasSubmission ? '#F43F5E' : '#F3F4F6', borderRadius: 3 }, barWidth: '60%' }],
             }} style={{ height: CHART_HEIGHT }} />
           </div>
+        </section>
+
+        {/* Achievements */}
+        <section className="rounded-2xl border-2 border-amber-200 bg-card p-6 dark:border-amber-800">
+          <AchievementBadges />
         </section>
 
         {/* ════════════════════════════════════════════

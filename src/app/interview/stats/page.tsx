@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import StatsPanel from '@/components/interview/StatsPanel';
 import type { UserStats } from '@/types';
+import GradientBackground from '@/components/ui/gradient-background';
 
 export default function StatsPage() {
   const [stats, setStats] = useState<UserStats | null>(null);
@@ -27,7 +28,9 @@ export default function StatsPage() {
   };
 
   return (
-    <div className="p-8">
+    <>
+      <GradientBackground />
+      <div className="relative z-10 p-8">
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-foreground">练习统计</h1>
         <p className="mt-1 text-base text-muted-foreground">练习量、类型分布、得分趋势、弱项推荐</p>
@@ -46,5 +49,6 @@ export default function StatsPage() {
         </div>
       )}
     </div>
+    </>
   );
 }

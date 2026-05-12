@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { ExternalResource } from '@/types';
 import { TYPE_CONFIG, TYPE_COLORS, TYPE_ICONS, AI_PM_DIRECTIONS } from '@/components/resources/constants';
+import GradientBackground from '@/components/ui/gradient-background';
 
 export default function ResourcesManagePage() {
   const [resources, setResources] = useState<ExternalResource[]>([]);
@@ -104,16 +105,18 @@ export default function ResourcesManagePage() {
 
   if (loading) {
     return (
-      <div className="p-8">
-        <div className="flex justify-center py-16"><div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" /></div>
+      <div className="relative p-8">
+        <GradientBackground />
+        <div className="relative z-10 flex justify-center py-16"><div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" /></div>
       </div>
     );
   }
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="relative p-8 space-y-6">
+      <GradientBackground />
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="relative z-10 flex items-center justify-between">
         <div>
           <h1 className="text-4xl font-semibold text-foreground">资源管理</h1>
           <p className="mt-2 text-lg text-muted-foreground">管理学习资源与文件夹</p>
@@ -135,7 +138,7 @@ export default function ResourcesManagePage() {
       </div>
 
       {/* Breadcrumb */}
-      <div className="flex items-center gap-1.5 text-base">
+      <div className="relative z-10 flex items-center gap-1.5 text-base">
         {breadcrumb.map((b, i) => (
           <span key={i} className="flex items-center gap-1.5">
             {i > 0 && <span className="text-muted-foreground">/</span>}
@@ -151,7 +154,7 @@ export default function ResourcesManagePage() {
       </div>
 
       {/* Search */}
-      <div className="relative">
+      <div className="relative z-10">
         <svg className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
         </svg>
@@ -164,7 +167,7 @@ export default function ResourcesManagePage() {
       </div>
 
       {/* AI PM Learning Directions */}
-      <Card className="border-border bg-card">
+      <Card className="relative z-10 border-border bg-card">
         <CardHeader>
           <CardTitle className="text-xl text-foreground">AI PM 学习方向快速创建</CardTitle>
         </CardHeader>
@@ -223,7 +226,7 @@ export default function ResourcesManagePage() {
 
       {/* Folders */}
       {folders.length > 0 && (
-        <div>
+        <div className="relative z-10">
           <h3 className="mb-3 text-base font-medium text-muted-foreground">文件夹</h3>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {folders.map((f) => {
@@ -258,7 +261,7 @@ export default function ResourcesManagePage() {
 
       {/* Resources */}
       {files.length > 0 ? (
-        <div>
+        <div className="relative z-10">
           <h3 className="mb-3 text-base font-medium text-muted-foreground">资源</h3>
           <div className="space-y-2">
             {files.map((r) => (
@@ -313,7 +316,7 @@ export default function ResourcesManagePage() {
           </div>
         </div>
       ) : folders.length === 0 ? (
-        <div className="rounded-2xl border border-border bg-card py-16 text-center">
+        <div className="relative z-10 rounded-2xl border border-border bg-card py-16 text-center">
           <p className="text-lg text-muted-foreground">暂无资源</p>
           <p className="mt-1 text-base text-muted-foreground">点击上方按钮添加资源或新建文件夹</p>
         </div>

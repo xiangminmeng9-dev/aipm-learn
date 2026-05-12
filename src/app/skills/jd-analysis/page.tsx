@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import GradientBackground from '@/components/ui/gradient-background';
 
 interface ExtractedSkill {
   skill_name: string;
@@ -143,14 +144,15 @@ export default function JdAnalysisPage() {
 
   return (
     <div className="flex h-full flex-col bg-background">
+      <GradientBackground />
       {/* Header */}
-      <div className="shrink-0 border-b border-border bg-card px-6 py-4">
+      <div className="relative z-10 shrink-0 border-b border-border bg-card px-6 py-4">
         <h1 className="text-lg font-semibold text-foreground">岗位分析</h1>
         <p className="text-xs text-muted-foreground">粘贴 JD 内容，AI 自动提取技能要求并匹配技能树</p>
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-5">
+      <div className="relative z-10 flex-1 overflow-y-auto p-6 space-y-5">
         {/* JD Input */}
         <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
           <label className="mb-2 block text-sm font-medium text-foreground">粘贴岗位描述（JD）</label>

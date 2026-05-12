@@ -43,54 +43,72 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ tech: cached, history: history || [], bookmarks, source: 'cache' });
     }
 
-    // No cache — generate with AI synchronously
+    // No cache — fetch latest article from real RSS data
     const serviceClient = createServiceClient();
 
-    // Fetch existing titles to avoid duplicates
+    // Get existing tech titles to avoid duplicates
     const { data: existing } = await serviceClient
       .from('daily_tech_cache')
-      .select('title')
+      .select('title, source_url')
       .order('date', { ascending: false })
       .limit(30);
 
-    const existingTitles = (existing ?? []).map((e: { title: string }) => e.title).filter(Boolean);
-    const avoidList = existingTitles.length > 0
-      ? `\n\n以下标题已推送过，请勿重复或高度相似：\n${existingTitles.map((t: string) => `- ${t}`).join('\n')}`
-      : '';
+    const existingUrls = new Set((existing ?? []).map((e: { source_url?: string }) => e.source_url).filter(Boolean));
+    const existingTitles = new Set((existing ?? []).map((e: { title: string }) => e.title).filter(Boolean));
 
-    let techData: { title: string; summary: string; explanation: string; impact: string; tags: string[] } = {
-      title: 'RAG 2.0：从检索增强到推理增强',
-      summary: '新一代 RAG 架构正在从简单的检索增强，演进为结合推理能力的智能知识系统。',
-      explanation: '传统 RAG 是"搜到什么用什么"，而 RAG 2.0 引入了推理链——先理解问题意图，再规划检索策略，最后对检索结果进行推理整合。这对 AI PM 意味着：产品不再只是"知识库+搜索"，而是需要设计推理流程、评估推理质量、管理知识图谱。',
-      impact: 'AI PM 需要掌握推理链设计、知识质量评估、以及从"检索准确率"到"推理正确率"的指标体系升级。',
-      tags: ['RAG', '推理', '知识图谱', 'AI架构'],
-    };
+    // Fetch latest AI tech article from RSS that hasn't been used yet
+    const { data: articles } = await serviceClient
+      .from('daily_ai_news_articles')
+      .select('title, url, source, summary, published_at, plain_explanation')
+      .order('published_at', { ascending: false })
+      .limit(50);
 
-    try {
-      const { generateText } = await import('@/lib/ai/claude');
-      const aiResult = await generateText(
-        `推荐一个今天AI领域最值得关注的技术动态，要求与之前推送的内容不重复，聚焦不同方向（如模型架构、应用场景、工具链、行业落地、开源动态等轮换）。只输出JSON：{"title":"标题","summary":"50字摘要","explanation":"200字白话解读，对AI PM意味着什么","impact":"对AI PM的影响，100字","tags":["标签1","标签2","标签3"]}${avoidList}`,
-        { system: '你是AI技术观察者。只输出JSON，不要markdown代码块。每天推送不同方向的技术动态，避免重复。summary和explanation要简洁。', maxTokens: 1024 }
-      );
-      let cleaned = aiResult.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      let parsed: Record<string, unknown>;
+    // Find first unused article
+    const freshArticle = (articles ?? []).find((a: { url: string; title: string }) =>
+      !existingUrls.has(a.url) && !existingTitles.has(a.title)
+    );
+
+    let techData: { title: string; summary: string; explanation: string; impact: string; tags: string[]; source_url?: string };
+    let sourceName = 'AI 技术日报';
+
+    if (freshArticle) {
+      // Parse plain_explanation JSON
+      let explanation = freshArticle.summary || '';
+      let impact = '';
       try {
-        parsed = JSON.parse(cleaned);
-      } catch {
-        const fixed = cleaned + (cleaned.endsWith('"') ? '}' : cleaned.endsWith(',') ? '"":0}}' : '"}');
-        try { parsed = JSON.parse(fixed); } catch { throw new Error('JSON parse failed: ' + cleaned.slice(0, 200)); }
-      }
-      if (parsed.title) {
-        techData = parsed as typeof techData;
-      }
-    } catch (err) {
-      console.error('[daily-challenge/tech] AI generation failed, using fallback:', err);
+        const pe = typeof freshArticle.plain_explanation === 'string'
+          ? JSON.parse(freshArticle.plain_explanation)
+          : freshArticle.plain_explanation;
+        if (pe?.explanation) explanation = pe.explanation;
+        if (pe?.impact) impact = pe.impact;
+      } catch {}
+
+      techData = {
+        title: freshArticle.title,
+        summary: explanation.slice(0, 100),
+        explanation: explanation,
+        impact: impact || '关注此技术动态，理解其对 AI PM 工作的影响',
+        tags: [],
+        source_url: freshArticle.url,
+      };
+      sourceName = freshArticle.source || 'AI 技术 RSS';
+    } else {
+      // Fallback: use latest article even if duplicate
+      const latest = articles?.[0];
+      techData = {
+        title: latest?.title || 'AI 技术动态',
+        summary: latest?.summary || '来自 RSS 的最新 AI 技术资讯',
+        explanation: latest?.summary || '请查看原文了解详情',
+        impact: '持续关注 AI 技术发展对产品决策至关重要',
+        tags: [],
+        source_url: latest?.url || '',
+      };
     }
 
     const newTech = {
       date: today,
       ...techData,
-      source_name: 'AI 技术日报',
+      source_name: sourceName,
     };
 
     const { data: inserted } = await serviceClient

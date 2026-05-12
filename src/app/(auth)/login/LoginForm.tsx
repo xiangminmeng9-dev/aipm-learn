@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { setCacheUserId, cacheClear } from '@/lib/cache';
 
 export default function LoginForm() {
   const [email, setEmail] = useState('');
@@ -30,6 +31,9 @@ export default function LoginForm() {
         setLoading(false);
         return;
       }
+      // Clear old cache and set new user ID
+      cacheClear();
+      setCacheUserId(data.session.user.id);
       const next = searchParams.get('next') || '/';
       router.push(next);
       router.refresh();

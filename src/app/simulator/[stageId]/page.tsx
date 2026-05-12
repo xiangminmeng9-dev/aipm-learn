@@ -125,7 +125,7 @@ function StagePageContent({ params }: { params: Promise<{ stageId: string }> }) 
 
   if (!isStarted) {
     return (
-      <div className="mx-auto max-w-3xl px-6 py-8">
+      <div className="px-6 py-8">
         <button onClick={handleBackToRoadmap} className="mb-4 text-sm text-muted-foreground hover:text-foreground">
           ← 返回路线图
         </button>

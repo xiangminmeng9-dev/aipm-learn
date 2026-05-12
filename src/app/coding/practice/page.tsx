@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import ModeSelector from '@/components/coding/ModeSelector';
 import CodingQuestionInput from '@/components/coding/CodingQuestionInput';
 import DevFlowResult from '@/components/coding/DevFlowResult';
+import PageShell from '@/components/layout/PageShell';
+import GradientBackground from '@/components/ui/gradient-background';
 import type { DevMode } from '@/types';
 
 export default function CodingPracticePage() {
@@ -45,12 +47,10 @@ export default function CodingPracticePage() {
   const handleReset = useCallback(() => { setResult(null); setError(''); setSelectedMode(null); }, []);
 
   return (
-    <div className="p-8 space-y-8">
-      <div>
-        <h1 className="text-3xl font-semibold text-foreground">AI Coding 练习</h1>
-        <p className="mt-2 text-muted-foreground">输入面试题目，选择开发模式，获取思考链开发流程</p>
-      </div>
-
+    <div className="flex h-full flex-col bg-background">
+      <GradientBackground />
+      <div className="relative z-10 flex-1 flex flex-col">
+        <PageShell title="AI Coding 练习" description="输入需求，选择开发模式，AI 生成结构化开发流程" icon="💻">
       {!result && (
         <>
           <ModeSelector modes={modes} selected={selectedMode} onSelect={setSelectedMode} />
@@ -77,6 +77,8 @@ export default function CodingPracticePage() {
           </div>
         </>
       )}
+        </PageShell>
+      </div>
     </div>
   );
 }
