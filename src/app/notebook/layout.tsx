@@ -14,7 +14,7 @@ export default function NotebookLayout({ children }: { children: React.ReactNode
       <ActivityTracker module="notebook" />
       <ResponsiveSidebar><NotebookSidebar /></ResponsiveSidebar>
       <div className="flex flex-1 flex-col overflow-hidden">
-        <div className="h-1 shrink-0 bg-gradient-to-r from-rose-400 via-pink-400 to-rose-300"/> 
+        <div className="h-1 shrink-0 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-300"/> 
         <main className="flex-1 overflow-y-auto bg-background">{children}</main>
       </div>
     </div>
