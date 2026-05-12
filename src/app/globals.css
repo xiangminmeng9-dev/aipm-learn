@@ -156,9 +156,29 @@
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
   }
-  /* 图标锐利 */
+  /* 图标锐利 - SVG高清渲染 */
   svg {
     shape-rendering: crispEdges;
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+  }
+  /* 图片高清渲染 */
+  img {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+    backface-visibility: hidden;
+  }
+  /* Canvas高清渲染 */
+  canvas {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+  }
+  /* 图表高清 */
+  .echarts-container, [class*="echarts"] {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
   }
 }
 
@@ -363,6 +383,39 @@
   text-rendering: optimizeLegibility;
   font-weight: 600;
   letter-spacing: -0.02em;
+}
+
+/* 图标高清 - 2K级别 */
+.icon-hd {
+  -webkit-transform: translateZ(0) scale(1);
+  transform: translateZ(0) scale(1);
+  shape-rendering: crispEdges;
+  stroke-width: 1.5;
+}
+
+/* 图片高清 - 2K级别 */
+.image-hd {
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* 图表高清容器 */
+.chart-hd {
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* 卡片高清 */
+.card-hd {
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 /* Gradient text - indigo */
