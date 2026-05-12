@@ -75,21 +75,28 @@ function StatusBadge({ status }: { status: AppStatus }) {
   );
 }
 
-// ── Match bar ───────────────────────────────────────────
-function MatchBar({ value, editable, onChange }: { value:number; editable?:boolean; onChange?:(v:number)=>void }) {
-  const color = value >= 70 ? '#34D399' : value >= 45 ? '#FBBF24' : '#F87171';
+// ── Match cell - simple text like other cells ───────────────────────────────────────────
+function MatchCell({ value, editable, onChange }: { value:number; editable?:boolean; onChange?:(v:number)=>void }) {
+  const [edit, setEdit] = useState(false);
+  const [draft, setDraft] = useState(String(value));
+  const ref = useRef<HTMLInputElement>(null);
+  useEffect(()=>{if(edit)ref.current?.focus();},[edit]);
+  useEffect(()=>{setDraft(String(value));},[value]);
+  const commit = () => {
+    setEdit(false);
+    const num = parseInt(draft) || 0;
+    const clamped = Math.max(0, Math.min(100, num));
+    if(clamped !== value && onChange) onChange(clamped);
+  };
+  if (edit) return (
+    <input ref={ref} type="number" min={0} max={100}
+      className="w-full rounded border border-[#7C3AED]/30 bg-muted px-2 py-1.5 text-[15px] font-medium text-foreground outline-none"
+      value={draft} onChange={(e)=>setDraft(e.target.value)} onBlur={commit}
+      onKeyDown={(e)=>{if(e.key==='Enter')commit();if(e.key==='Escape'){setDraft(String(value));setEdit(false);}}} />
+  );
   return (
-    <div className="flex items-center gap-3">
-      <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
-        <div className="h-full rounded-full transition-all duration-300 ease-out" style={{ width:`${value}%`, background:color, boxShadow:`0 0 6px ${color}40` }} />
-      </div>
-      {editable && onChange ? (
-        <input type="number" min={0} max={100} value={value} onChange={(e)=>onChange(Number(e.target.value))}
-          className="w-14 bg-transparent text-[15px] font-medium text-foreground outline-none border-b border-border focus:border-[#7C3AED]/40 text-right tabular-nums px-1" />
-      ) : (
-        <span className="text-[15px] font-medium text-muted-foreground w-10 text-right tabular-nums">{value}%</span>
-      )}
-    </div>
+    <button className="w-full text-left px-1 py-1 rounded text-[15px] font-medium text-foreground hover:bg-muted/50 cursor-text transition-colors"
+      onClick={()=>setEdit(true)}>{value}%</button>
   );
 }
 
@@ -179,13 +186,13 @@ function InlineCell({ value, onSave, placeholder }: { value:string; onSave:(v:st
   useEffect(()=>{setDraft(value);},[value]);
   const commit = () => { setEdit(false); if(draft!==value) onSave(draft); };
   if (edit) return (
-    <input ref={ref} className="w-full rounded border border-[#7C3AED]/30 bg-muted px-2 py-1.5 text-[15px] text-foreground outline-none" value={draft}
+    <input ref={ref} className="w-full rounded border-2 border-[#7C3AED]/30 bg-muted px-2 py-1.5 text-[15px] font-medium text-foreground outline-none" value={draft}
       onChange={(e)=>setDraft(e.target.value)} onBlur={commit}
       onKeyDown={(e)=>{if(e.key==='Enter')commit();if(e.key==='Escape'){setDraft(value);setEdit(false);}}} placeholder={placeholder} />
   );
   return (
-    <button className="w-full text-left px-1 py-1 rounded text-[15px] text-foreground hover:bg-muted/50 hover:text-foreground cursor-text transition-colors truncate"
-      onClick={()=>setEdit(true)}>{value||<span className="text-muted-foreground italic">{placeholder||'—'}</span>}</button>
+    <button className="w-full text-left px-1 py-1 rounded text-[15px] font-medium text-foreground hover:bg-muted/50 hover:text-foreground cursor-text transition-colors truncate"
+      onClick={()=>setEdit(true)}>{value||<span className="text-muted-foreground italic font-normal">{placeholder||'—'}</span>}</button>
   );
 }
 
@@ -195,13 +202,13 @@ function InlineSelectCell({ value, options, onSave }: { value:string; options:st
   useEffect(()=>{if(edit)ref.current?.focus();},[edit]);
   const commit = (v:string) => { setEdit(false); if(v!==value) onSave(v); };
   if (edit) return (
-    <select ref={ref} className="w-full rounded border border-[#7C3AED]/30 bg-muted px-1 py-1.5 text-[15px] text-foreground outline-none"
+    <select ref={ref} className="w-full rounded border-2 border-[#7C3AED]/30 bg-muted px-1 py-1.5 text-[15px] font-medium text-foreground outline-none"
       value={value} onChange={(e)=>commit(e.target.value)} onBlur={()=>setEdit(false)}>
       {options.map(o=><option key={o} value={o}>{o}</option>)}
     </select>
   );
   return (
-    <button className="w-full text-left px-1 py-1 rounded text-[15px] text-foreground hover:bg-muted/50 hover:text-foreground cursor-pointer transition-colors"
+    <button className="w-full text-left px-1 py-1 rounded text-[15px] font-medium text-foreground hover:bg-muted/50 hover:text-foreground cursor-pointer transition-colors"
       onClick={()=>setEdit(true)}>{value||'—'}</button>
   );
 }
@@ -574,7 +581,7 @@ export default function ApplicationTracker() {
   const bottomRow = KANBAN_STAGES.slice(4,7);
 
   return (
-    <div className="h-screen flex flex-col font-sans antialiased overflow-hidden bg-background" style={{ fontFamily:'"Inter","SF Pro Display",-apple-system,sans-serif' }}>
+    <div className="h-screen flex flex-col font-sans antialiased overflow-hidden bg-background" style={{ fontFamily:'"Inter","SF Pro Display",-apple-system,sans-serif', fontWeight: 500 }}>
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
         <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] rounded-full opacity-[0.06]" style={{ background:'radial-gradient(circle, #7C3AED 0%, transparent 70%)' }} />
         <div className="absolute bottom-[-10%] right-[-5%] w-[500px] h-[500px] rounded-full opacity-[0.04]" style={{ background:'radial-gradient(circle, #3B82F6 0%, transparent 70%)' }} />
@@ -586,39 +593,39 @@ export default function ApplicationTracker() {
         {/* ── Top bar ── */}
         <header className="shrink-0 flex items-center justify-between mb-4">
           <div className="flex items-center gap-2.5">
-            <h1 className="text-[28px] font-semibold tracking-tight text-foreground">投递工作台</h1>
-            <span className="text-[13px] font-medium text-muted-foreground bg-muted border border-border rounded-md px-2 py-0.5">BETA</span>
+            <h1 className="text-[28px] font-bold tracking-tight text-foreground">投递工作台</h1>
+            <span className="text-[13px] font-semibold text-muted-foreground bg-muted border border-border rounded-md px-2 py-0.5">BETA</span>
           </div>
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/50 px-3.5 py-2.5 focus-within:border-[#7C3AED]/40 focus-within:shadow-[0_0_12px_rgba(124,58,237,0.08)] transition-all">
+            <div className="flex items-center gap-2 rounded-lg border-2 border-border bg-muted/50 px-3.5 py-2.5 focus-within:border-[#7C3AED]/40 focus-within:shadow-[0_0_12px_rgba(124,58,237,0.08)] transition-all">
               <Search className="h-5 w-5 text-muted-foreground" />
-              <input className="bg-transparent text-[16px] text-foreground outline-none w-64 placeholder:text-muted-foreground" placeholder="搜索公司或职位..." value={search} onChange={(e)=>setSearch(e.target.value)} />
+              <input className="bg-transparent text-[16px] font-medium text-foreground outline-none w-64 placeholder:text-muted-foreground placeholder:font-normal" placeholder="搜索公司或职位..." value={search} onChange={(e)=>setSearch(e.target.value)} />
             </div>
             <div className="relative">
               <button onClick={()=>setShowFilters(!showFilters)}
-                className={`flex items-center gap-1.5 rounded-lg border px-3.5 py-2.5 text-[15px] transition-all duration-200 ${
+                className={`flex items-center gap-1.5 rounded-lg border-2 px-3.5 py-2.5 text-[15px] font-medium transition-all duration-200 ${
                   showFilters||filterStatus||filterSource?'border-[#7C3AED]/30 bg-[#7C3AED]/10 text-[#A78BFA]':'border-border bg-muted/50 hover:bg-muted hover:border-border text-muted-foreground'}`}>
                 <SlidersHorizontal className="h-5 w-5" />筛选
-                {(filterStatus||filterSource)&&<span className="inline-flex items-center justify-center h-4 min-w-4 rounded-full bg-[#7C3AED]/40 text-foreground text-[10px] px-1">!</span>}
+                {(filterStatus||filterSource)&&<span className="inline-flex items-center justify-center h-4 min-w-4 rounded-full bg-[#7C3AED]/40 text-foreground text-[10px] font-semibold px-1">!</span>}
               </button>
               {showFilters&&(
-                <div className="absolute top-full right-0 mt-1 rounded-lg border border-border bg-card shadow-xl shadow-black/40 p-4 z-30 min-w-[200px] space-y-3.5">
-                  <div><label className="block text-[13px] text-muted-foreground mb-1.5">状态</label>
-                    <select className="w-full rounded-md border border-border bg-muted px-2.5 py-2 text-[15px] text-foreground outline-none" value={filterStatus} onChange={(e)=>setFilterStatus(e.target.value)}>
+                <div className="absolute top-full right-0 mt-1 rounded-lg border-2 border-border bg-card shadow-xl shadow-black/40 p-4 z-30 min-w-[200px] space-y-3.5">
+                  <div><label className="block text-[13px] font-medium text-muted-foreground mb-1.5">状态</label>
+                    <select className="w-full rounded-md border-2 border-border bg-muted px-2.5 py-2 text-[15px] font-medium text-foreground outline-none" value={filterStatus} onChange={(e)=>setFilterStatus(e.target.value)}>
                       <option value="">全部</option>{ALL_STATUSES.map(s=><option key={s} value={s}>{s}</option>)}
                     </select>
                   </div>
-                  <div><label className="block text-[13px] text-muted-foreground mb-1.5">渠道</label>
-                    <select className="w-full rounded-md border border-border bg-muted px-2.5 py-2 text-[15px] text-foreground outline-none" value={filterSource} onChange={(e)=>setFilterSource(e.target.value)}>
+                  <div><label className="block text-[13px] font-medium text-muted-foreground mb-1.5">渠道</label>
+                    <select className="w-full rounded-md border-2 border-border bg-muted px-2.5 py-2 text-[15px] font-medium text-foreground outline-none" value={filterSource} onChange={(e)=>setFilterSource(e.target.value)}>
                       <option value="">全部</option>{ALL_SOURCES.map(s=><option key={s} value={s}>{s}</option>)}
                     </select>
                   </div>
-                  {(filterStatus||filterSource)&&<button className="w-full text-[13px] text-muted-foreground hover:text-[#F87171] transition-colors" onClick={()=>{setFilterStatus('');setFilterSource('');}}>清除筛选</button>}
+                  {(filterStatus||filterSource)&&<button className="w-full text-[13px] font-medium text-muted-foreground hover:text-[#F87171] transition-colors" onClick={()=>{setFilterStatus('');setFilterSource('');}}>清除筛选</button>}
                 </div>
               )}
             </div>
             <button onClick={()=>{setEditing(null);setDialogOpen(true);}}
-              className="flex items-center gap-1.5 rounded-lg border border-[#7C3AED]/30 bg-[#7C3AED]/10 hover:bg-[#7C3AED]/15 hover:border-[#7C3AED]/50 text-[15px] text-[#A78BFA] px-5 py-2.5 font-medium transition-all duration-200 shadow-[0_0_12px_rgba(124,58,237,0.06)]">
+              className="flex items-center gap-1.5 rounded-lg border-2 border-[#7C3AED]/30 bg-[#7C3AED]/10 hover:bg-[#7C3AED]/15 hover:border-[#7C3AED]/50 text-[15px] text-[#A78BFA] px-5 py-2.5 font-semibold transition-all duration-200 shadow-[0_0_12px_rgba(124,58,237,0.06)]">
               <Plus className="h-5 w-5" />新增投递
             </button>
           </div>
@@ -631,12 +638,12 @@ export default function ApplicationTracker() {
           <div className="flex-1 min-w-0 flex flex-col min-h-0">
             <div className="shrink-0 flex items-center justify-between mb-3">
               <div className="flex items-center gap-2.5">
-                <h2 className="text-[20px] font-semibold text-foreground">投递看板</h2>
-                <span className="text-[14px] text-muted-foreground">{total} cards</span>
+                <h2 className="text-[20px] font-bold text-foreground">投递看板</h2>
+                <span className="text-[14px] font-medium text-muted-foreground">{total} cards</span>
               </div>
               <div className="relative">
                 <button onClick={()=>setTimeDropdown(!timeDropdown)}
-                  className="flex items-center gap-1.5 text-[15px] text-muted-foreground hover:text-muted-foreground transition-colors px-2 py-1 rounded hover:bg-muted">
+                  className="flex items-center gap-1.5 text-[15px] font-medium text-muted-foreground hover:text-muted-foreground transition-colors px-2 py-1 rounded hover:bg-muted">
                   <ChevronDown className="h-4 w-4" />{timeFilter==='all'?'全部时间':timeFilter==='week'?'近一周':'近一月'}
                 </button>
                 {timeDropdown&&<TimeDropdown value={timeFilter} onChange={setTimeFilter} onClose={()=>setTimeDropdown(false)} />}
@@ -720,21 +727,21 @@ export default function ApplicationTracker() {
 
           {/* ===== RIGHT: Inline-editable table ===== */}
           <div className="flex-1 min-w-0 flex flex-col min-h-0">
-            <div className="flex-1 rounded-xl border border-border bg-muted/30 overflow-hidden flex flex-col min-h-0">
-              <div className="shrink-0 flex items-center justify-between px-5 py-3 border-b border-border">
+            <div className="flex-1 rounded-xl border-2 border-border bg-muted/30 overflow-hidden flex flex-col min-h-0">
+              <div className="shrink-0 flex items-center justify-between px-5 py-3 border-b-2 border-border">
                 <div className="flex items-center gap-2.5">
-                  <h2 className="text-[18px] font-semibold text-foreground">全部记录</h2>
-                  <span className="text-[13px] text-muted-foreground bg-muted rounded-md px-2 py-0.5 tabular-nums">{filtered.length}</span>
+                  <h2 className="text-[18px] font-bold text-foreground">全部记录</h2>
+                  <span className="text-[13px] font-semibold text-muted-foreground bg-muted rounded-md px-2 py-0.5 tabular-nums">{filtered.length}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="relative">
                     <button onClick={()=>{const next=sortKey?null:'appliedAt';toggleSort(next||'appliedAt');if(!sortKey)setSortKey('appliedAt');}}
-                      className={`flex items-center gap-1 text-[14px] transition-colors px-2 py-1 rounded ${sortKey?'text-[#A78BFA] bg-[#7C3AED]/10':'text-muted-foreground hover:text-muted-foreground hover:bg-muted'}`}>
+                      className={`flex items-center gap-1 text-[14px] font-medium transition-colors px-2 py-1 rounded ${sortKey?'text-[#A78BFA] bg-[#7C3AED]/10':'text-muted-foreground hover:text-muted-foreground hover:bg-muted'}`}>
                       <SlidersHorizontal className="h-4 w-4" />
                       {sortKey ? `${sortKey==='appliedAt'?'投递时间':sortKey==='company'?'公司':'匹配度'} ${sortDir==='asc'?'↑':'↓'}` : '排序'}
                     </button>
                     {sortKey && (
-                      <button className="text-[12px] text-muted-foreground hover:text-[#F87171] transition-colors ml-1" onClick={()=>{setSortKey(null);setSortDir('asc');}}>清除</button>
+                      <button className="text-[12px] font-medium text-muted-foreground hover:text-[#F87171] transition-colors ml-1" onClick={()=>{setSortKey(null);setSortDir('asc');}}>清除</button>
                     )}
                   </div>
                 </div>
@@ -742,9 +749,9 @@ export default function ApplicationTracker() {
               <div className="flex-1 overflow-auto">
                 <table className="w-full min-w-[800px]">
                   <thead>
-                    <tr className="border-b border-border sticky top-0 bg-card/95 backdrop-blur-sm">
+                    <tr className="border-b-2 border-border sticky top-0 bg-card/95 backdrop-blur-sm">
                       {EDIT_COLS.map((col)=>(
-                        <th key={col.key} className="h-[44px] px-3 text-left text-[13px] font-medium text-muted-foreground uppercase tracking-wider select-none cursor-pointer hover:text-muted-foreground transition-colors"
+                        <th key={col.key} className="h-[44px] px-3 text-left text-[13px] font-semibold text-muted-foreground uppercase tracking-wider select-none cursor-pointer hover:text-muted-foreground transition-colors"
                           style={{width:col.pct}} onClick={()=>toggleSort(col.key)}>
                           <span className="inline-flex items-center gap-1">
                             {col.label}
@@ -760,7 +767,7 @@ export default function ApplicationTracker() {
                         <tr key={r.id} data-id={r.id} className="border-b border-border hover:bg-muted transition-colors duration-150 group">
                           <td className="py-3 px-3"><InlineCell value={r.company} onSave={(v)=>updateField(r.id,'company',v)} placeholder="公司名" /></td>
                           <td className="py-3 px-3"><InlineCell value={r.position} onSave={(v)=>updateField(r.id,'position',v)} placeholder="职位名" /></td>
-                          <td className="py-3 px-3"><MatchBar value={r.match} editable onChange={(v)=>updateField(r.id,'match',v)} /></td>
+                          <td className="py-3 px-3"><MatchCell value={r.match} editable onChange={(v)=>updateField(r.id,'match',v)} /></td>
                           <td className="py-3 px-3">
                             <InlineSelectCell value={r.status} options={ALL_STATUSES} onSave={(v)=>updateField(r.id,'status',v)} />
                           </td>

@@ -143,6 +143,8 @@
     /* 高对比度渲染 */
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
+    /* 字体清晰度 */
+    font-size: 16px;
   }
   body {
     @apply bg-background text-foreground;
@@ -153,26 +155,23 @@
     text-rendering: optimizeLegibility;
     -webkit-transform: translateZ(0);
     transform: translateZ(0);
-    /* 增强对比度 */
-    -webkit-contrast: 100%;
   }
   h1, h2, h3, h4, h5, h6 {
     letter-spacing: -0.02em;
-    font-weight: 700;
+    font-weight: 700 !important;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
-    /* 标题锐利增强 */
-    -webkit-text-stroke: 0.01px transparent;
   }
-  /* 文字最高清晰度 - 增强对比 */
+  /* 文字最高清晰度 */
   p, span, li, a, label, input, textarea, select, button, div {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
-    font-weight: 400;
-    /* 文字锐利 */
-    -webkit-text-stroke: 0.005px transparent;
+  }
+  /* 按钮和输入框增强 */
+  button, input, select, textarea {
+    font-weight: 500;
   }
   /* SVG图标最高清晰度 - 增强描边 */
   svg {
@@ -181,7 +180,6 @@
     transform: translateZ(0);
     -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
-    /* SVG锐利增强 */
     stroke-linecap: round;
     stroke-linejoin: round;
   }
@@ -194,9 +192,6 @@
     image-rendering: crisp-edges;
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
-    /* 图片锐利增强 */
-    -webkit-filter: contrast(1.01);
-    filter: contrast(1.01);
   }
   /* Canvas最高清晰度 - 2K级别 */
   canvas {
@@ -204,21 +199,6 @@
     transform: translateZ(0);
     image-rendering: high-quality;
     image-rendering: crisp-edges;
-    /* Canvas锐利 */
-    -webkit-filter: contrast(1.01);
-    filter: contrast(1.01);
-  }
-  /* 按钮锐利增强 */
-  button {
-    font-weight: 500;
-    -webkit-font-smoothing: antialiased;
-    letter-spacing: -0.005em;
-  }
-  /* 输入框锐利 */
-  input, textarea, select {
-    font-weight: 500;
-    -webkit-font-smoothing: antialiased;
-    letter-spacing: -0.005em;
   }
 }
 
