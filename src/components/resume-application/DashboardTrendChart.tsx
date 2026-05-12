@@ -2,19 +2,29 @@
 
 import ReactECharts from '@/components/ui/EChartsWrapper';
 import { ChevronDown } from 'lucide-react';
+import { useState, useMemo } from 'react';
 
 interface Props {
   applicationTrend: { date: string; count: number; interviews: number; offers: number; accepted: number }[];
 }
 
 export default function DashboardTrendChart({ applicationTrend }: Props) {
+  const [range, setRange] = useState<'7d' | '30d' | 'all'>('7d');
+
+  // 根据筛选条件过滤数据
+  const filteredTrend = useMemo(() => {
+    if (range === 'all') return applicationTrend;
+    const days = range === '7d' ? 7 : 30;
+    return applicationTrend.slice(-days);
+  }, [applicationTrend, range]);
+
   // 格式化日期显示
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
     return `${d.getMonth() + 1}/${d.getDate()}`;
   };
 
-  const dates = applicationTrend.map((t) => t.date);
+  const dates = filteredTrend.map((t) => t.date);
 
   // 计算累积值
   let cumulativeTotal = 0;
@@ -22,7 +32,7 @@ export default function DashboardTrendChart({ applicationTrend }: Props) {
   let cumulativeOffers = 0;
   let cumulativeAccepted = 0;
 
-  const cumulativeData = applicationTrend.map((t) => {
+  const cumulativeData = filteredTrend.map((t) => {
     cumulativeTotal += t.count;
     cumulativeInterviews += t.interviews;
     cumulativeOffers += t.offers;
@@ -158,10 +168,14 @@ export default function DashboardTrendChart({ applicationTrend }: Props) {
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-bold text-foreground">投递趋势（累积）</h3>
         <div className="relative">
-          <select className="appearance-none text-xs font-medium text-muted-foreground bg-transparent pr-4 py-1 outline-none cursor-pointer hover:text-foreground transition-colors">
-            <option>近7天</option>
-            <option>近30天</option>
-            <option>全部</option>
+          <select
+            className="appearance-none text-xs font-medium text-muted-foreground bg-transparent pr-4 py-1 outline-none cursor-pointer hover:text-foreground transition-colors"
+            value={range}
+            onChange={(e) => setRange(e.target.value as '7d' | '30d' | 'all')}
+          >
+            <option value="7d">近7天</option>
+            <option value="30d">近30天</option>
+            <option value="all">全部</option>
           </select>
           <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
         </div>

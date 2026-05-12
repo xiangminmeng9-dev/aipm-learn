@@ -2,16 +2,23 @@
 
 import ReactECharts from '@/components/ui/EChartsWrapper';
 import { ChevronDown } from 'lucide-react';
+import { useState, useMemo } from 'react';
 
 interface Props {
   data: { city: string; count: number }[];
 }
 
 export default function DashboardCityChart({ data }: Props) {
-  const sorted = [...data].sort((a, b) => b.count - a.count).slice(0, 10);
+  const [selectedCity, setSelectedCity] = useState<string>('');
+
+  const sorted = useMemo(() => {
+    const result = [...data].sort((a, b) => b.count - a.count).slice(0, 10);
+    if (!selectedCity) return result;
+    return result.filter(d => d.city === selectedCity);
+  }, [data, selectedCity]);
 
   // 获取实际存在的城市列表
-  const cities = sorted.map(d => d.city);
+  const cities = [...data].sort((a, b) => b.count - a.count).slice(0, 10).map(d => d.city);
 
   const option = {
     tooltip: {
@@ -66,10 +73,14 @@ export default function DashboardCityChart({ data }: Props) {
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-semibold text-foreground">城市分布</h3>
         <div className="relative">
-          <select className="appearance-none text-xs text-muted-foreground bg-transparent pr-4 py-1 outline-none cursor-pointer hover:text-foreground transition-colors">
-            <option>全部城市</option>
+          <select
+            className="appearance-none text-xs text-muted-foreground bg-transparent pr-4 py-1 outline-none cursor-pointer hover:text-foreground transition-colors"
+            value={selectedCity}
+            onChange={(e) => setSelectedCity(e.target.value)}
+          >
+            <option value="">全部城市</option>
             {cities.map((city) => (
-              <option key={city}>{city}</option>
+              <option key={city} value={city}>{city}</option>
             ))}
           </select>
           <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />

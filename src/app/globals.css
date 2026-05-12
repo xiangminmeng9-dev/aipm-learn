@@ -134,8 +134,8 @@
   html {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    text-rendering: geometricPrecision;
-    font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "kern" 1, "liga" 1, "calt" 1, "dlig" 1, "hlig" 1;
     @apply font-sans;
     /* 强制硬件加速 */
     -webkit-transform: translateZ(0);
@@ -145,23 +145,29 @@
     text-size-adjust: 100%;
     /* 字体清晰度 */
     font-size: 16px;
+    /* 子像素定位优化 */
+    -webkit-font-variant-ligatures: common-ligatures;
+    font-variant-ligatures: common-ligatures;
   }
   body {
     @apply bg-background text-foreground;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.011em;
     /* 最高清晰度 */
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
     -webkit-transform: translateZ(0);
     transform: translateZ(0);
+    /* 字体微调 */
+    -webkit-text-stroke: 0.001px transparent;
   }
   h1, h2, h3, h4, h5, h6 {
-    letter-spacing: -0.02em;
+    letter-spacing: -0.025em;
     font-weight: 700 !important;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+    -webkit-text-stroke: 0.001px transparent;
   }
   /* 文字最高清晰度 */
   p, span, li, a, label, input, textarea, select, button, div {
@@ -172,6 +178,7 @@
   /* 按钮和输入框增强 */
   button, input, select, textarea {
     font-weight: 500;
+    letter-spacing: -0.005em;
   }
   /* SVG图标最高清晰度 - 增强描边 */
   svg {
@@ -182,6 +189,8 @@
     backface-visibility: hidden;
     stroke-linecap: round;
     stroke-linejoin: round;
+    /* 图标锐利 */
+    image-rendering: optimizeQuality;
   }
   /* 图片最高清晰度 - 2K级别 */
   img {
@@ -199,6 +208,19 @@
     transform: translateZ(0);
     image-rendering: high-quality;
     image-rendering: crisp-edges;
+  }
+  /* 表格文字清晰 */
+  table, th, td {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  /* 代码块清晰 */
+  code, pre, kbd, samp {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "tnum" 1, "lnum" 1, "zero" 1;
   }
 }
 
@@ -624,13 +646,14 @@
 }
 
 /* ============================================================
-   无敌清晰 - Ultra Sharp Mode
+   无敌清晰 - Ultra Sharp Mode (顶级清晰度)
    ============================================================ */
 
-/* 强制所有元素使用亚像素渲染 */
+/* 强制所有元素使用抗锯齿渲染 - 保持清晰 */
 * {
-  -webkit-font-smoothing: subpixel-antialiased;
-  -moz-osx-font-smoothing: auto;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 /* 高对比度模式 */
@@ -651,21 +674,20 @@
 .text-ultra-sharp {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  text-rendering: geometricPrecision;
+  text-rendering: optimizeLegibility;
   font-weight: 600;
-  letter-spacing: -0.01em;
-  -webkit-text-stroke: 0.01px transparent;
-  text-shadow: 0 0 0.01px rgba(0,0,0,0.1);
+  letter-spacing: -0.011em;
+  -webkit-text-stroke: 0.001px transparent;
 }
 
 /* 超清晰标题 */
 .heading-ultra-sharp {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  text-rendering: geometricPrecision;
+  text-rendering: optimizeLegibility;
   font-weight: 700;
-  letter-spacing: -0.02em;
-  -webkit-text-stroke: 0.01px transparent;
+  letter-spacing: -0.025em;
+  -webkit-text-stroke: 0.001px transparent;
 }
 
 /* 超清晰图标 */
@@ -739,6 +761,8 @@
   font-weight: 500;
   letter-spacing: -0.005em;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
   border-width: 2.5px;
   -webkit-transform: translateZ(0);
   transform: translateZ(0);
@@ -756,6 +780,8 @@
   border-width: 1.5px;
   font-weight: 500;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 /* 代码块超清晰 */
@@ -765,5 +791,5 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.011em;
 }

@@ -53,7 +53,7 @@ function computeStatsFromLocal(records: LocalRecord[], range: '7d' | '30d' | 'al
   }
 
   const total = filteredRecords.length;
-  const interviewStatuses = ['笔/面试', '面试中', 'OC'];
+  const interviewStatuses = ['面试中'];
   const interviews = filteredRecords.filter(r => interviewStatuses.includes(r.status)).length;
   const offers = filteredRecords.filter(r => r.status === 'Offer').length;
   const accepted = filteredRecords.filter(r => r.status === '已接受').length;
@@ -178,14 +178,27 @@ function computeStatsFromLocal(records: LocalRecord[], range: '7d' | '30d' | 'al
     offers: v.offers,
   }));
 
-  // Funnel stages
+  // Funnel stages - 累积关系，每个阶段包含后面所有阶段
+  // 投递 >= 筛选通过 >= 面试中 >= 终面 >= Offer >= 接受
+  const acceptedCount = filteredRecords.filter(r => r.status === '已接受').length;
+  const offerCount = filteredRecords.filter(r => r.status === 'Offer' || r.status === '已接受').length;
+  const finalInterviewCount = filteredRecords.filter(r =>
+    r.status === '终面' || r.status === 'Offer' || r.status === '已接受'
+  ).length;
+  const interviewingCount = filteredRecords.filter(r =>
+    ['面试中', '终面', 'Offer', '已接受'].includes(r.status)
+  ).length;
+  const screenedCount = filteredRecords.filter(r =>
+    r.status !== '已投递' && r.status !== '观望'
+  ).length;
+
   const funnelStages = [
     { stage: '投递', count: total },
-    { stage: '筛选通过', count: filteredRecords.filter(r => r.status !== '已投递' && r.status !== '观望').length },
-    { stage: '面试中', count: interviews },
-    { stage: '终面', count: filteredRecords.filter(r => r.status === '终面' || r.status === 'Offer' || r.status === '已接受').length },
-    { stage: 'Offer', count: offers },
-    { stage: '接受', count: accepted },
+    { stage: '筛选通过', count: screenedCount },
+    { stage: '面试中', count: interviewingCount },
+    { stage: '终面', count: finalInterviewCount },
+    { stage: 'Offer', count: offerCount },
+    { stage: '接受', count: acceptedCount },
   ];
 
   // Recent reviews

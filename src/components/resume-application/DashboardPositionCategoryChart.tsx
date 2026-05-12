@@ -2,16 +2,23 @@
 
 import ReactECharts from '@/components/ui/EChartsWrapper';
 import { ChevronDown } from 'lucide-react';
+import { useState, useMemo } from 'react';
 
 interface Props {
   data: { category: string; total: number; interviews: number; offers: number }[];
 }
 
 export default function DashboardPositionCategoryChart({ data }: Props) {
-  const sorted = [...data].sort((a, b) => b.total - a.total).slice(0, 8);
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
+
+  const sorted = useMemo(() => {
+    const result = [...data].sort((a, b) => b.total - a.total).slice(0, 8);
+    if (!selectedCategory) return result;
+    return result.filter(d => d.category === selectedCategory);
+  }, [data, selectedCategory]);
 
   // 获取实际存在的类别列表
-  const categories = sorted.map(d => d.category);
+  const categories = [...data].sort((a, b) => b.total - a.total).slice(0, 8).map(d => d.category);
 
   const option = {
     tooltip: {
@@ -60,10 +67,14 @@ export default function DashboardPositionCategoryChart({ data }: Props) {
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-semibold text-foreground">职位类别转化率</h3>
         <div className="relative">
-          <select className="appearance-none text-xs text-muted-foreground bg-transparent pr-4 py-1 outline-none cursor-pointer hover:text-foreground transition-colors">
-            <option>全部类别</option>
+          <select
+            className="appearance-none text-xs text-muted-foreground bg-transparent pr-4 py-1 outline-none cursor-pointer hover:text-foreground transition-colors"
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+          >
+            <option value="">全部类别</option>
             {categories.map((cat) => (
-              <option key={cat}>{cat}</option>
+              <option key={cat} value={cat}>{cat}</option>
             ))}
           </select>
           <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />

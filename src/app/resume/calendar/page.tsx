@@ -16,8 +16,6 @@ const statusStyle: Record<string, string> = {
   '已接受': 'text-emerald-600 bg-emerald-100',
   '已拒绝': 'text-red-600 bg-red-100',
   '观望': 'text-muted-foreground bg-muted',
-  '笔/面试': 'text-amber-600 bg-amber-100',
-  'OC': 'text-purple-600 bg-purple-100',
   '面试中': 'text-indigo-600 bg-indigo-100',
   'Offer': 'text-emerald-600 bg-emerald-100',
 };
@@ -45,7 +43,7 @@ function loadFromStorage(): LocalRecord[] {
 function getUpcomingTasks(records: LocalRecord[]): (LocalRecord & { daysUntil: number })[] {
   const now = new Date();
   const todayStr = now.toISOString().slice(0, 10);
-  const interviewStatuses = ['笔/面试', '面试中', 'OC'];
+  const interviewStatuses = ['面试中', '初面', '二面', '终面'];
   const upcoming = records
     .filter(r => interviewStatuses.includes(r.status) && r.interviewDate)
     .map(r => {
@@ -78,30 +76,52 @@ export default function CalendarPage() {
       }
       const localRecords = loadFromStorage();
       setAllRecords(localRecords);
-      if (localRecords.length > 0) {
-        const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
-        const lastDay = new Date(year, month, 0).getDate();
-        const endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
-        const monthRecords = localRecords.filter(r => r.appliedAt >= startDate && r.appliedAt <= endDate);
-        const byDate = new Map<string, LocalRecord[]>();
-        for (const rec of monthRecords) {
-          const list = byDate.get(rec.appliedAt) || [];
+
+      // 生成日历数据 - 合并投递日期和面试日期
+      const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+      const lastDay = new Date(year, month, 0).getDate();
+      const endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+
+      // 按投递日期分组
+      const byAppliedDate = new Map<string, LocalRecord[]>();
+      for (const rec of localRecords) {
+        if (rec.appliedAt >= startDate && rec.appliedAt <= endDate) {
+          const list = byAppliedDate.get(rec.appliedAt) || [];
           list.push(rec);
-          byDate.set(rec.appliedAt, list);
+          byAppliedDate.set(rec.appliedAt, list);
         }
-        const interviewStatuses = ['初面', '二面', '终面', '笔/面试', '面试中', 'OC'];
-        const calendarDays: ApplicationCalendarDay[] = Array.from(byDate.entries())
-          .map(([date, recs]) => ({
+      }
+
+      // 按面试日期分组
+      const byInterviewDate = new Map<string, LocalRecord[]>();
+      for (const rec of localRecords) {
+        if (rec.interviewDate && rec.interviewDate >= startDate && rec.interviewDate <= endDate) {
+          const list = byInterviewDate.get(rec.interviewDate) || [];
+          list.push(rec);
+          byInterviewDate.set(rec.interviewDate, list);
+        }
+      }
+
+      // 合并所有日期
+      const allDates = new Set([...byAppliedDate.keys(), ...byInterviewDate.keys()]);
+      const interviewStatuses = ['初面', '二面', '终面', '笔/面试', '面试中', 'OC'];
+
+      const calendarDays: ApplicationCalendarDay[] = Array.from(allDates)
+        .map((date) => {
+          const appliedRecs = byAppliedDate.get(date) || [];
+          const interviewRecs = byInterviewDate.get(date) || [];
+          return {
             date,
-            applications_count: recs.length,
-            interviews: recs.filter(r => interviewStatuses.includes(r.status)).map(r => ({
+            applications_count: appliedRecs.length,
+            interviews: interviewRecs.filter(r => interviewStatuses.includes(r.status)).map(r => ({
               company_name: r.company, position_name: r.position, status: r.status as '初面' | '二面' | '终面',
             })),
-            has_note: recs.some(r => r.notes),
-          }))
-          .sort((a, b) => a.date.localeCompare(b.date));
-        setDays(calendarDays);
-      } else { setDays([]); }
+            has_note: appliedRecs.some(r => r.notes) || interviewRecs.some(r => r.notes),
+          };
+        })
+        .sort((a, b) => a.date.localeCompare(b.date));
+
+      setDays(calendarDays);
     } catch {
       const localRecords = loadFromStorage();
       setAllRecords(localRecords);
@@ -126,7 +146,52 @@ export default function CalendarPage() {
     };
   }, []);
 
-  const dayMap = new Map(days.map((d) => [d.date, d]));
+  // 从 allRecords 直接计算日历数据，合并投递日期和面试日期
+  const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+  const monthLastDay = new Date(year, month, 0).getDate();
+  const endDate = `${year}-${String(month).padStart(2, '0')}-${String(monthLastDay).padStart(2, '0')}`;
+
+  // 按投递日期分组
+  const byAppliedDate = new Map<string, LocalRecord[]>();
+  for (const rec of allRecords) {
+    if (rec.appliedAt >= startDate && rec.appliedAt <= endDate) {
+      const list = byAppliedDate.get(rec.appliedAt) || [];
+      list.push(rec);
+      byAppliedDate.set(rec.appliedAt, list);
+    }
+  }
+
+  // 按面试日期分组
+  const byInterviewDate = new Map<string, LocalRecord[]>();
+  for (const rec of allRecords) {
+    if (rec.interviewDate && rec.interviewDate >= startDate && rec.interviewDate <= endDate) {
+      const list = byInterviewDate.get(rec.interviewDate) || [];
+      list.push(rec);
+      byInterviewDate.set(rec.interviewDate, list);
+    }
+  }
+
+  // 合并所有日期，生成日历数据
+  const allDates = new Set([...byAppliedDate.keys(), ...byInterviewDate.keys()]);
+  const interviewStatuses = ['初面', '二面', '终面', '笔/面试', '面试中', 'OC'];
+
+  const calendarDays: ApplicationCalendarDay[] = Array.from(allDates)
+    .map((date) => {
+      const appliedRecs = byAppliedDate.get(date) || [];
+      const interviewRecs = byInterviewDate.get(date) || [];
+      return {
+        date,
+        applications_count: appliedRecs.length,
+        interviews: interviewRecs.filter(r => interviewStatuses.includes(r.status)).map(r => ({
+          company_name: r.company, position_name: r.position, status: r.status as '初面' | '二面' | '终面',
+        })),
+        has_note: appliedRecs.some(r => r.notes) || interviewRecs.some(r => r.notes),
+      };
+    })
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  // 使用合并后的日历数据
+  const dayMap = new Map(calendarDays.map((d) => [d.date, d]));
   const upcomingTasks = getUpcomingTasks(allRecords);
 
   const prevMonth = () => { if (month === 1) { setYear(year - 1); setMonth(12); } else setMonth(month - 1); };
@@ -142,10 +207,14 @@ export default function CalendarPage() {
 
   const today = new Date().toISOString().slice(0, 10);
 
-  // 获取指定日期的面试记录（带时间），按时间排序
+  // 获取指定日期的面试记录（带时间），按时间排序（包含所有面试状态）
   const getInterviewTimes = (dateStr: string) => {
     return allRecords
-      .filter(r => r.interviewDate === dateStr && ['笔/面试', '面试中', 'OC'].includes(r.status))
+      .filter(r => {
+        const hasInterviewDate = r.interviewDate === dateStr;
+        const isInterviewStatus = ['笔/面试', '面试中', 'OC', '初面', '二面', '终面'].includes(r.status);
+        return hasInterviewDate && isInterviewStatus;
+      })
       .sort((a, b) => {
         // 有时间的排前面，按时间排序
         const timeA = a.interviewTime || '99:99';
@@ -154,10 +223,15 @@ export default function CalendarPage() {
       });
   };
 
-  // 获取指定日期的所有面试记录
+  // 获取指定日期的所有面试记录（包含所有面试状态）
   const getInterviewsByDate = (dateStr: string) => {
     return allRecords
-      .filter(r => r.interviewDate === dateStr && ['笔/面试', '面试中', 'OC'].includes(r.status))
+      .filter(r => {
+        // 检查是否有面试日期，且状态是面试相关状态
+        const hasInterviewDate = r.interviewDate === dateStr;
+        const isInterviewStatus = ['面试中', '初面', '二面', '终面'].includes(r.status);
+        return hasInterviewDate && isInterviewStatus;
+      })
       .sort((a, b) => {
         const timeA = a.interviewTime || '99:99';
         const timeB = b.interviewTime || '99:99';
@@ -171,13 +245,25 @@ export default function CalendarPage() {
       }));
   };
 
+  // 获取指定日期的投递记录
+  const getApplicationsByDate = (dateStr: string) => {
+    return allRecords
+      .filter(r => r.appliedAt === dateStr)
+      .map(r => ({
+        company_name: r.company,
+        position_name: r.position,
+        status: r.status,
+      }));
+  };
+
   const selectedDayData = selectedDate ? dayMap.get(selectedDate) : null;
   const selectedInterviews = selectedDate ? getInterviewsByDate(selectedDate) : [];
+  const selectedApplications = selectedDate ? getApplicationsByDate(selectedDate) : [];
 
   return (
     <div className="h-full flex flex-col overflow-hidden bg-background">
-      {/* 背景光晕 */}
-      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+      {/* 背景光晕 - 仅暗黑模式 */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden dark:block hidden">
         <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] rounded-full opacity-[0.06]" style={{ background:'radial-gradient(circle, #7C3AED 0%, transparent 70%)' }} />
         <div className="absolute bottom-[-10%] right-[-5%] w-[500px] h-[500px] rounded-full opacity-[0.04]" style={{ background:'radial-gradient(circle, #3B82F6 0%, transparent 70%)' }} />
         <div className="absolute top-[40%] left-[50%] w-[400px] h-[400px] rounded-full opacity-[0.03]" style={{ background:'radial-gradient(circle, #818CF8 0%, transparent 70%)', transform:'translate(-50%,-50%)' }} />
@@ -259,15 +345,23 @@ export default function CalendarPage() {
                       </div>
                     ))}
                     {/* 投递记录 */}
-                    {selectedDayData && selectedDayData.applications_count > 0 && (
-                      <div className="flex items-center gap-2 text-sm text-primary font-semibold">
-                        <Building2 className="h-4 w-4" /> {selectedDayData.applications_count} 家投递
+                    {selectedApplications.length > 0 && (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-sm text-primary font-semibold">
+                          <Building2 className="h-4 w-4" /> {selectedApplications.length} 家投递
+                        </div>
+                        {selectedApplications.map((r, i) => (
+                          <div key={i} className="flex items-center gap-2 text-sm font-medium pl-6">
+                            <span className="text-foreground">{r.company_name}</span>
+                            <span className="text-muted-foreground">—</span>
+                            <span className="text-foreground">{r.position_name}</span>
+                            <span className={`rounded-md px-2 py-0.5 text-xs font-semibold ${statusStyle[r.status] || 'text-muted-foreground bg-muted'}`}>{r.status}</span>
+                          </div>
+                        ))}
                       </div>
                     )}
-                    {/* 备注 */}
-                    {selectedDayData?.has_note && <span className="text-xs font-medium text-amber-600">含有备注</span>}
                     {/* 无记录提示 */}
-                    {(!selectedDayData || selectedDayData.applications_count === 0) && selectedInterviews.length === 0 && (
+                    {selectedApplications.length === 0 && selectedInterviews.length === 0 && (
                       <p className="text-sm font-medium text-muted-foreground">当天无投递或面试记录</p>
                     )}
                   </div>

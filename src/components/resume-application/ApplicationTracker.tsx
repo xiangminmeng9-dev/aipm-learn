@@ -8,8 +8,8 @@ import {
 } from 'lucide-react';
 
 // ── Types ──────────────────────────────────────────────
-type KanbanStage = 'watching' | 'applied' | 'exam' | 'oc' | 'interviewing' | 'offer' | 'accepted' | 'rejected';
-type AppStatus   = '观望' | '已投递' | '笔/面试' | 'OC' | '面试中' | 'Offer' | '已接受' | '已拒绝';
+type KanbanStage = 'watching' | 'applied' | 'interviewing' | 'offer' | 'accepted' | 'rejected';
+type AppStatus   = '观望' | '已投递' | '面试中' | 'Offer' | '已接受' | '已拒绝';
 type TimeFilter  = 'all' | 'week' | 'month';
 
 interface AppRecord {
@@ -33,8 +33,6 @@ interface AppRecord {
 const KANBAN_STAGES: { key: KanbanStage; label: AppStatus; icon: React.ElementType; color: string; iconColor: string }[] = [
   { key:'watching',     label:'观望',   icon: Eye,          color:'#64748B', iconColor:'#94A3B8' },
   { key:'applied',      label:'已投递', icon: Briefcase,    color:'#64748B', iconColor:'#94A3B8' },
-  { key:'exam',         label:'笔/面试',icon: FileText,     color:'#F59E0B', iconColor:'#FBBF24' },
-  { key:'oc',           label:'OC',     icon: PhoneCall,    color:'#A78BFA', iconColor:'#C4B5FD' },
   { key:'interviewing', label:'面试中', icon: Clock,        color:'#818CF8', iconColor:'#A5B4FC' },
   { key:'offer',        label:'Offer',  icon: Award,        color:'#34D399', iconColor:'#6EE7B7' },
   { key:'accepted',     label:'已接受', icon: CheckCircle2, color:'#22C55E', iconColor:'#4ADE80' },
@@ -52,18 +50,16 @@ const EDIT_COLS = [
   { key:'appliedAt', label:'投递时间', pct:'13%' },
 ];
 
-const ALL_STATUSES: AppStatus[] = ['观望','已投递','笔/面试','OC','面试中','Offer','已接受','已拒绝'];
+const ALL_STATUSES: AppStatus[] = ['观望','已投递','面试中','Offer','已接受','已拒绝'];
 const ALL_SOURCES = ['Boss直聘','官网','内推','LinkedIn','脉脉','猎头','其他'];
 
 // Interview statuses that show time input
-const INTERVIEW_STATUSES: AppStatus[] = ['笔/面试', 'OC', '面试中'];
+const INTERVIEW_STATUSES: AppStatus[] = ['面试中'];
 
 // ── Status badge ────────────────────────────────────────
 const statusStyle: Record<AppStatus, string> = {
   '观望':   'text-muted-foreground bg-muted/50 border-border',
   '已投递': 'text-muted-foreground bg-muted/50 border-border',
-  '笔/面试':'text-[#FBBF24] bg-[#F59E0B]/10 border-[#F59E0B]/20',
-  'OC':     'text-[#C4B5FD] bg-[#8B5CF6]/10 border-[#8B5CF6]/20',
   '面试中': 'text-[#A5B4FC] bg-[#818CF8]/10 border-[#818CF8]/20',
   'Offer':  'text-[#6EE7B7] bg-[#34D399]/10 border-[#34D399]/20',
   '已接受': 'text-[#4ADE80] bg-[#22C55E]/10 border-[#22C55E]/20',
@@ -315,14 +311,6 @@ function RecordDialog({ open, onClose, onSave, editing }: {
     const finalInterviewDate = isInterviewStatus ? (interviewDate || appliedAt) : undefined;
     const finalInterviewTime = isInterviewStatus ? interviewTime : undefined;
 
-    console.log('Saving record:', {
-      stage,
-      status: submitStageDef.label,
-      isInterviewStatus,
-      interviewDate: finalInterviewDate,
-      interviewTime: finalInterviewTime,
-    });
-
     onSave({
       id: editing?.id || Date.now().toString(),
       company: company.trim(), position: position.trim(),
@@ -439,22 +427,32 @@ export default function ApplicationTracker() {
       .then((r) => r.json())
       .then((d) => {
         if (d.applications && d.applications.length > 0) {
-          const apiRecords: AppRecord[] = d.applications.map((a: Record<string,unknown>) => ({
-            id: a.id as string,
-            company: a.company_name as string,
-            position: a.position_name as string,
-            stage: (KANBAN_STAGES.find((s) => s.label === (a.status as string))?.key || 'applied') as KanbanStage,
-            status: (a.status as AppStatus) || '已投递',
-            match: 0,
-            source: (a.channel as string) || 'Boss直聘',
-            city: (a.city as string) || '',
-            appliedAt: (a.applied_at as string) || '',
-            updatedAt: (a.updated_at as string)?.slice(0, 10) || '',
-            tags: [],
-            notes: (a.notes as string) || '',
-          }));
+          // 先加载本地数据，保留面试日期和时间
+          const localRecords = loadFromStorage();
+          const localMap = new Map(localRecords.map((r) => [`${r.company}|${r.position}`, r]));
+
+          const apiRecords: AppRecord[] = d.applications.map((a: Record<string,unknown>) => {
+            const key = `${a.company_name}|${a.position_name}`;
+            const localRecord = localMap.get(key);
+            return {
+              id: a.id as string,
+              company: a.company_name as string,
+              position: a.position_name as string,
+              stage: (KANBAN_STAGES.find((s) => s.label === (a.status as string))?.key || 'applied') as KanbanStage,
+              status: (a.status as AppStatus) || '已投递',
+              match: (a.match_score as number) || localRecord?.match || 0,
+              source: (a.channel as string) || 'Boss直聘',
+              city: (a.city as string) || '',
+              appliedAt: (a.applied_at as string) || '',
+              updatedAt: (a.updated_at as string)?.slice(0, 10) || '',
+              // 保留本地的面试日期和时间
+              interviewDate: localRecord?.interviewDate,
+              interviewTime: localRecord?.interviewTime,
+              tags: [],
+              notes: (a.notes as string) || localRecord?.notes || '',
+            };
+          });
           // Merge: API records take precedence by company+position, keep local-only ones
-          const localMap = new Map(loadFromStorage().map((r) => [`${r.company}|${r.position}`, r]));
           apiRecords.forEach((r) => localMap.set(`${r.company}|${r.position}`, r));
           const merged = Array.from(localMap.values());
           setRecords(merged);
@@ -485,7 +483,7 @@ export default function ApplicationTracker() {
   }, [records, timeFilter]);
 
   const grouped = useMemo(() => {
-    const map: Record<KanbanStage, AppRecord[]> = { watching:[], applied:[], exam:[], oc:[], interviewing:[], offer:[], accepted:[], rejected:[] };
+    const map: Record<KanbanStage, AppRecord[]> = { watching:[], applied:[], interviewing:[], offer:[], accepted:[], rejected:[] };
     timeFiltered.forEach((r)=>map[r.stage].push(r));
     return map;
   }, [timeFiltered]);
@@ -632,13 +630,13 @@ export default function ApplicationTracker() {
 
   const total = timeFiltered.length;
 
-  // Split stages into 2 rows: top 4, bottom 3
-  const topRow = KANBAN_STAGES.slice(0,4);
-  const bottomRow = KANBAN_STAGES.slice(4,7);
+  // Split stages into 2 rows: top 3, bottom 3
+  const topRow = KANBAN_STAGES.slice(0,3);
+  const bottomRow = KANBAN_STAGES.slice(3,6);
 
   return (
     <div className="h-screen flex flex-col font-sans antialiased overflow-hidden bg-background" style={{ fontFamily:'"Inter","SF Pro Display",-apple-system,sans-serif', fontWeight: 500 }}>
-      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden dark:block hidden">
         <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] rounded-full opacity-[0.06]" style={{ background:'radial-gradient(circle, #7C3AED 0%, transparent 70%)' }} />
         <div className="absolute bottom-[-10%] right-[-5%] w-[500px] h-[500px] rounded-full opacity-[0.04]" style={{ background:'radial-gradient(circle, #3B82F6 0%, transparent 70%)' }} />
         <div className="absolute top-[40%] left-[50%] w-[400px] h-[400px] rounded-full opacity-[0.03]" style={{ background:'radial-gradient(circle, #818CF8 0%, transparent 70%)', transform:'translate(-50%,-50%)' }} />
@@ -708,8 +706,8 @@ export default function ApplicationTracker() {
 
             {/* Kanban: 2 rows */}
             <div className="flex-1 flex flex-col gap-3 min-h-0">
-              {/* Top row: 4 columns */}
-              <div className="flex-1 grid grid-cols-4 gap-3 min-h-0">
+              {/* Top row: 3 columns */}
+              <div className="flex-1 grid grid-cols-3 gap-3 min-h-0">
                 {topRow.map((stage)=>{
                   const isCollapsed=collapsed.has(stage.key);
                   const isDragOver=dragOverStage===stage.key;

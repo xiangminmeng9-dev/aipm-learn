@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useMemo } from 'react';
 import { ChevronDown } from 'lucide-react';
 
 interface Props {
@@ -7,7 +8,17 @@ interface Props {
 }
 
 export default function DashboardFunnelChart({ stages }: Props) {
-  const total = stages[0]?.count || 0;
+  const [selectedStage, setSelectedStage] = useState<string>('');
+
+  // 根据筛选条件过滤
+  const filteredStages = useMemo(() => {
+    if (!selectedStage) return stages;
+    const idx = stages.findIndex(s => s.stage === selectedStage);
+    if (idx === -1) return stages;
+    return stages.slice(idx);
+  }, [stages, selectedStage]);
+
+  const total = filteredStages[0]?.count || 0;
 
   const colors = [
     '#6366F1',
@@ -26,10 +37,14 @@ export default function DashboardFunnelChart({ stages }: Props) {
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-semibold text-foreground">Offer 转化漏斗</h3>
         <div className="relative">
-          <select className="appearance-none text-xs text-muted-foreground bg-transparent pr-4 py-1 outline-none cursor-pointer hover:text-foreground transition-colors">
-            <option>全部流程</option>
+          <select
+            className="appearance-none text-xs text-muted-foreground bg-transparent pr-4 py-1 outline-none cursor-pointer hover:text-foreground transition-colors"
+            value={selectedStage}
+            onChange={(e) => setSelectedStage(e.target.value)}
+          >
+            <option value="">全部流程</option>
             {stageNames.map((stage) => (
-              <option key={stage}>{stage}</option>
+              <option key={stage} value={stage}>{stage}</option>
             ))}
           </select>
           <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
@@ -40,11 +55,11 @@ export default function DashboardFunnelChart({ stages }: Props) {
         {/* 左侧：漏斗图 */}
         <div className="flex-1 flex flex-col items-center justify-center" style={{ minHeight: '220px' }}>
           <svg viewBox="0 0 300 200" className="w-full h-auto" style={{ maxHeight: '220px' }}>
-            {stages.map((s, i) => {
+            {filteredStages.map((s, i) => {
               const widthPercent = total > 0 ? (s.count / total) * 100 : 0;
               const topWidth = 280 * (widthPercent / 100) + 20;
-              const bottomWidth = i < stages.length - 1
-                ? 280 * ((stages[i + 1]?.count || 0) / total) + 20
+              const bottomWidth = i < filteredStages.length - 1
+                ? 280 * ((filteredStages[i + 1]?.count || 0) / total) + 20
                 : topWidth * 0.8;
 
               const y = i * 33;
@@ -67,7 +82,7 @@ export default function DashboardFunnelChart({ stages }: Props) {
               );
             })}
             {/* 阶段标签 */}
-            {stages.map((s, i) => {
+            {filteredStages.map((s, i) => {
               const y = i * 33 + 18;
               return (
                 <text
@@ -88,8 +103,8 @@ export default function DashboardFunnelChart({ stages }: Props) {
 
         {/* 右侧：转化数据 */}
         <div className="w-[120px] flex flex-col justify-center space-y-3">
-          {stages.map((s, i) => {
-            const prevCount = i > 0 ? stages[i - 1]?.count || 1 : s.count;
+          {filteredStages.map((s, i) => {
+            const prevCount = i > 0 ? filteredStages[i - 1]?.count || 1 : s.count;
             const conversionRate = i > 0 && prevCount > 0 ? Math.round((s.count / prevCount) * 100) : 100;
 
             return (

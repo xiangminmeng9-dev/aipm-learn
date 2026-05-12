@@ -148,6 +148,7 @@ function EditDialog({ open, onClose, card, onSaved }: { open: boolean; onClose: 
   const [file, setFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [currentFiles, setCurrentFiles] = useState<ResumeFile[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const fileInputId = card ? `edit-resume-file-${card.id}` : 'edit-resume-file';
 
@@ -161,85 +162,131 @@ function EditDialog({ open, onClose, card, onSaved }: { open: boolean; onClose: 
       setVersion(`v${(maxVersion + 0.1).toFixed(1)}`);
       setFile(null);
       setError('');
+      setCurrentFiles([...card.files]);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   }, [open, card]);
 
   if (!open || !card) return null;
 
+  const removeFile = (fileId: string) => {
+    setCurrentFiles(prev => prev.filter(f => f.id !== fileId));
+  };
+
   const handleSave = async () => {
     setSaving(true);
     setError('');
 
-    if (file) {
-      // 有新文件，异步读取
-      const reader = new FileReader();
-      reader.onload = async () => {
-        try {
-          const fileId = Date.now().toString();
-          const newFile: ResumeFile = {
-            id: fileId,
-            name: file.name,
-            size: file.size,
-            type: file.type,
-            dataUrl: reader.result as string,
-            uploadedAt: new Date().toISOString(),
-            version: version.startsWith('v') ? version : `v${version}`,
-          };
+    try {
+      // 计算需要删除的文件
+      const originalFileIds = new Set(card.files.map(f => f.id));
+      const currentFileIds = new Set(currentFiles.map(f => f.id));
+      const filesToDelete = card.files.filter(f => !currentFileIds.has(f.id));
 
-          // 保存文件到 IndexedDB
-          await saveFileToDB(newFile);
-
-          // 更新卡片元数据
-          const currentMetas = loadCardMetas();
-          const idx = currentMetas.findIndex(c => c.id === card.id);
-          if (idx >= 0) {
-            currentMetas[idx].fileIds.push(fileId);
-            currentMetas[idx].applicationsCount = applicationsCount;
-            currentMetas[idx].interviewsCount = interviewsCount;
-            currentMetas[idx].offersCount = offersCount;
-            saveCardMetas(currentMetas);
-          }
-
-          setSaving(false);
-          onSaved();
-          onClose();
-        } catch (e) {
-          console.error('保存失败:', e);
-          setError('保存失败: ' + (e instanceof Error ? e.message : '未知错误'));
-          setSaving(false);
-        }
-      };
-      reader.onerror = () => {
-        setError('文件读取失败');
-        setSaving(false);
-      };
-      reader.readAsDataURL(file);
-    } else {
-      // 没有新文件，直接保存统计数据
-      const currentMetas = loadCardMetas();
-      const idx = currentMetas.findIndex(c => c.id === card.id);
-      if (idx >= 0) {
-        currentMetas[idx].applicationsCount = applicationsCount;
-        currentMetas[idx].interviewsCount = interviewsCount;
-        currentMetas[idx].offersCount = offersCount;
-        saveCardMetas(currentMetas);
+      // 删除标记的文件
+      for (const f of filesToDelete) {
+        await deleteFileFromDB(f.id);
       }
+
+      if (file) {
+        // 有新文件，异步读取
+        const reader = new FileReader();
+        reader.onload = async () => {
+          try {
+            const fileId = Date.now().toString();
+            const newFile: ResumeFile = {
+              id: fileId,
+              name: file.name,
+              size: file.size,
+              type: file.type,
+              dataUrl: reader.result as string,
+              uploadedAt: new Date().toISOString(),
+              version: version.startsWith('v') ? version : `v${version}`,
+            };
+
+            // 保存文件到 IndexedDB
+            await saveFileToDB(newFile);
+
+            // 更新卡片元数据
+            const currentMetas = loadCardMetas();
+            const idx = currentMetas.findIndex(c => c.id === card.id);
+            if (idx >= 0) {
+              currentMetas[idx].fileIds = [...currentFileIds, fileId];
+              currentMetas[idx].applicationsCount = applicationsCount;
+              currentMetas[idx].interviewsCount = interviewsCount;
+              currentMetas[idx].offersCount = offersCount;
+              saveCardMetas(currentMetas);
+            }
+
+            setSaving(false);
+            onSaved();
+            onClose();
+          } catch (e) {
+            console.error('保存失败:', e);
+            setError('保存失败: ' + (e instanceof Error ? e.message : '未知错误'));
+            setSaving(false);
+          }
+        };
+        reader.onerror = () => {
+          setError('文件读取失败');
+          setSaving(false);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        // 没有新文件，直接保存统计数据和删除操作
+        const currentMetas = loadCardMetas();
+        const idx = currentMetas.findIndex(c => c.id === card.id);
+        if (idx >= 0) {
+          currentMetas[idx].fileIds = Array.from(currentFileIds);
+          currentMetas[idx].applicationsCount = applicationsCount;
+          currentMetas[idx].interviewsCount = interviewsCount;
+          currentMetas[idx].offersCount = offersCount;
+          saveCardMetas(currentMetas);
+        }
+        setSaving(false);
+        onSaved();
+        onClose();
+      }
+    } catch (e) {
+      console.error('删除文件失败:', e);
+      setError('删除文件失败: ' + (e instanceof Error ? e.message : '未知错误'));
       setSaving(false);
-      onSaved();
-      onClose();
     }
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative rounded-xl border border-border bg-card shadow-2xl w-full max-w-md p-6">
+      <div className="relative rounded-xl border border-border bg-card shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-5">
           <h3 className="text-lg font-semibold text-foreground">编辑简历</h3>
           <button onClick={onClose} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground"><X className="h-5 w-5" /></button>
         </div>
         <div className="space-y-4">
+          {/* 已上传的简历版本 - 标签样式 */}
+          {currentFiles.length > 0 && (
+            <div className="pt-3 border-t border-border">
+              <label className="block text-sm text-muted-foreground mb-2">已上传版本</label>
+              <div className="flex flex-wrap gap-2">
+                {currentFiles.map((f, idx) => (
+                  <div key={f.id} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20 text-sm">
+                    <span className="font-medium text-primary">{f.version}</span>
+                    <span className="text-muted-foreground">•</span>
+                    <span className="text-foreground truncate max-w-[120px]" title={f.name}>{f.name}</span>
+                    {idx === 0 && <span className="text-xs text-emerald-500">最新</span>}
+                    <button
+                      onClick={() => removeFile(f.id)}
+                      className="ml-1 w-4 h-4 rounded-full flex items-center justify-center bg-muted hover:bg-red-100 hover:text-red-500 transition-colors"
+                      title="删除此版本"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-3 gap-3">
             <div>
               <label className="block text-sm text-muted-foreground mb-2">投递数</label>
@@ -271,7 +318,7 @@ function EditDialog({ open, onClose, card, onSaved }: { open: boolean; onClose: 
         </div>
         <div className="flex justify-end gap-3 mt-6">
           <button onClick={onClose} className="px-4 py-2 rounded-lg border border-border text-sm text-muted-foreground hover:bg-muted transition-colors">取消</button>
-          <button onClick={handleSave} disabled={saving} className="px-5 py-2 rounded-lg bg-primary/10 border border-primary/30 text-sm text-primary font-medium hover:bg-primary/20 transition-colors disabled:opacity-50">{saving ? '保存中...' : '保存'}</button>
+          <button onClick={handleSave} disabled={saving || currentFiles.length === 0 && !file} className="px-5 py-2 rounded-lg bg-primary/10 border border-primary/30 text-sm text-primary font-medium hover:bg-primary/20 transition-colors disabled:opacity-50">{saving ? '保存中...' : '保存'}</button>
         </div>
       </div>
     </div>
@@ -429,8 +476,54 @@ function NewCardDialog({ open, onClose, onCreated }: { open: boolean; onClose: (
 
 // 版本历史弹窗
 function VersionHistoryDialog({ open, onClose, card }: { open: boolean; onClose: () => void; card: ResumeCard | null }) {
+  const [previewFile, setPreviewFile] = useState<ResumeFile | null>(null);
+
   if (!open || !card) return null;
   const positionInfo = POSITION_TYPES.find(p => p.name === card.positionType) || POSITION_TYPES[0];
+
+  const handlePreview = (file: ResumeFile) => {
+    setPreviewFile(file);
+  };
+
+  // 预览PDF
+  if (previewFile) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="absolute inset-0 bg-black/80" onClick={() => setPreviewFile(null)} />
+        <div className="relative w-[90vw] h-[90vh] bg-card rounded-xl border border-border shadow-2xl overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 py-3 bg-card border-b border-border z-10">
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-foreground">{previewFile.name}</span>
+              <span className="text-xs text-muted-foreground">{previewFile.version}</span>
+            </div>
+            <button onClick={() => setPreviewFile(null)} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+          <div className="pt-12 h-full">
+            {previewFile.type === 'application/pdf' ? (
+              <iframe
+                src={previewFile.dataUrl}
+                className="w-full h-full border-0"
+                title={previewFile.name}
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                <FileText className="h-16 w-16 mb-4" />
+                <p className="text-sm mb-4">此文件类型不支持在线预览</p>
+                <button
+                  onClick={() => downloadFile(previewFile)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 border border-primary/20 text-sm text-primary font-medium hover:bg-primary/20 transition-colors"
+                >
+                  <Download className="h-4 w-4" />下载查看
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -464,7 +557,10 @@ function VersionHistoryDialog({ open, onClose, card }: { open: boolean; onClose:
                     </div>
                   </div>
                 </div>
-                <button onClick={() => downloadFile(file)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-primary hover:bg-primary/10 transition-colors"><Download className="h-4 w-4" />下载</button>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => handlePreview(file)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-primary hover:bg-primary/10 transition-colors"><Eye className="h-4 w-4" />预览</button>
+                  <button onClick={() => downloadFile(file)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"><Download className="h-4 w-4" />下载</button>
+                </div>
               </div>
             ))
           )}
