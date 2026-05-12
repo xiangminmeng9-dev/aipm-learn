@@ -142,17 +142,27 @@ export default function CalendarPage() {
 
   const today = new Date().toISOString().slice(0, 10);
 
-  // 获取指定日期的面试记录（带时间）
+  // 获取指定日期的面试记录（带时间），按时间排序
   const getInterviewTimes = (dateStr: string) => {
     return allRecords
-      .filter(r => r.interviewDate === dateStr && ['笔/面试', '面试中', 'OC'].includes(r.status) && r.interviewTime)
-      .sort((a, b) => (a.interviewTime || '').localeCompare(b.interviewTime || ''));
+      .filter(r => r.interviewDate === dateStr && ['笔/面试', '面试中', 'OC'].includes(r.status))
+      .sort((a, b) => {
+        // 有时间的排前面，按时间排序
+        const timeA = a.interviewTime || '99:99';
+        const timeB = b.interviewTime || '99:99';
+        return timeA.localeCompare(timeB);
+      });
   };
 
   // 获取指定日期的所有面试记录
   const getInterviewsByDate = (dateStr: string) => {
     return allRecords
       .filter(r => r.interviewDate === dateStr && ['笔/面试', '面试中', 'OC'].includes(r.status))
+      .sort((a, b) => {
+        const timeA = a.interviewTime || '99:99';
+        const timeB = b.interviewTime || '99:99';
+        return timeA.localeCompare(timeB);
+      })
       .map(r => ({
         company_name: r.company,
         position_name: r.position,
@@ -163,7 +173,6 @@ export default function CalendarPage() {
 
   const selectedDayData = selectedDate ? dayMap.get(selectedDate) : null;
   const selectedInterviews = selectedDate ? getInterviewsByDate(selectedDate) : [];
-  const selectedInterviewTimes = selectedDate ? getInterviewTimes(selectedDate) : [];
 
   return (
     <div className="h-full flex flex-col overflow-hidden bg-background">
@@ -216,15 +225,13 @@ export default function CalendarPage() {
                       {hasContent && (
                         <div className="mt-1.5 w-full space-y-1">
                           {dayData && dayData.applications_count > 0 && (<div className={`text-xs leading-tight font-semibold ${isSelected ? 'text-foreground' : 'text-primary'}`}>{dayData.applications_count} 家投递</div>)}
-                          {interviewTimes.slice(0, 2).map((r, idx) => (
+                          {interviewsByDate.slice(0, 3).map((r, idx) => (
                             <div key={idx} className="text-xs leading-tight flex items-center gap-1 text-amber-600 font-medium">
-                              <Clock className="h-3 w-3" /><span>{r.interviewTime}</span><span className="truncate">{r.company}</span>
+                              <Clock className="h-3 w-3" />
+                              {r.interviewTime && <span>{r.interviewTime}</span>}
+                              <span className="truncate">{r.company_name}</span>
                             </div>
                           ))}
-                          {interviewsByDate.filter(r => !r.interviewTime).slice(0, 2).map((iv, idx) => {
-                            const style = statusStyle[iv.status] || 'text-muted-foreground';
-                            return (<div key={idx} className={`text-xs leading-tight truncate font-medium ${isSelected ? 'text-foreground' : style.split(' ')[0]}`}>{iv.company_name}<span className={`ml-1 rounded px-1 py-px text-[11px] font-medium ${isSelected ? 'text-foreground/80' : style}`}>{iv.status}</span></div>);
-                          })}
                         </div>
                       )}
                     </button>
@@ -237,24 +244,15 @@ export default function CalendarPage() {
                 <div className="mt-5 rounded-xl border-2 border-border bg-muted/50 p-4">
                   <h3 className="text-base font-bold text-foreground mb-3">{selectedDate}</h3>
                   <div className="space-y-2.5">
-                    {/* 面试时间列表 */}
-                    {selectedInterviewTimes.map((r, i) => (
+                    {/* 面试列表 - 按时间排序 */}
+                    {selectedInterviews.map((r, i) => (
                       <div key={i} className="flex items-center gap-2 text-sm font-medium">
                         <Clock className="h-4 w-4 text-amber-600" />
-                        <span className="text-amber-600 font-semibold">{r.interviewTime}</span>
-                        <span className="text-foreground">{r.company}</span>
+                        {r.interviewTime && <span className="text-amber-600 font-semibold">{r.interviewTime}</span>}
+                        <span className="text-foreground">{r.company_name}</span>
                         <span className="text-muted-foreground">—</span>
-                        <span className="text-foreground">{r.position}</span>
+                        <span className="text-foreground">{r.position_name}</span>
                         <span className={`rounded-md px-2 py-0.5 text-xs font-semibold ${statusStyle[r.status] || 'text-muted-foreground bg-muted'}`}>{r.status}</span>
-                      </div>
-                    ))}
-                    {/* 其他面试记录 */}
-                    {selectedInterviews.filter(r => !r.interviewTime).map((iv, i) => (
-                      <div key={i} className="flex items-center gap-2 text-sm font-medium">
-                        <span className="text-foreground">{iv.company_name}</span>
-                        <span className="text-muted-foreground">—</span>
-                        <span className="text-foreground">{iv.position_name}</span>
-                        <span className={`rounded-md px-2 py-0.5 text-xs font-semibold ${statusStyle[iv.status] || 'text-muted-foreground bg-muted'}`}>{iv.status}</span>
                       </div>
                     ))}
                     {/* 投递记录 */}
@@ -266,7 +264,7 @@ export default function CalendarPage() {
                     {/* 备注 */}
                     {selectedDayData?.has_note && <span className="text-xs font-medium text-amber-600">含有备注</span>}
                     {/* 无记录提示 */}
-                    {(!selectedDayData || selectedDayData.applications_count === 0) && selectedInterviewTimes.length === 0 && selectedInterviews.filter(r => !r.interviewTime).length === 0 && (
+                    {(!selectedDayData || selectedDayData.applications_count === 0) && selectedInterviews.length === 0 && (
                       <p className="text-sm font-medium text-muted-foreground">当天无投递或面试记录</p>
                     )}
                   </div>
