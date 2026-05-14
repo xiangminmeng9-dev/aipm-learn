@@ -46,11 +46,39 @@ export default function DailyTechPage() {
         if (!forceRefresh) {
           cacheSet('daily-tech', { tech: data.tech, history: data.history || [], bookmarks: data.bookmarks || [] }, TTL.DAILY);
         }
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        console.error('API error:', errorData);
+        // 如果没有数据，显示错误提示而不是白屏
+        if (!today) {
+          setToday({
+            date: new Date().toISOString().split('T')[0],
+            title: '获取失败',
+            summary: errorData.error || '获取AI技术资讯失败，请稍后重试',
+            explanation: errorData.error || '获取AI技术资讯失败，请稍后重试',
+            impact: '请稍后重试或检查网络连接',
+            tags: [],
+          });
+          setSelectedTech(null);
+        }
       }
-    } catch { /* ignore */ } finally {
+    } catch (err) {
+      console.error('Fetch error:', err);
+      if (!today) {
+        setToday({
+          date: new Date().toISOString().split('T')[0],
+          title: '网络错误',
+          summary: '网络连接失败，请检查网络后重试',
+          explanation: '网络连接失败，请检查网络后重试',
+          impact: '请刷新页面重试',
+          tags: [],
+        });
+        setSelectedTech(null);
+      }
+    } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [today]);
 
   useEffect(() => { fetchData(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 

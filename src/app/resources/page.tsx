@@ -1,213 +1,249 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import type { ResourcesStatsResponse } from '@/types';
-import TypeDistributionChart from '@/components/resources/charts/TypeDistributionChart';
-import SourceDistributionChart from '@/components/resources/charts/SourceDistributionChart';
-import ActivityBarChart from '@/components/resources/charts/ActivityBarChart';
-import GrowthTimelineChart from '@/components/resources/charts/GrowthTimelineChart';
-import FolderTreemapChart from '@/components/resources/charts/FolderTreemapChart';
 import GradientBackground from '@/components/ui/gradient-background';
+import ReactECharts from 'echarts-for-react';
 
-const navCards = [
-  {
-    title: '每日 AI 大事',
-    description: 'AI 行业每日要闻，AI 生成摘要与趋势洞察',
-    href: '/resources/daily-ai-news',
-    icon: '📰',
-    color: 'from-blue-500 to-indigo-600',
-  },
-  {
-    title: 'AI 技术动态',
-    description: '追踪 RAG/Agent/LLM 技术路线与前沿实现',
-    href: '/resources/ai-tech',
-    icon: '⚡',
-    color: 'from-amber-500 to-orange-600',
-  },
-  {
-    title: 'AI PM 文章',
-    description: '精选 AI 产品经理技术文章，白话翻译助你理解',
-    href: '/resources/ai-pm-articles',
-    icon: '✨',
-    color: 'from-emerald-500 to-teal-600',
-  },
-  {
-    title: '资源管理',
-    description: '管理学习资源与文件夹',
-    href: '/resources/manage',
-    icon: '📁',
-    color: 'from-purple-500 to-violet-600',
-  },
-];
+interface ResourcesStats {
+  total_resources: number;
+  total_rss_articles: number;
+  total_daily_news: number;
+  total_rss_sources: number;
+  rss_read_stats: { read: number; total: number; translated: number };
+  type_distribution: { type: string; count: number }[];
+  source_distribution: { source: string; count: number }[];
+  daily_activity: { date: string; count: number }[];
+  growth_timeline: { date: string; count: number }[];
+  folder_treemap: { name: string; value: number }[];
+}
 
 const statCards = [
-  { key: 'total_resources' as const, label: '收藏资源', icon: '📁' },
-  { key: 'total_rss_articles' as const, label: 'RSS 文章', icon: '📰' },
-  { key: 'total_daily_news' as const, label: '每日新闻', icon: '📡' },
-  { key: 'total_rss_sources' as const, label: 'RSS 源', icon: '🔌' },
+  { key: 'total_resources', label: '收藏资源', icon: '📁' },
+  { key: 'total_rss_articles', label: 'RSS 文章', icon: '📰' },
+  { key: 'total_daily_news', label: '每日新闻', icon: '📡' },
+  { key: 'total_rss_sources', label: 'RSS 源', icon: '🔌' },
 ];
 
-export default function ResourcesPage() {
-  const [stats, setStats] = useState<ResourcesStatsResponse | null>(null);
+export default function ResourcesDashboardPage() {
+  const [stats, setStats] = useState<ResourcesStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [range, setRange] = useState<'7d' | '30d' | 'all'>('30d');
 
   useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch('/api/resources/stats');
-        if (res.ok) {
-          setStats(await res.json());
-        } else {
-          setError('加载失败');
-        }
-      } catch {
-        setError('网络错误');
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
+    setLoading(true);
+    fetch(`/api/resources/stats?range=${range}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.total_resources !== undefined) setStats(d);
+        else setStats(null);
+      })
+      .catch(() => setStats(null))
+      .finally(() => setLoading(false));
+  }, [range]);
 
   if (loading) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
       </div>
     );
   }
 
-  if (error) {
+  if (!stats) {
     return (
-      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4">
-        <p className="text-muted-foreground">{error}</p>
-        <button
-          onClick={() => window.location.reload()}
-          className="rounded-lg bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700"
-        >
-          重试
-        </button>
+      <div className="flex min-h-screen items-center justify-center p-6">
+        <div className="text-center">
+          <p className="text-lg font-medium text-muted-foreground">暂无资源数据</p>
+          <p className="mt-2 text-sm text-muted-foreground">添加资源后，看板数据将自动展示</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-full flex-col bg-background">
+    <div className="h-full flex flex-col overflow-hidden bg-background">
       <GradientBackground />
-      {/* Header */}
-      <div className="relative z-10 shrink-0 border-b border-border bg-card px-6 py-4">
-        <h1 className="text-lg font-semibold text-foreground">资源库</h1>
-        <p className="text-xs text-muted-foreground">资源种类、数量与分布一览</p>
-      </div>
-
-      {/* Content */}
-      <div className="relative z-10 flex-1 overflow-y-auto p-6 space-y-5">
-        {/* Stat cards */}
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {statCards.map((card) => (
-            <div key={card.key} className="rounded-xl border border-border bg-card p-4">
-              <div className="flex items-center gap-3">
-                <span className="text-xl">{card.icon}</span>
-                <div>
-                  <p className="text-xl font-bold text-foreground">{stats?.[card.key] ?? 0}</p>
-                  <p className="text-[10px] text-muted-foreground">{card.label}</p>
-                </div>
-              </div>
-            </div>
-          ))}
+      <div className="relative z-10 flex-1 overflow-y-auto p-6 space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">学习资源看板</h1>
+            <p className="mt-1 text-sm font-medium text-muted-foreground">追踪资源收藏，发现学习热点</p>
+          </div>
+          <div className="flex items-center gap-1 rounded-lg bg-muted p-1">
+            {(['7d', '30d', 'all'] as const).map(r => (
+              <button
+                key={r}
+                onClick={() => setRange(r)}
+                className={`rounded-md px-4 py-1.5 text-xs font-semibold transition-colors ${
+                  range === r ? 'bg-indigo-600 text-white' : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {r === '7d' ? '近7天' : r === '30d' ? '近30天' : '全部'}
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* RSS read stats */}
-        {stats && stats.rss_read_stats.total > 0 && (
-          <div className="flex items-center gap-4 rounded-xl border border-border bg-card px-4 py-2.5 text-xs text-muted-foreground">
-            <span>RSS 阅读进度</span>
-            <div className="flex-1">
-              <div className="h-1.5 overflow-hidden rounded-full bg-secondary">
-                <div
-                  className="h-full rounded-full bg-indigo-500 transition-all"
-                  style={{ width: `${Math.round((stats.rss_read_stats.read / stats.rss_read_stats.total) * 100)}%` }}
-                />
+        {/* Stats Row */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {statCards.map(card => {
+            const value = stats[card.key as keyof ResourcesStats] as number;
+            return (
+              <div key={card.key} className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">{card.icon}</span>
+                  <span className="text-xs text-muted-foreground">{card.label}</span>
+                </div>
+                <div className="mt-2">
+                  <span className="text-2xl font-bold text-foreground">{value}</span>
+                </div>
               </div>
+            );
+          })}
+        </div>
+
+        {/* RSS Read Progress */}
+        {stats.rss_read_stats && stats.rss_read_stats.total > 0 && (
+          <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-foreground">RSS 阅读进度</h3>
+              <span className="text-sm text-indigo-600 font-medium">
+                {stats.rss_read_stats.read}/{stats.rss_read_stats.total} 已读
+              </span>
             </div>
-            <span className="text-foreground font-medium">
-              {stats.rss_read_stats.read}/{stats.rss_read_stats.total}
-            </span>
-            <span className="text-indigo-600 font-medium">
-              {stats.rss_read_stats.translated} 已翻译
-            </span>
+            <div className="h-2.5 overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-indigo-500 transition-all"
+                style={{ width: `${Math.round((stats.rss_read_stats.read / stats.rss_read_stats.total) * 100)}%` }}
+              />
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              {stats.rss_read_stats.translated} 篇已翻译
+            </p>
           </div>
         )}
 
-        {/* Charts row 1 */}
-        <div className="grid gap-3 lg:grid-cols-2">
-          <div className="rounded-xl border border-border bg-card p-4">
-            <h3 className="mb-2 text-xs font-medium text-foreground">类型分布</h3>
-            {stats?.type_distribution.length ? (
-              <TypeDistributionChart data={stats.type_distribution} />
+        {/* Row 1: Type Distribution + Source Distribution */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+            <h3 className="mb-4 text-sm font-semibold text-foreground">类型分布</h3>
+            {stats.type_distribution.length > 0 ? (
+              <ReactECharts
+                option={{
+                  tooltip: { trigger: 'item' },
+                  series: [{
+                    type: 'pie',
+                    radius: ['40%', '70%'],
+                    data: stats.type_distribution.map(t => ({ name: t.type, value: t.count })),
+                    label: { fontSize: 10, color: '#6B7280' },
+                  }],
+                }}
+                style={{ height: 200 }}
+              />
             ) : (
-              <p className="py-8 text-center text-xs text-muted-foreground">暂无数据</p>
+              <div className="flex h-[200px] items-center justify-center text-sm text-muted-foreground">暂无数据</div>
             )}
           </div>
-          <div className="rounded-xl border border-border bg-card p-4">
-            <h3 className="mb-2 text-xs font-medium text-foreground">来源分布</h3>
-            {stats?.source_distribution.length ? (
-              <SourceDistributionChart data={stats.source_distribution} />
+          <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+            <h3 className="mb-4 text-sm font-semibold text-foreground">来源分布</h3>
+            {stats.source_distribution.length > 0 ? (
+              <ReactECharts
+                option={{
+                  tooltip: { trigger: 'item' },
+                  series: [{
+                    type: 'pie',
+                    radius: ['40%', '70%'],
+                    data: stats.source_distribution.map(s => ({ name: s.source, value: s.count })),
+                    label: { fontSize: 10, color: '#6B7280' },
+                  }],
+                }}
+                style={{ height: 200 }}
+              />
             ) : (
-              <p className="py-8 text-center text-xs text-muted-foreground">暂无数据</p>
+              <div className="flex h-[200px] items-center justify-center text-sm text-muted-foreground">暂无数据</div>
             )}
           </div>
         </div>
 
-        {/* Activity */}
-        <div className="rounded-xl border border-border bg-card p-4">
-          <h3 className="mb-2 text-xs font-medium text-foreground">近 30 天新增</h3>
-          {stats?.daily_activity.length ? (
-            <ActivityBarChart data={stats.daily_activity} />
+        {/* Row 2: Daily Activity */}
+        <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+          <h3 className="mb-4 text-sm font-semibold text-foreground">近 30 天新增</h3>
+          {stats.daily_activity.length > 0 ? (
+            <ReactECharts
+              option={{
+                tooltip: { trigger: 'axis' },
+                xAxis: {
+                  type: 'category',
+                  data: stats.daily_activity.map(d => d.date.slice(5)),
+                  axisLabel: { fontSize: 10, color: '#6B7280' },
+                },
+                yAxis: { type: 'value', axisLabel: { fontSize: 10, color: '#6B7280' } },
+                series: [{
+                  type: 'bar',
+                  data: stats.daily_activity.map(d => d.count),
+                  itemStyle: { color: '#6366F1', borderRadius: [4, 4, 0, 0] },
+                }],
+                grid: { left: 40, right: 20, top: 20, bottom: 30 },
+              }}
+              style={{ height: 200 }}
+            />
           ) : (
-            <p className="py-8 text-center text-xs text-muted-foreground">暂无数据</p>
+            <div className="flex h-[200px] items-center justify-center text-sm text-muted-foreground">暂无数据</div>
           )}
         </div>
 
-        {/* Charts row 2 */}
-        <div className="grid gap-3 lg:grid-cols-2">
-          <div className="rounded-xl border border-border bg-card p-4">
-            <h3 className="mb-2 text-xs font-medium text-foreground">累计增长</h3>
-            {stats?.growth_timeline.length ? (
-              <GrowthTimelineChart data={stats.growth_timeline} />
+        {/* Row 3: Growth Timeline + Folder Distribution */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+            <h3 className="mb-4 text-sm font-semibold text-foreground">累计增长</h3>
+            {stats.growth_timeline.length > 0 ? (
+              <ReactECharts
+                option={{
+                  tooltip: { trigger: 'axis' },
+                  xAxis: {
+                    type: 'category',
+                    data: stats.growth_timeline.map(d => d.date.slice(5)),
+                    axisLabel: { fontSize: 10, color: '#6B7280' },
+                  },
+                  yAxis: { type: 'value', axisLabel: { fontSize: 10, color: '#6B7280' } },
+                  series: [{
+                    type: 'line',
+                    data: stats.growth_timeline.map(d => d.count),
+                    smooth: true,
+                    areaStyle: { opacity: 0.3 },
+                    lineStyle: { color: '#10B981', width: 2 },
+                    itemStyle: { color: '#10B981' },
+                  }],
+                  grid: { left: 40, right: 20, top: 20, bottom: 30 },
+                }}
+                style={{ height: 200 }}
+              />
             ) : (
-              <p className="py-8 text-center text-xs text-muted-foreground">暂无数据</p>
+              <div className="flex h-[200px] items-center justify-center text-sm text-muted-foreground">暂无数据</div>
             )}
           </div>
-          <div className="rounded-xl border border-border bg-card p-4">
-            <h3 className="mb-2 text-xs font-medium text-foreground">文件夹分布</h3>
-            {stats?.folder_treemap.length ? (
-              <FolderTreemapChart data={stats.folder_treemap} />
+          <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+            <h3 className="mb-4 text-sm font-semibold text-foreground">文件夹分布</h3>
+            {stats.folder_treemap.length > 0 ? (
+              <ReactECharts
+                option={{
+                  tooltip: { trigger: 'item' },
+                  series: [{
+                    type: 'treemap',
+                    data: stats.folder_treemap.map(f => ({
+                      name: f.name,
+                      value: f.value,
+                    })),
+                    label: { fontSize: 10, color: '#fff' },
+                    breadcrumb: { show: false },
+                  }],
+                }}
+                style={{ height: 200 }}
+              />
             ) : (
-              <p className="py-8 text-center text-xs text-muted-foreground">暂无数据</p>
+              <div className="flex h-[200px] items-center justify-center text-sm text-muted-foreground">暂无数据</div>
             )}
-          </div>
-        </div>
-
-        {/* Quick nav */}
-        <div>
-          <h2 className="mb-2 text-xs font-medium text-muted-foreground">快速导航</h2>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {navCards.map((feature) => (
-              <Link
-                key={feature.href}
-                href={feature.href}
-                className="group rounded-xl border border-border bg-card p-4 transition hover:border-indigo-200 hover:shadow-md"
-              >
-                <div className={`mb-2 inline-flex rounded-lg bg-gradient-to-br ${feature.color} p-2 text-white text-lg`}>
-                  {feature.icon}
-                </div>
-                <h3 className="text-sm font-semibold text-foreground group-hover:text-indigo-600 transition">
-                  {feature.title}
-                </h3>
-                <p className="mt-0.5 text-xs text-muted-foreground">{feature.description}</p>
-              </Link>
-            ))}
           </div>
         </div>
       </div>

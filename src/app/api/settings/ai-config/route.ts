@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { encrypt, decrypt } from '@/lib/crypto';
 import { validateBody, aiConfigSchema } from '@/lib/validations';
+import { clearAiConfigCache } from '@/lib/ai/claude';
 
 export async function GET() {
   try {
@@ -63,6 +64,9 @@ export async function POST(request: NextRequest) {
         .insert({ user_id: user.id, protocol, base_url: base_url || '', api_key: encryptedKey, model });
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     }
+
+    // Clear the AI config cache so new settings take effect immediately
+    clearAiConfigCache();
 
     return NextResponse.json({ success: true });
   } catch (err) {

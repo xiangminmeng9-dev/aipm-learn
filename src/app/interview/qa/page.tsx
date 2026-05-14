@@ -181,6 +181,20 @@ export default function QAPage() {
     if (h.type_id) fetchFrequency(h.type_id);
   }, [fetchFrequency]);
 
+  const handleDeleteHistory = useCallback(async (id: string) => {
+    if (!confirm('确定删除这条记录吗？')) return;
+    try {
+      const res = await fetch('/api/interview/analyze/history', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      if (res.ok) {
+        setHistory(prev => prev.filter(h => h.id !== id));
+      }
+    } catch { /* ignore */ }
+  }, []);
+
   return (
     <>
       <GradientBackground />
@@ -207,17 +221,30 @@ export default function QAPage() {
           {showHistory && (
             <div className="mt-3 space-y-2">
               {history.map((h) => (
-                <button
+                <div
                   key={h.id}
-                  onClick={() => handleHistorySelect(h)}
-                  className="w-full rounded-xl border border-border bg-card px-4 py-3 text-left text-sm transition-colors hover:bg-muted hover:border-indigo-200"
+                  className="rounded-xl border border-border bg-card px-4 py-3 transition-colors hover:bg-muted hover:border-indigo-200"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-medium text-foreground line-clamp-1">{h.question}</span>
-                    <span className="text-xs text-muted-foreground">{new Date(h.created_at).toLocaleDateString()}</span>
+                    <button
+                      onClick={() => handleHistorySelect(h)}
+                      className="flex-1 text-left"
+                    >
+                      <span className="font-medium text-foreground line-clamp-1">{h.question}</span>
+                      <span className="ml-2 text-xs text-muted-foreground">{new Date(h.created_at).toLocaleDateString()}</span>
+                    </button>
+                    <button
+                      onClick={() => handleDeleteHistory(h.id)}
+                      className="ml-2 rounded-lg p-1.5 text-muted-foreground hover:bg-rose-100 hover:text-rose-600 transition-colors"
+                      title="删除"
+                    >
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                      </svg>
+                    </button>
                   </div>
                   {h.type_name && <span className="text-xs text-muted-foreground">{h.type_name}</span>}
-                </button>
+                </div>
               ))}
             </div>
           )}

@@ -42,3 +42,31 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: '查询失败' }, { status: 500 });
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: '未登录' }, { status: 401 });
+
+    const { id } = await request.json();
+    if (!id) return NextResponse.json({ error: '缺少记录ID' }, { status: 400 });
+
+    const serviceClient = createServiceClient();
+    const { error } = await serviceClient
+      .from('ai_learning_paths')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id);
+
+    if (error) {
+      console.error('Delete AI learning path error:', error);
+      return NextResponse.json({ error: '删除失败' }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Delete AI learning path error:', error);
+    return NextResponse.json({ error: '删除失败' }, { status: 500 });
+  }
+}

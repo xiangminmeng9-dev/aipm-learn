@@ -55,7 +55,8 @@ function computeStatsFromLocal(records: LocalRecord[], range: '7d' | '30d' | 'al
   const total = filteredRecords.length;
   const interviewStatuses = ['面试中'];
   const interviews = filteredRecords.filter(r => interviewStatuses.includes(r.status)).length;
-  const offers = filteredRecords.filter(r => r.status === 'Offer').length;
+  // Offer 包含：Offer、已接受、已拒绝（都是收到offer的记录）
+  const offers = filteredRecords.filter(r => ['Offer', '已接受', '已拒绝'].includes(r.status)).length;
   const accepted = filteredRecords.filter(r => r.status === '已接受').length;
   const rejected = filteredRecords.filter(r => r.status === '已拒绝').length;
 
@@ -70,13 +71,14 @@ function computeStatsFromLocal(records: LocalRecord[], range: '7d' | '30d' | 'al
 
   const thisWeekTotal = thisWeekRecords.length;
   const thisWeekInterviews = thisWeekRecords.filter(r => interviewStatuses.includes(r.status)).length;
-  const thisWeekOffers = thisWeekRecords.filter(r => r.status === 'Offer').length;
+  // Offer 包含：Offer、已接受、已拒绝
+  const thisWeekOffers = thisWeekRecords.filter(r => ['Offer', '已接受', '已拒绝'].includes(r.status)).length;
   const thisWeekRejected = thisWeekRecords.filter(r => r.status === '已拒绝').length;
   const thisWeekAccepted = thisWeekRecords.filter(r => r.status === '已接受').length;
 
   const lastWeekTotal = lastWeekRecords.length;
   const lastWeekInterviews = lastWeekRecords.filter(r => interviewStatuses.includes(r.status)).length;
-  const lastWeekOffers = lastWeekRecords.filter(r => r.status === 'Offer').length;
+  const lastWeekOffers = lastWeekRecords.filter(r => ['Offer', '已接受', '已拒绝'].includes(r.status)).length;
   const lastWeekRejected = lastWeekRecords.filter(r => r.status === '已拒绝').length;
 
   const totalApplicationsChange = calcChange(thisWeekTotal, lastWeekTotal);
@@ -108,18 +110,46 @@ function computeStatsFromLocal(records: LocalRecord[], range: '7d' | '30d' | 'al
   }
   const statusDistribution = Array.from(statusMap.entries()).map(([status, count]) => ({ status, count }));
 
-  // Application trend - 最近7天，包含转化路径数据
-  const last7Days: { date: string; count: number; interviews: number; offers: number; accepted: number }[] = [];
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(now.getTime() - i * 86400000);
-    const dateStr = d.toISOString().slice(0, 10);
-    const dayRecords = records.filter(r => r.appliedAt === dateStr);
-    const count = dayRecords.length;
-    const dayInterviews = dayRecords.filter(r => interviewStatuses.includes(r.status)).length;
-    const dayOffers = dayRecords.filter(r => r.status === 'Offer').length;
-    const dayAccepted = dayRecords.filter(r => r.status === '已接受').length;
-    last7Days.push({ date: dateStr, count, interviews: dayInterviews, offers: dayOffers, accepted: dayAccepted });
+  // Application trend - 根据筛选范围生成数据，包含转化路径数据
+  // 先计算全部历史的累积值作为基准
+  const allTimeTrend: { date: string; count: number; interviews: number; offers: number; accepted: number }[] = [];
+  const sortedRecords = [...records].sort((a, b) => a.appliedAt.localeCompare(b.appliedAt));
+
+  // 按日期分组统计
+  const recordsByDate = new Map<string, LocalRecord[]>();
+  for (const r of sortedRecords) {
+    const list = recordsByDate.get(r.appliedAt) || [];
+    list.push(r);
+    recordsByDate.set(r.appliedAt, list);
   }
+
+  // 计算每日数据和累积值
+  let cumulativeCount = 0;
+  let cumulativeInterviews = 0;
+  let cumulativeOffers = 0;
+  let cumulativeAccepted = 0;
+
+  const allDates = Array.from(recordsByDate.keys()).sort();
+  for (const dateStr of allDates) {
+    const dayRecords = recordsByDate.get(dateStr) || [];
+    cumulativeCount += dayRecords.length;
+    cumulativeInterviews += dayRecords.filter(r => interviewStatuses.includes(r.status)).length;
+    cumulativeOffers += dayRecords.filter(r => ['Offer', '已接受', '已拒绝'].includes(r.status)).length;
+    cumulativeAccepted += dayRecords.filter(r => r.status === '已接受').length;
+
+    allTimeTrend.push({
+      date: dateStr,
+      count: cumulativeCount,
+      interviews: cumulativeInterviews,
+      offers: cumulativeOffers,
+      accepted: cumulativeAccepted,
+    });
+  }
+
+  // 根据筛选范围截取显示数据
+  const trendDays = range === '7d' ? 7 : range === '30d' ? 30 : 60;
+  const cutoffDate = new Date(now.getTime() - trendDays * 86400000).toISOString().slice(0, 10);
+  const applicationTrend = allTimeTrend.filter(t => t.date >= cutoffDate);
 
   // Status timeline - 最近7天
   const statusTimeline: { date: string; status: string; count: number }[] = [];
@@ -224,7 +254,7 @@ function computeStatsFromLocal(records: LocalRecord[], range: '7d' | '30d' | 'al
     rejection_reasons: [],
     channel_distribution: channelDistribution,
     status_distribution: statusDistribution,
-    application_trend: last7Days,
+    application_trend: applicationTrend,
     status_timeline: statusTimeline,
     city_distribution: cityDistribution,
     position_category_conversion: positionCategoryConversion,

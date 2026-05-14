@@ -4,42 +4,9 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { createClient } from '@/lib/supabase/client';
+import Markdown from '@/components/ui/markdown';
 
-/** Render evaluation text with **xxx** → colored bold headings */
-function StructuredEvalText({ text }: { text: string }) {
-  // Split by **xxx** patterns
-  const parts = text.split(/(\*\*[^*]+\*\*)/g);
-
-  return (
-    <div className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
-      {parts.map((part, i) => {
-        const boldMatch = part.match(/^\*\*(.+)\*\*$/);
-        if (boldMatch) {
-          const label = boldMatch[1].replace(/[：:]$/, '');
-          const color = getSectionColor(label);
-          return (
-            <span key={i} className={`font-bold ${color}`}>
-              {boldMatch[1]}
-            </span>
-          );
-        }
-        return <span key={i}>{part}</span>;
-      })}
-    </div>
-  );
-}
-
-function getSectionColor(label: string): string {
-  if (label.includes('得分')) return 'text-indigo-600';
-  if (label.includes('差距')) return 'text-amber-600';
-  if (label.includes('维度')) return 'text-blue-600';
-  if (label.includes('思路')) return 'text-purple-600';
-  if (label.includes('满分')) return 'text-emerald-600';
-  return 'text-foreground';
-}
-
-/** Build natural language evaluation text from structured DB fields */
-function buildEvalText(data: {
+function formatEvalText(data: {
   score: number;
   gap_analysis: string;
   perfect_answer: string;
@@ -47,16 +14,16 @@ function buildEvalText(data: {
   dimensions: { name: string; score: number; comment: string }[];
 }): string {
   const parts: string[] = [];
-  parts.push(`**得分：** ${data.score}分`);
-  if (data.gap_analysis) parts.push(`\n**差距分析：** ${data.gap_analysis}`);
+  parts.push(`## 得分：${data.score}分`);
+  if (data.gap_analysis) parts.push(`\n### 差距分析\n${data.gap_analysis}`);
   if (data.dimensions && data.dimensions.length > 0) {
-    parts.push('\n**维度评分：**');
+    parts.push('\n### 维度评分');
     for (const d of data.dimensions) {
-      parts.push(`- ${d.name}：${d.score}分 — ${d.comment}`);
+      parts.push(`- **${d.name}**：${d.score}分 — ${d.comment}`);
     }
   }
-  if (data.thinking_framework) parts.push(`\n**回答思路：** ${data.thinking_framework}`);
-  if (data.perfect_answer) parts.push(`\n**满分回答：** ${data.perfect_answer}`);
+  if (data.thinking_framework) parts.push(`\n### 回答思路\n${data.thinking_framework}`);
+  if (data.perfect_answer) parts.push(`\n### 满分回答\n${data.perfect_answer}`);
   return parts.join('\n');
 }
 
@@ -153,7 +120,7 @@ export default function MockInterviewFlow({
                 thinking_framework: (a.thinking_framework as string) || undefined,
                 dimensions: (a.dimensions as { name: string; score: number; comment: string }[]) || undefined,
               } : undefined,
-              evaluation_text: a.score != null ? buildEvalText({
+              evaluation_text: a.score != null ? formatEvalText({
                 score: a.score as number,
                 gap_analysis: (a.gap_analysis as string) || '',
                 perfect_answer: (a.perfect_answer as string) || '',
@@ -397,7 +364,7 @@ export default function MockInterviewFlow({
                   )}
                   {a.evaluation_text && (
                     <div className="rounded-xl border border-border bg-card p-4">
-                      <StructuredEvalText text={a.evaluation_text} />
+                      <Markdown content={a.evaluation_text} />
                     </div>
                   )}
                   {!a.is_skipped && !streamingText && (
@@ -426,7 +393,9 @@ export default function MockInterviewFlow({
       {/* Current question */}
       <div className="rounded-xl border-2 border-indigo-200 bg-indigo-50/30 p-5">
         <h3 className="mb-2 text-xs font-semibold text-indigo-600">当前问题</h3>
-        <p className="text-lg font-medium text-foreground">{currentQuestion.text}</p>
+        <div className="text-lg font-medium text-foreground">
+          <Markdown content={currentQuestion.text} />
+        </div>
       </div>
 
       {/* Streaming evaluation display */}
@@ -446,7 +415,7 @@ export default function MockInterviewFlow({
               }`}>{streamingScore >= 90 ? '优秀' : streamingScore >= 70 ? '良好' : streamingScore >= 50 ? '及格' : '需加强'}</span>
             </div>
           )}
-          <StructuredEvalText text={streamingText} />
+          <Markdown content={streamingText} />
           {isSubmitting && !streamingScore && (
             <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
               <div className="h-3 w-3 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />

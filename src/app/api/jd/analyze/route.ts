@@ -29,9 +29,40 @@ export async function GET() {
   }
 }
 
+export async function DELETE(request: NextRequest) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: '未登录' }, { status: 401 });
+    }
+
+    const { id } = await request.json();
+    if (!id) {
+      return NextResponse.json({ error: '缺少记录ID' }, { status: 400 });
+    }
+
+    const { error } = await supabase
+      .from('jd_analyses')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id);
+
+    if (error) {
+      console.error('Delete JD analysis error:', error);
+      return NextResponse.json({ error: '删除失败' }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error('JD analyze DELETE error:', err);
+    return NextResponse.json({ error: '删除失败' }, { status: 500 });
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const { jdText } = await request.json();
+    const { jdText, companyName } = await request.json();
     if (!jdText || typeof jdText !== 'string') {
       return NextResponse.json({ error: '请提供岗位描述文本' }, { status: 400 });
     }
@@ -65,16 +96,52 @@ export async function POST(request: NextRequest) {
 
     // Single AI call: extract skills + match with modules
     const prompt = buildCombinedJdAnalysisPrompt(jdText, defaultModules);
-    const aiResponse = await generateText(prompt, { system: COMBINED_JD_ANALYSIS_SYSTEM_PROMPT, maxTokens: 4096 });
+
+    let aiResponse: string;
+    try {
+      aiResponse = await generateText(prompt, { system: COMBINED_JD_ANALYSIS_SYSTEM_PROMPT, maxTokens: 8192 });
+    } catch (aiError) {
+      console.error('JD analyze AI call error:', aiError);
+      return NextResponse.json(
+        { error: `AI 调用失败: ${aiError instanceof Error ? aiError.message : '未知错误'}` },
+        { status: 500 },
+      );
+    }
+
+    console.log('JD analyze AI response length:', aiResponse?.length || 0);
+    console.log('JD analyze AI response preview:', aiResponse?.substring(0, 500));
 
     let parsed;
     try {
+      // Try to extract JSON from response
       const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
       if (!jsonMatch) throw new Error('AI 返回格式异常');
-      parsed = JSON.parse(jsonMatch[0]);
-    } catch {
+
+      let jsonStr = jsonMatch[0];
+
+      // Try to fix truncated JSON by closing open brackets
+      const openBrackets = (jsonStr.match(/\[/g) || []).length;
+      const closeBrackets = (jsonStr.match(/\]/g) || []).length;
+      const openBraces = (jsonStr.match(/\{/g) || []).length;
+      const closeBraces = (jsonStr.match(/\}/g) || []).length;
+
+      // If JSON is truncated, try to fix it
+      if (openBrackets > closeBrackets || openBraces > closeBraces) {
+        // Remove trailing incomplete content
+        jsonStr = jsonStr.replace(/,\s*"[^"]*":\s*[^,}\]]*$/g, '');
+        jsonStr = jsonStr.replace(/,\s*$/g, '');
+
+        // Close open brackets
+        for (let i = 0; i < openBrackets - closeBrackets; i++) jsonStr += ']';
+        for (let i = 0; i < openBraces - closeBraces; i++) jsonStr += '}';
+      }
+
+      parsed = JSON.parse(jsonStr);
+    } catch (parseError) {
+      console.error('JD analyze parse error:', parseError);
+      console.error('Raw response:', aiResponse);
       return NextResponse.json(
-        { error: 'AI 分析结果解析失败，请重试', raw: aiResponse },
+        { error: 'AI 分析结果解析失败，请重试', raw: aiResponse?.substring(0, 1000) },
         { status: 500 },
       );
     }
@@ -136,7 +203,7 @@ export async function POST(request: NextRequest) {
     }
 
     const result = {
-      company_name: parsed.company_name || null,
+      company_name: companyName || parsed.company_name || null,
       position_name: parsed.position_name || '未命名岗位',
       extracted_skills: skills,
       skill_module_matches: skillModuleMatches,

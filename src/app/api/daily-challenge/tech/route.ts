@@ -7,7 +7,13 @@ export async function GET(request: NextRequest) {
   try {
     const forceRefresh = new URL(request.url).searchParams.get('refresh') === '1';
     const supabase = await createClient();
+    const serviceClient = createServiceClient();
     const today = new Date().toISOString().split('T')[0];
+
+    // Force refresh: delete today's cache first
+    if (forceRefresh) {
+      await serviceClient.from('daily_tech_cache').delete().eq('date', today);
+    }
 
     // Check cache first (fast path)
     let { data: cached } = await supabase
@@ -16,37 +22,29 @@ export async function GET(request: NextRequest) {
       .eq('date', today)
       .maybeSingle();
 
-    // Force refresh: delete old and regenerate
-    if (forceRefresh && cached) {
-      const serviceClient = createServiceClient();
-      await serviceClient.from('daily_tech_cache').delete().eq('date', today);
-      cached = null;
+    // Always fetch history for display
+    const { data: history } = await supabase
+      .from('daily_tech_cache')
+      .select('*')
+      .order('date', { ascending: false })
+      .limit(30);
+
+    const { data: { user } } = await supabase.auth.getUser();
+    let bookmarks: string[] = [];
+    if (user) {
+      const { data } = await supabase
+        .from('daily_tech_bookmarks')
+        .select('tech_date')
+        .eq('user_id', user.id);
+      bookmarks = (data || []).map((b: { tech_date: string }) => b.tech_date);
     }
 
     if (cached) {
-      const { data: history } = await supabase
-        .from('daily_tech_cache')
-        .select('*')
-        .order('date', { ascending: false })
-        .limit(30);
-
-      const { data: { user } } = await supabase.auth.getUser();
-      let bookmarks: string[] = [];
-      if (user) {
-        const { data } = await supabase
-          .from('daily_tech_bookmarks')
-          .select('tech_date')
-          .eq('user_id', user.id);
-        bookmarks = (data || []).map((b: { tech_date: string }) => b.tech_date);
-      }
-
       return NextResponse.json({ tech: cached, history: history || [], bookmarks, source: 'cache' });
     }
 
-    // No cache — fetch latest article from real RSS data
-    const serviceClient = createServiceClient();
-
-    // Get existing tech titles to avoid duplicates
+    // No cache for today — fetch latest article from real RSS data
+    // Get existing tech titles to avoid duplicates (excluding today since we deleted it)
     const { data: existing } = await serviceClient
       .from('daily_tech_cache')
       .select('title, source_url')
@@ -92,100 +90,103 @@ export async function GET(request: NextRequest) {
         source_url: freshArticle.url,
       };
       sourceName = freshArticle.source || 'AI 技术 RSS';
-    } else if (articles && articles.length > 0) {
-      // Fallback: use latest article even if duplicate
-      const latest = articles[0];
-      let explanation = latest.summary || '';
-      let impact = '';
-      try {
-        const pe = typeof latest.plain_explanation === 'string'
-          ? JSON.parse(latest.plain_explanation)
-          : latest.plain_explanation;
-        if (pe?.explanation) explanation = pe.explanation;
-        if (pe?.impact) impact = pe.impact;
-      } catch {}
-
-      techData = {
-        title: latest.title || 'AI 技术动态',
-        summary: explanation.slice(0, 100) || latest.summary?.slice(0, 100) || '来自 RSS 的最新 AI 技术资讯',
-        explanation: explanation || latest.summary || '请查看原文了解详情',
-        impact: impact || '持续关注 AI 技术发展对产品决策至关重要',
-        tags: [],
-        source_url: latest.url || '',
-      };
-      sourceName = latest.source || 'AI 技术 RSS';
     } else {
-      // No RSS data — trigger refresh to get latest articles
-      console.log('No RSS articles found, triggering refresh...');
+      // No fresh articles — sync refresh RSS now with timeout
+      console.log('No fresh RSS articles, triggering sync refresh...');
+
+      // RSS refresh with 30s timeout
+      const refreshWithTimeout = Promise.race([
+        import('@/lib/rss/pipeline').then(({ refreshRssArticles }) => refreshRssArticles('ai_tech')),
+        new Promise<null>((_, reject) => setTimeout(() => reject(new Error('RSS refresh timeout')), 30000)),
+      ]);
 
       try {
-        // Import and call refresh function
-        const { refreshRssArticles } = await import('@/lib/rss/pipeline');
-        await refreshRssArticles('ai_tech');
-
-        // Re-fetch after refresh
-        const { data: freshArticles } = await serviceClient
-          .from('daily_ai_news_articles')
-          .select('title, url, source, summary, published_at, plain_explanation')
-          .order('published_at', { ascending: false })
-          .limit(50);
-
-        const freshArticle = (freshArticles ?? []).find((a: { url: string; title: string }) =>
-          !existingUrls.has(a.url) && !existingTitles.has(a.title)
-        );
-
-        if (freshArticle) {
-          let explanation = freshArticle.summary || '';
-          let impact = '';
-          try {
-            const pe = typeof freshArticle.plain_explanation === 'string'
-              ? JSON.parse(freshArticle.plain_explanation)
-              : freshArticle.plain_explanation;
-            if (pe?.explanation) explanation = pe.explanation;
-            if (pe?.impact) impact = pe.impact;
-          } catch {}
-
-          techData = {
-            title: freshArticle.title,
-            summary: explanation.slice(0, 100),
-            explanation: explanation,
-            impact: impact || '关注此技术动态，理解其对 AI PM 工作的影响',
-            tags: [],
-            source_url: freshArticle.url,
-          };
-          sourceName = freshArticle.source || 'AI 技术 RSS';
-        } else {
-          // Still no data after refresh — show message asking user to try again
-          return NextResponse.json({
-            tech: {
-              date: today,
-              title: '正在获取最新AI技术资讯',
-              summary: '系统正在从各大AI技术源获取最新内容，请稍后刷新页面',
-              explanation: '我们的系统正在从 OpenAI Blog、Hugging Face、Google AI 等多个源头抓取最新的AI技术动态。通常几分钟内就能获取到最新内容。',
-              impact: '请稍后刷新页面查看今日最新AI技术资讯',
-              tags: [],
-              source_name: 'AI 技术日报',
-            },
-            history: [],
-            bookmarks: [],
-            source: 'loading',
-          });
-        }
+        const refreshResult = await refreshWithTimeout;
+        console.log('RSS refresh result:', refreshResult);
       } catch (refreshErr) {
-        console.error('RSS refresh failed:', refreshErr);
+        console.error('RSS refresh error:', refreshErr);
+      }
+
+      // Re-fetch articles after refresh attempt
+      const { data: newArticles } = await serviceClient
+        .from('daily_ai_news_articles')
+        .select('title, url, source, summary, published_at, plain_explanation')
+        .order('published_at', { ascending: false })
+        .limit(50);
+
+      const freshAfterRefresh = (newArticles ?? []).find((a: { url: string; title: string }) =>
+        !existingUrls.has(a.url) && !existingTitles.has(a.title)
+      );
+
+      if (freshAfterRefresh) {
+        let explanation = freshAfterRefresh.summary || '';
+        let impact = '';
+        try {
+          const pe = typeof freshAfterRefresh.plain_explanation === 'string'
+            ? JSON.parse(freshAfterRefresh.plain_explanation)
+            : freshAfterRefresh.plain_explanation;
+          if (pe?.explanation) explanation = pe.explanation;
+          if (pe?.impact) impact = pe.impact;
+        } catch {}
+
+        techData = {
+          title: freshAfterRefresh.title,
+          summary: explanation.slice(0, 100),
+          explanation: explanation,
+          impact: impact || '关注此技术动态，理解其对 AI PM 工作的影响',
+          tags: [],
+          source_url: freshAfterRefresh.url,
+        };
+        sourceName = freshAfterRefresh.source || 'AI 技术 RSS';
+      } else if (newArticles && newArticles.length > 0) {
+        // Use latest even if duplicate
+        const latest = newArticles[0];
+        let explanation = latest.summary || '';
+        let impact = '';
+        try {
+          const pe = typeof latest.plain_explanation === 'string'
+            ? JSON.parse(latest.plain_explanation)
+            : latest.plain_explanation;
+          if (pe?.explanation) explanation = pe.explanation;
+          if (pe?.impact) impact = pe.impact;
+        } catch {}
+
+        techData = {
+          title: latest.title || 'AI 技术动态',
+          summary: explanation.slice(0, 100) || latest.summary?.slice(0, 100) || '来自 RSS 的最新 AI 技术资讯',
+          explanation: explanation || latest.summary || '请查看原文了解详情',
+          impact: impact || '持续关注 AI 技术发展对产品决策至关重要',
+          tags: [],
+          source_url: latest.url || '',
+        };
+        sourceName = latest.source || 'AI 技术 RSS';
+      } else if (history && history.length > 0) {
+        // Fallback to most recent history item
+        const recent = history[0];
+        techData = {
+          title: recent.title,
+          summary: recent.summary || '',
+          explanation: recent.explanation || recent.summary || '',
+          impact: recent.impact || '持续关注 AI 技术发展对产品决策至关重要',
+          tags: recent.tags || [],
+          source_url: recent.source_url,
+        };
+        sourceName = recent.source_name || 'AI 技术日报';
+      } else {
+        // No data at all
         return NextResponse.json({
           tech: {
             date: today,
-            title: '获取AI技术资讯中',
-            summary: '系统正在获取最新内容，请稍后刷新',
-            explanation: '我们的系统正在从多个AI技术源头获取最新动态。如果长时间无内容，请手动点击刷新按钮。',
-            impact: '请稍后刷新页面，或点击页面上的刷新按钮重新获取',
+            title: '暂无AI技术资讯',
+            summary: 'RSS数据刷新中，请稍后重试',
+            explanation: '系统正在从多个AI技术源获取最新资讯，请稍后刷新页面查看。',
+            impact: '建议稍后刷新页面，或查看历史推送中的内容。',
             tags: [],
-            source_name: 'AI 技术日报',
+            source_name: '系统提示',
           },
-          history: [],
-          bookmarks: [],
-          source: 'loading',
+          history: history || [],
+          bookmarks,
+          source: 'fallback',
         });
       }
     }
@@ -202,23 +203,14 @@ export async function GET(request: NextRequest) {
       .select()
       .single();
 
-    const { data: history } = await serviceClient
+    // Refresh history after insert
+    const { data: updatedHistory } = await serviceClient
       .from('daily_tech_cache')
       .select('*')
       .order('date', { ascending: false })
       .limit(30);
 
-    const { data: { user } } = await supabase.auth.getUser();
-    let bookmarks: string[] = [];
-    if (user) {
-      const { data } = await supabase
-        .from('daily_tech_bookmarks')
-        .select('tech_date')
-        .eq('user_id', user.id);
-      bookmarks = (data || []).map((b: { tech_date: string }) => b.tech_date);
-    }
-
-    return NextResponse.json({ tech: inserted || newTech, history: history || [], bookmarks, source: 'ai' });
+    return NextResponse.json({ tech: inserted || newTech, history: updatedHistory || history || [], bookmarks, source: 'ai' });
   } catch (err) {
     console.error('Get daily tech error:', err);
     return NextResponse.json({ error: '获取失败' }, { status: 500 });

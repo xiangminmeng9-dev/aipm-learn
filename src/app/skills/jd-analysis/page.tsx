@@ -50,6 +50,7 @@ const importanceLabels: Record<string, string> = {
 
 export default function JdAnalysisPage() {
   const [jdText, setJdText] = useState('');
+  const [companyName, setCompanyName] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<JdAnalysis | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -74,6 +75,21 @@ export default function JdAnalysisPage() {
     }
   }, [supabase]);
 
+  const handleDelete = useCallback(async (id: string) => {
+    if (!confirm('确定删除这条记录吗？')) return;
+    try {
+      const res = await fetch('/api/jd/analyze', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      if (res.ok) {
+        setHistory(prev => prev.filter(h => h.id !== id));
+        if (result?.id === id) setResult(null);
+      }
+    } catch { /* ignore */ }
+  }, [result]);
+
   useEffect(() => { fetchHistory(); }, [fetchHistory]);
 
   const handleAnalyze = async () => {
@@ -86,7 +102,7 @@ export default function JdAnalysisPage() {
       const res = await fetch('/api/jd/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jdText: jdText.trim() }),
+        body: JSON.stringify({ jdText: jdText.trim(), companyName: companyName.trim() || undefined }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -155,6 +171,17 @@ export default function JdAnalysisPage() {
       <div className="relative z-10 flex-1 overflow-y-auto p-6 space-y-5">
         {/* JD Input */}
         <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+          {/* 公司名称输入 */}
+          <div className="mb-4">
+            <label className="mb-2 block text-sm font-medium text-foreground">公司名称（选填）</label>
+            <input
+              type="text"
+              value={companyName}
+              onChange={(e) => setCompanyName(e.target.value)}
+              placeholder="输入公司名称，用于数据看板按公司统计"
+              className="w-full rounded-xl border-2 border-border bg-muted px-4 py-2.5 text-sm text-foreground placeholder-muted-foreground transition-colors focus:border-indigo-500 focus:bg-card focus:outline-none focus:ring-2 focus:ring-[#4F46E5]/20"
+            />
+          </div>
           <label className="mb-2 block text-sm font-medium text-foreground">粘贴岗位描述（JD）</label>
           <textarea
             value={jdText}
@@ -199,19 +226,32 @@ export default function JdAnalysisPage() {
             {showHistory && (
               <div className="mt-3 space-y-2">
                 {history.map((h) => (
-                  <button
+                  <div
                     key={h.id}
-                    onClick={() => { setResult(h); setJdText(h.jd_text || ''); }}
-                    className={`w-full rounded-xl border px-4 py-3 text-left text-sm transition-colors ${
+                    className={`rounded-xl border px-4 py-3 text-sm transition-colors ${
                       result?.id === h.id ? 'border-[#4F46E5] bg-indigo-50' : 'border-border bg-card hover:bg-muted'
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-medium text-foreground">{h.position_name}</span>
-                      <span className="text-xs text-muted-foreground">{new Date(h.created_at).toLocaleDateString()}</span>
+                      <button
+                        onClick={() => { setResult(h); setJdText(h.jd_text || ''); }}
+                        className="flex-1 text-left"
+                      >
+                        <span className="font-medium text-foreground">{h.position_name}</span>
+                        <span className="ml-2 text-xs text-muted-foreground">{new Date(h.created_at).toLocaleDateString()}</span>
+                      </button>
+                      <button
+                        onClick={() => handleDelete(h.id)}
+                        className="ml-2 rounded-lg p-1.5 text-muted-foreground hover:bg-rose-100 hover:text-rose-600 transition-colors"
+                        title="删除"
+                      >
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                        </svg>
+                      </button>
                     </div>
                     {h.company_name && <span className="text-xs text-muted-foreground">{h.company_name}</span>}
-                  </button>
+                  </div>
                 ))}
               </div>
             )}

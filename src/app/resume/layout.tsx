@@ -3,7 +3,7 @@ import ResumeSidebar from '@/components/layout/ResumeSidebar';
 import ResponsiveSidebar from '@/components/layout/ResponsiveSidebar';
 import ActivityTracker from '@/components/tracking/ActivityTracker';
 
-export const metadata: Metadata = { title: '简历解析', description: 'AI 简历解析与优化建议' };
+export const metadata: Metadata = { title: '简历助手', description: 'AI 简历解析与优化建议' };
 
 export default function ResumeLayout({ children }: { children: React.ReactNode }) {
   return (

@@ -33,9 +33,10 @@ const topShelf: BookItem[] = [
     description: '开发流程生成 · 实操练习 · 提示词范例 · 历史记录 · 方法论提炼',
     detail:
       'AI Coding 练习模块帮助你掌握 AI 辅助开发的完整流程。通过生成开发流程、实操练习编写 Spec、浏览全网提示词范例、记录历史操作、提炼方法论和范式对比，让你在 AI 时代成为更高效的工程师。',
-    href: '/coding/practice',
+    href: '/coding/dashboard',
     theme: 'coding',
     subFeatures: [
+      { label: '数据看板', href: '/coding/dashboard' },
       { label: '开发流程生成', href: '/coding/practice' },
       { label: '实操练习', href: '/coding/spec-practice' },
       { label: '实操历史', href: '/coding/spec-history' },
@@ -52,9 +53,10 @@ const topShelf: BookItem[] = [
     description: '技能树总览 · 岗位分析 · 学习路径 · AI学习路径 · JD差距分析 · 收藏技术',
     detail:
       '技能树模块提供系统化的 AI PM 技能学习路径。通过可视化技能树、岗位 JD 分析、学习路径规划、AI 弱项分析学习路径、JD 差距分析和收藏技术，精准定位技能差距，高效提升核心竞争力。',
-    href: '/skills/tree',
+    href: '/skills/dashboard',
     theme: 'skills',
     subFeatures: [
+      { label: '数据看板', href: '/skills/dashboard' },
       { label: '技能树总览', href: '/skills/tree' },
       { label: '岗位分析', href: '/skills/jd-analysis' },
       { label: '学习路径', href: '/skills/learning-path' },
@@ -107,9 +109,10 @@ const bottomShelf: BookItem[] = [
     description: '面试助手 · 面试问答 · 面试收藏 · 题库社区 · 面试技巧 · 模拟面试 · 竞品分析 · 方法论 · 练习统计',
     detail:
       'AI PM 面试助手覆盖面试全流程：AI 面试助手对话、智能问答、面试收藏夹、题库社区共享、面试技巧库、模拟面试、竞品分析、方法论提炼和练习统计。通过 AI 驱动的实战练习，让你在 PM 面试中脱颖而出。',
-    href: '/interview/assistant',
+    href: '/interview/dashboard',
     theme: 'interview',
     subFeatures: [
+      { label: '数据看板', href: '/interview/dashboard' },
       { label: '面试助手', href: '/interview/assistant' },
       { label: '面试问答', href: '/interview/qa' },
       { label: '面试收藏', href: '/interview/favorites' },
@@ -126,18 +129,18 @@ const bottomShelf: BookItem[] = [
     id: 'resume',
     title: 'Resume',
     titleEn: 'Resume',
-    label: '简历修改助手',
+    label: '简历助手',
     description: 'AI 优化简历 · JD 匹配 · 多版本生成 · 投递追踪 · 数据看板',
     detail:
-      '简历修改助手利用 AI 智能分析简历与目标岗位的匹配度，根据 STAR 方法优化项目经历，生成大厂风格/行业专属简历版本。简历仓库管理多版本简历，投递记录追踪面试进度，投递日历查看面试安排，数据看板分析投递效果，助你精准投递、高效拿 Offer。',
-    href: '/resume',
+      '简历助手利用 AI 智能分析简历与目标岗位的匹配度，根据 STAR 方法优化项目经历，生成大厂风格/行业专属简历版本。简历仓库管理多版本简历，投递记录追踪面试进度，投递日历查看面试安排，数据看板分析投递效果，助你精准投递、高效拿 Offer。',
+    href: '/resume/dashboard',
     theme: 'resume',
     subFeatures: [
+      { label: '数据看板', href: '/resume/dashboard' },
       { label: '简历修改', href: '/resume' },
       { label: '简历仓库', href: '/resume/repository' },
       { label: '投递记录', href: '/resume/applications' },
       { label: '投递日历', href: '/resume/calendar' },
-      { label: '数据看板', href: '/resume/dashboard' },
       { label: '历史版本', href: '/resume/versions' },
       { label: '职位推荐', href: '/resume/jobs' },
     ],
@@ -147,13 +150,13 @@ const bottomShelf: BookItem[] = [
     title: 'Resources',
     titleEn: 'Resources',
     label: '学习资源库',
-    description: '资源仪表盘 · 每日AI大事 · AI技术动态 · 分类管理',
+    description: '数据看板 · 资源管理 · 每日AI大事 · AI技术动态',
     detail:
-      '学习资源库提供可视化仪表盘、每日AI大事、AI技术动态和分类管理四大模块。仪表盘展示资源分布和增长趋势；每日AI大事自动收集各大平台 AI 动态并生成摘要；AI技术动态实时追踪技术发展并提供白话翻译；资源管理支持文件夹分类和 AI PM 学习方向快速创建。',
+      '学习资源库提供可视化数据看板、资源管理、每日AI大事和AI技术动态四大模块。数据看板展示资源分布和增长趋势；每日AI大事自动收集各大平台 AI 动态并生成摘要；AI技术动态实时追踪技术发展并提供白话翻译；资源管理支持文件夹分类和 AI PM 学习方向快速创建。',
     href: '/resources',
     theme: 'resources',
     subFeatures: [
-      { label: '仪表盘', href: '/resources' },
+      { label: '数据看板', href: '/resources' },
       { label: '资源管理', href: '/resources/manage' },
       { label: '每日AI大事', href: '/resources/daily-ai-news' },
       { label: 'AI技术动态', href: '/resources/ai-tech' },
@@ -168,9 +171,10 @@ const bottomShelf: BookItem[] = [
     description: '每日场景题 · 知识闪卡 · 错题本 · 每日 AI 技术 · 打卡追踪',
     detail:
       '每日挑战帮你养成每天学习的好习惯。每天推送一道真实 AI PM 场景题，限时作答后 AI 评分并给出改进建议；知识闪卡用间隔重复算法帮你高效记忆 AI PM 核心知识；错题本自动分类低分题目支持重做；每日 AI 技术用白话解读一个 AI 技术知识点；连续打卡追踪激励你持续进步。',
-    href: '/daily-challenge',
+    href: '/daily-challenge/dashboard',
     theme: 'daily-challenge',
     subFeatures: [
+      { label: '数据看板', href: '/daily-challenge/dashboard' },
       { label: '今日挑战', href: '/daily-challenge' },
       { label: '答题记录', href: '/daily-challenge/history' },
       { label: '知识闪卡', href: '/daily-challenge/flashcards' },

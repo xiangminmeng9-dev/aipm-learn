@@ -192,6 +192,31 @@ export default function InterviewAssistantPage() {
     }
   };
 
+  const handleDelete = async (id: string) => {
+    if (!confirm('确定删除这条记录吗？')) return;
+    try {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { setIsAuthed(false); return; }
+      const res = await fetch('/api/interview/assistant/history', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ id }),
+      });
+      if (res.ok) {
+        setHistory(prev => prev.filter(r => r.id !== id));
+        toast.success('删除成功');
+      } else {
+        toast.error('删除失败');
+      }
+    } catch {
+      toast.error('删除失败');
+    }
+  };
+
   const categories = ['AI产品思维', '需求分析', '竞品分析', '算法沟通', '数据指标', '产品设计', '项目管理', '用户研究'];
 
   return (
@@ -385,20 +410,35 @@ export default function InterviewAssistantPage() {
             ) : (
               <div className="space-y-3">
                 {history.map(record => (
-                  <button
+                  <div
                     key={record.id}
-                    onClick={() => {
-                      setQuestion(record.question);
-                      setAnswer(record.analysis || '');
-                      setCurrentRecordId(record.id);
-                      setEvaluation(null);
-                      setUserAnswer('');
-                    }}
-                    className="w-full rounded-xl border border-border bg-muted p-3 text-left transition-colors hover:bg-secondary"
+                    className="rounded-xl border border-border bg-muted p-3 transition-colors hover:bg-secondary"
                   >
-                    <p className="text-sm font-medium text-foreground">{record.question}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">{new Date(record.created_at).toLocaleString('zh-CN')}</p>
-                  </button>
+                    <div className="flex items-start justify-between gap-2">
+                      <button
+                        onClick={() => {
+                          setQuestion(record.question);
+                          setAnswer(record.analysis || '');
+                          setCurrentRecordId(record.id);
+                          setEvaluation(null);
+                          setUserAnswer('');
+                        }}
+                        className="flex-1 text-left"
+                      >
+                        <p className="text-sm font-medium text-foreground">{record.question}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">{new Date(record.created_at).toLocaleString('zh-CN')}</p>
+                      </button>
+                      <button
+                        onClick={() => handleDelete(record.id)}
+                        className="shrink-0 rounded-lg p-1.5 text-muted-foreground hover:bg-rose-100 hover:text-rose-600 transition-colors"
+                        title="删除"
+                      >
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
                 ))}
               </div>
             )}

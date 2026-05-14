@@ -468,9 +468,6 @@ export default function ApplicationTracker() {
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('all');
   const [timeDropdown, setTimeDropdown] = useState(false);
   const [collapsed, setCollapsed] = useState<Set<KanbanStage>>(new Set());
-  const [showFilters, setShowFilters] = useState(false);
-  const [filterStatus, setFilterStatus] = useState<string>('');
-  const [filterSource, setFilterSource] = useState<string>('');
   // Drag and drop state
   const [draggingRecord, setDraggingRecord] = useState<AppRecord|null>(null);
   const [dragOverStage, setDragOverStage] = useState<KanbanStage|null>(null);
@@ -482,19 +479,17 @@ export default function ApplicationTracker() {
     return records.filter((r)=>new Date(r.appliedAt)>=cutoff);
   }, [records, timeFilter]);
 
-  const grouped = useMemo(() => {
-    const map: Record<KanbanStage, AppRecord[]> = { watching:[], applied:[], interviewing:[], offer:[], accepted:[], rejected:[] };
-    timeFiltered.forEach((r)=>map[r.stage].push(r));
-    return map;
-  }, [timeFiltered]);
-
   const filtered = useMemo(() => {
     let result = timeFiltered;
     if (search) { const q=search.toLowerCase(); result=result.filter((r)=>r.company.toLowerCase().includes(q)||r.position.toLowerCase().includes(q)); }
-    if (filterStatus) result=result.filter((r)=>r.status===filterStatus);
-    if (filterSource) result=result.filter((r)=>r.source===filterSource);
     return result;
-  }, [timeFiltered, search, filterStatus, filterSource]);
+  }, [timeFiltered, search]);
+
+  const grouped = useMemo(() => {
+    const map: Record<KanbanStage, AppRecord[]> = { watching:[], applied:[], interviewing:[], offer:[], accepted:[], rejected:[] };
+    filtered.forEach((r)=>map[r.stage].push(r));
+    return map;
+  }, [filtered]);
 
   const sorted = useMemo(() => {
     if (!sortKey) return filtered;
@@ -654,29 +649,6 @@ export default function ApplicationTracker() {
             <div className="flex items-center gap-2 rounded-lg border-2 border-border bg-muted/50 px-3.5 py-2.5 focus-within:border-[#7C3AED]/40 focus-within:shadow-[0_0_12px_rgba(124,58,237,0.08)] transition-all">
               <Search className="h-5 w-5 text-muted-foreground" />
               <input className="bg-transparent text-[16px] font-medium text-foreground outline-none w-64 placeholder:text-muted-foreground placeholder:font-normal" placeholder="搜索公司或职位..." value={search} onChange={(e)=>setSearch(e.target.value)} />
-            </div>
-            <div className="relative">
-              <button onClick={()=>setShowFilters(!showFilters)}
-                className={`flex items-center gap-1.5 rounded-lg border-2 px-3.5 py-2.5 text-[15px] font-medium transition-all duration-200 ${
-                  showFilters||filterStatus||filterSource?'border-[#7C3AED]/30 bg-[#7C3AED]/10 text-[#A78BFA]':'border-border bg-muted/50 hover:bg-muted hover:border-border text-muted-foreground'}`}>
-                <SlidersHorizontal className="h-5 w-5" />筛选
-                {(filterStatus||filterSource)&&<span className="inline-flex items-center justify-center h-4 min-w-4 rounded-full bg-[#7C3AED]/40 text-foreground text-[10px] font-semibold px-1">!</span>}
-              </button>
-              {showFilters&&(
-                <div className="absolute top-full right-0 mt-1 rounded-lg border-2 border-border bg-card shadow-xl shadow-black/40 p-4 z-30 min-w-[200px] space-y-3.5">
-                  <div><label className="block text-[13px] font-medium text-muted-foreground mb-1.5">状态</label>
-                    <select className="w-full rounded-md border-2 border-border bg-muted px-2.5 py-2 text-[15px] font-medium text-foreground outline-none" value={filterStatus} onChange={(e)=>setFilterStatus(e.target.value)}>
-                      <option value="">全部</option>{ALL_STATUSES.map(s=><option key={s} value={s}>{s}</option>)}
-                    </select>
-                  </div>
-                  <div><label className="block text-[13px] font-medium text-muted-foreground mb-1.5">渠道</label>
-                    <select className="w-full rounded-md border-2 border-border bg-muted px-2.5 py-2 text-[15px] font-medium text-foreground outline-none" value={filterSource} onChange={(e)=>setFilterSource(e.target.value)}>
-                      <option value="">全部</option>{ALL_SOURCES.map(s=><option key={s} value={s}>{s}</option>)}
-                    </select>
-                  </div>
-                  {(filterStatus||filterSource)&&<button className="w-full text-[13px] font-medium text-muted-foreground hover:text-[#F87171] transition-colors" onClick={()=>{setFilterStatus('');setFilterSource('');}}>清除筛选</button>}
-                </div>
-              )}
             </div>
             <button onClick={()=>{setEditing(null);setDialogOpen(true);}}
               className="flex items-center gap-1.5 rounded-lg border-2 border-[#7C3AED]/30 bg-[#7C3AED]/10 hover:bg-[#7C3AED]/15 hover:border-[#7C3AED]/50 text-[15px] text-[#A78BFA] px-5 py-2.5 font-semibold transition-all duration-200 shadow-[0_0_12px_rgba(124,58,237,0.06)]">

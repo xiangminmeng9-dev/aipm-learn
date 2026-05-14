@@ -45,6 +45,11 @@ interface CachedConfigEntry {
 const CONFIG_CACHE_TTL_MS = 60_000; // 60s
 let cachedConfig: CachedConfigEntry | null = null;
 
+// Export function to clear cache when user updates their AI config
+export function clearAiConfigCache(): void {
+  cachedConfig = null;
+}
+
 async function resolveConfig(): Promise<AIConfig> {
   const now = Date.now();
   try {
