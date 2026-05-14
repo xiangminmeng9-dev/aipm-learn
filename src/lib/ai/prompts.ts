@@ -495,42 +495,19 @@ export const JD_ANALYSIS_SYSTEM_PROMPT = `你是一位资深技术招聘专家�
  * 组合版：一次性完成 JD 提取 + 技能匹配，减少一次 AI 调用延迟
  */
 export function buildCombinedJdAnalysisPrompt(jdText: string, modules: { id: string; name: string; description?: string }[]): string {
-  return `请完成以下两步任务：
+  return `分析JD并提取关键技能。输出严格JSON格式，不要markdown。
 
-**第一步：提取技能**
-分析 JD，提取所有关键技能要求。
+现有模块：${JSON.stringify(modules.map(m => ({ id: m.id, name: m.name })))}
 
-**第二步：技能匹配**
-将提取的技能与现有模块进行比较，给出匹配度和差距。
+JD：${jdText}
 
-现有技能模块：
-${JSON.stringify(modules)}
+输出格式：
+{"company_name":null,"position_name":"岗位名","extracted_skills":[{"skill_name":"技能","category":"类别","importance":"high"}],"matches":[{"skill_name":"技能","module_id":"m1","module_name":"模块名","match_score":80}],"gaps":[{"skill_name":"技能","category":"类别","suggestion":"建议","related_module_id":null,"related_module_name":null}]}
 
-JD 内容：
-${jdText}
-
-请按以下格式输出（严格使用 JSON，不要markdown代码块）：
-{
-  "company_name": "<公司名称或null>",
-  "position_name": "<岗位名称>",
-  "extracted_skills": [
-    {"skill_name": "<技能名称>", "category": "<技能类别>", "importance": "<high/medium/low>"}
-  ],
-  "matches": [
-    {"skill_name": "<提取的技能名称>", "module_id": "<匹配的模块ID或null>", "module_name": "<匹配的模块名>", "match_score": 0-100}
-  ],
-  "gaps": [
-    {"skill_name": "<未匹配的技能名称>", "category": "<类别>", "suggestion": "<学习建议>", "related_module_id": "<最相关模块ID或null>", "related_module_name": "<最相关模块名或null>"}
-  ]
+要求：提取5-10个核心技能，每个技能在matches中有记录，未匹配的放入gaps。`;
 }
 
-注意：
-- 每个提取的技能都必须在 matches 中有一条记录
-- gaps 中包含没有找到合适模块匹配的技能
-- match_score 表示匹配程度（0-100）`;
-}
-
-export const COMBINED_JD_ANALYSIS_SYSTEM_PROMPT = `你是一位资深技术招聘专家兼技能匹配专家。擅长从JD中提取关键技能要求并精准匹配到技能体系。每个提取的技能必须包含 skill_name、category 和 importance 字段。输出严格的 JSON 格式，不要用 markdown 代码块包裹。`;
+export const COMBINED_JD_ANALYSIS_SYSTEM_PROMPT = `你是技术招聘专家。从JD提取5-10个核心技能并匹配模块。输出纯JSON，无markdown。`;
 
 export function buildSkillMatchingPrompt(extractedSkills: { skill_name: string; category: string; importance: string }[], modules: { id: string; name: string; description?: string }[]): string {
   const skillList = extractedSkills.map(s => s.skill_name).join('、');
