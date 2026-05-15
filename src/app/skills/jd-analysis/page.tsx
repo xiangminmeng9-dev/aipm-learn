@@ -455,12 +455,12 @@ export default function JdAnalysisPage() {
                       displayResult?.id === h.id ? 'border-[#4F46E5] bg-indigo-50' : 'border-border bg-card hover:bg-muted'
                     }`}
                   >
-                    <div className="flex items-center justify-between" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center justify-between">
                       <span className="font-medium text-foreground">{h.position_name}</span>
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-muted-foreground">{new Date(h.created_at).toLocaleDateString()}</span>
                         <button
-                          onClick={() => handleDelete(h.id)}
+                          onClick={(e) => { e.stopPropagation(); handleDelete(h.id); }}
                           className="rounded-lg p-1.5 text-muted-foreground hover:bg-rose-100 hover:text-rose-600 transition-colors"
                           title="删除"
                         >
