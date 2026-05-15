@@ -497,14 +497,19 @@ export const JD_ANALYSIS_SYSTEM_PROMPT = `你是一位资深技术招聘专家�
 export function buildCombinedJdAnalysisPrompt(jdText: string, modules: { id: string; name: string; description?: string }[]): string {
   return `分析JD并提取关键技能。输出严格JSON格式，不要markdown。
 
-现有模块：${JSON.stringify(modules.map(m => ({ id: m.id, name: m.name })))}
+现有模块（含描述，用于语义匹配）：
+${JSON.stringify(modules)}
 
 JD：${jdText}
 
 输出格式：
-{"company_name":null,"position_name":"岗位名","extracted_skills":[{"skill_name":"技能","category":"类别","importance":"high"}],"matches":[{"skill_name":"技能","module_id":"m1","module_name":"模块名","match_score":80}],"gaps":[{"skill_name":"技能","category":"类别","suggestion":"建议","related_module_id":null,"related_module_name":null}]}
+{"company_name":null,"position_name":"岗位名","extracted_skills":[{"skill_name":"技能","category":"类别","importance":"high"}],"matches":[{"skill_name":"技能","module_id":"模块ID","module_name":"模块名","match_score":80}],"gaps":[{"skill_name":"技能","category":"类别","suggestion":"学习建议","related_module_id":"最相关的模块ID","related_module_name":"最相关的模块名"}]}
 
-要求：提取5-10个核心技能，每个技能在matches中有记录，未匹配的放入gaps。`;
+重要要求：
+1. 提取5-10个核心技能，每个技能在matches中有记录
+2. matches中匹配度>=40的技能归入对应模块，<40的放入gaps
+3. gaps中的每个技能必须指定related_module_id和related_module_name——从现有模块中选最相关的一个，即使匹配度不高也要指定，不要填null
+4. company_name如果JD中没有明确提及公司名，填null，不要填"未明确"等文字`;
 }
 
 export const COMBINED_JD_ANALYSIS_SYSTEM_PROMPT = `你是技术招聘专家。从JD提取5-10个核心技能并匹配模块。输出纯JSON，无markdown。`;
