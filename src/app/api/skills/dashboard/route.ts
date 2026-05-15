@@ -126,6 +126,15 @@ export async function GET(request: NextRequest) {
     const notStartedCount = learningProgress.filter(p => p.status === 'not_started').length;
     const inProgressCount = learningProgress.filter(p => p.status === 'in_progress').length;
 
+    // 计算总任务数（系统任务 + 用户模块任务 + JD差距任务）
+    const totalSystemTasks = systemTasks.length;
+    const totalUserTasks = userTasks.length;
+    const totalCustomTasks = customTasks.length;
+    const totalTasksCount = totalSystemTasks + totalUserTasks + totalCustomTasks;
+
+    // 待学习任务 = 总任务数 - 已完成进度数 - 进行中进度数
+    const totalPendingTasks = totalTasksCount - completedProgressCount - inProgressCount;
+
     // 技能完成趋势
     const days = range === '7d' ? 7 : range === '30d' ? 30 : 90;
     const trendMap = new Map<string, number>();
@@ -206,7 +215,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       stats: {
         system_modules: systemModules.length,
-        pending_tasks: notStartedCount,
+        pending_tasks: totalPendingTasks,
+        total_tasks: totalTasksCount,
         jd_analysis_count: jdAnalyses.length,
         jd_gaps_count: jdAnalyses.filter(j => j.gaps && j.gaps.length > 0).length,
         learning_plan_count: learningPlanCountRes.count || 0,
@@ -220,7 +230,7 @@ export async function GET(request: NextRequest) {
         skills_by_category: { all: commonSkills },
         category_distribution: categoryDistribution,
         funnel_stages: [
-          { stage: '待学习', count: notStartedCount },
+          { stage: '待学习', count: totalPendingTasks },
           { stage: '学习中', count: inProgressCount },
           { stage: '已完成', count: completedProgressCount },
         ],
