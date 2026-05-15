@@ -419,19 +419,37 @@ export default function JdAnalysisPage() {
               )}
             </div>
 
-            {/* Extracted Skills */}
+            {/* Extracted Skills with Module Mapping */}
             <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
               <h3 className="mb-4 text-base font-semibold text-foreground">提取的技能要求</h3>
-              <div className="flex flex-wrap gap-2">
-                {displayResult.extracted_skills?.map((skill, i) => (
-                  <div key={i} className="flex items-center gap-1.5 rounded-lg border border-border bg-muted px-3 py-1.5">
-                    <span className="text-sm text-foreground">{skill.skill_name}</span>
-                    <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${importanceColors[skill.importance] || importanceColors.medium}`}>
-                      {importanceLabels[skill.importance] || '中'}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground">{skill.category}</span>
-                  </div>
-                ))}
+              <div className="space-y-2">
+                {displayResult.extracted_skills?.map((skill, i) => {
+                  // 查找对应的模块匹配
+                  const match = displayResult.skill_module_matches?.find(m => m.skill_name === skill.skill_name);
+                  const gap = displayResult.gaps?.find(g => g.skill_name === skill.skill_name);
+                  const moduleName = match?.module_name || gap?.related_module_name;
+                  const matchScore = match?.match_score;
+                  const isGap = !!gap;
+                  return (
+                    <div key={i} className="flex items-center gap-2 rounded-xl border border-border px-3 py-2">
+                      <span className="text-sm font-medium text-foreground">{skill.skill_name}</span>
+                      <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${importanceColors[skill.importance] || importanceColors.medium}`}>
+                        {importanceLabels[skill.importance] || '中'}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">{skill.category}</span>
+                      {moduleName && (
+                        <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${isGap ? 'bg-amber-100 text-amber-700' : 'bg-indigo-100 text-indigo-700'}`}>
+                          {isGap ? '差距→' : ''}{moduleName}
+                        </span>
+                      )}
+                      {matchScore != null && (
+                        <span className={`text-[10px] font-medium ${matchScore >= 70 ? 'text-emerald-600' : matchScore >= 40 ? 'text-amber-600' : 'text-red-500'}`}>
+                          {matchScore}%
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
