@@ -141,32 +141,36 @@ export default function JdAnalysisPage() {
         return;
       }
 
-      // 验证 module_id 是否为有效 UUID，如果不是则查找对应的真实模块
+      // 智能匹配模块：系统模块 -> 用户模块 -> 任务层级
       const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       let moduleId: string | null = null;
       let matchedModuleName: string | null = null;
+      const skillKeywords = skill.skill_name.toLowerCase();
 
+      // 1. 如果 AI 返回了有效的 module_id，直接使用
       if (skill.related_module_id && uuidPattern.test(skill.related_module_id)) {
-        // 是有效的UUID，直接使用
         moduleId = skill.related_module_id;
         matchedModuleName = skill.related_module_name;
-      } else if (skill.related_module_name) {
-        // 根据模块名称查找真实的模块ID（精确匹配优先）
+      }
+
+      // 2. 尝试匹配系统模块
+      if (!moduleId) {
+        // 先精确匹配
         const { data: exactMatch } = await supabase
           .from('skill_modules')
           .select('id, name')
-          .eq('name', skill.related_module_name)
+          .eq('name', skill.related_module_name || skill.skill_name)
           .maybeSingle();
 
         if (exactMatch) {
           moduleId = exactMatch.id;
           matchedModuleName = exactMatch.name;
         } else {
-          // 尝试模糊匹配
+          // 模糊匹配名称或描述
           const { data: fuzzyMatch } = await supabase
             .from('skill_modules')
-            .select('id, name')
-            .ilike('name', `%${skill.related_module_name}%`)
+            .select('id, name, description')
+            .or(`name.ilike.%${skillKeywords}%,description.ilike.%${skillKeywords}%`)
             .limit(1)
             .maybeSingle();
 
@@ -177,19 +181,52 @@ export default function JdAnalysisPage() {
         }
       }
 
-      // 如果仍未匹配，尝试根据技能名称关键词匹配模块
-      if (!moduleId && skill.skill_name) {
-        const skillKeywords = skill.skill_name.toLowerCase();
-        const { data: keywordMatch } = await supabase
-          .from('skill_modules')
+      // 3. 尝试匹配用户自定义模块
+      if (!moduleId) {
+        const { data: userModuleMatch } = await supabase
+          .from('user_skill_modules')
           .select('id, name, description')
+          .eq('user_id', session.user.id)
           .or(`name.ilike.%${skillKeywords}%,description.ilike.%${skillKeywords}%`)
           .limit(1)
           .maybeSingle();
 
-        if (keywordMatch) {
-          moduleId = keywordMatch.id;
-          matchedModuleName = keywordMatch.name;
+        if (userModuleMatch) {
+          moduleId = userModuleMatch.id;
+          matchedModuleName = userModuleMatch.name;
+        }
+      }
+
+      // 4. 尝试匹配系统任务（learning_tasks），找到所属模块
+      if (!moduleId) {
+        const { data: taskMatch } = await supabase
+          .from('learning_tasks')
+          .select('id, module_id, title, skill_modules(name)')
+          .ilike('title', `%${skillKeywords}%`)
+          .limit(1)
+          .maybeSingle();
+
+        if (taskMatch && taskMatch.module_id) {
+          moduleId = taskMatch.module_id;
+          const mod = taskMatch.skill_modules as unknown as { name: string } | null;
+          matchedModuleName = mod?.name || '对应模块';
+        }
+      }
+
+      // 5. 尝试匹配用户模块任务（user_module_tasks），找到所属模块
+      if (!moduleId) {
+        const { data: userTaskMatch } = await supabase
+          .from('user_module_tasks')
+          .select('id, module_id, title, user_skill_modules(name)')
+          .eq('user_id', session.user.id)
+          .ilike('title', `%${skillKeywords}%`)
+          .limit(1)
+          .maybeSingle();
+
+        if (userTaskMatch && userTaskMatch.module_id) {
+          moduleId = userTaskMatch.module_id;
+          const mod = userTaskMatch.user_skill_modules as unknown as { name: string } | null;
+          matchedModuleName = mod?.name || '对应模块';
         }
       }
 
