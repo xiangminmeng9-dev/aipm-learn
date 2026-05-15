@@ -124,28 +124,19 @@ export default function JdAnalysisPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
-      let moduleId = skill.related_module_id;
-      if (!moduleId) {
-        const { data: newModule } = await supabase
-          .from('skill_modules')
-          .insert({
-            user_id: session.user.id,
-            name: skill.category === '未分类' ? skill.skill_name : `${skill.category}：${skill.skill_name}`,
-            description: skill.suggestion || `从岗位分析中发现的技能差距：${skill.skill_name}`,
-            level: 1,
-          })
-          .select('id')
-          .single();
-        moduleId = newModule?.id;
-      }
+      // 使用 user_custom_tasks 表添加任务
+      const { error } = await supabase.from('user_custom_tasks').insert({
+        user_id: session.user.id,
+        module_id: skill.related_module_id || null,
+        title: skill.skill_name,
+        objective: skill.suggestion || `针对岗位要求，深入学习 ${skill.skill_name}`,
+        status: 'not_started',
+        source_jd_id: result?.id || null,
+      });
 
-      if (moduleId) {
-        await supabase.from('skill_module_tasks').insert({
-          module_id: moduleId,
-          title: `学习 ${skill.skill_name}`,
-          description: skill.suggestion || `针对岗位要求，深入学习 ${skill.skill_name}`,
-          status: 'pending',
-        });
+      if (error) {
+        console.error('Add to skill tree failed:', error);
+        return;
       }
 
       setAddedSkills(prev => new Set(prev).add(skill.skill_name));
