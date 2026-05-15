@@ -92,30 +92,6 @@ export default function JdAnalysisPage() {
 
   useEffect(() => { fetchHistory(); }, [fetchHistory]);
 
-  // 当显示结果变化时，检查哪些技能已添加
-  useEffect(() => {
-    if (!displayResult?.gaps) return;
-
-    const checkAddedSkills = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const skillNames = displayResult.gaps?.map(g => g.skill_name) || [];
-      if (skillNames.length === 0) return;
-
-      const { data: existingTasks } = await supabase
-        .from('user_custom_tasks')
-        .select('title')
-        .eq('user_id', session.user.id)
-        .in('title', skillNames);
-
-      const addedSet = new Set((existingTasks || []).map(t => t.title));
-      setAddedSkills(addedSet);
-    };
-
-    checkAddedSkills();
-  }, [displayResult?.id, displayResult?.gaps, supabase]);
-
   const handleAnalyze = async () => {
     if (!jdText.trim()) return;
     setLoading(true);
@@ -226,6 +202,25 @@ export default function JdAnalysisPage() {
   };
 
   const displayResult = result || (showHistory && history.length > 0 ? history[0] : null);
+
+  // 检查已添加的技能状态
+  useEffect(() => {
+    if (!displayResult?.gaps) return;
+    const checkAddedSkills = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const skillNames = displayResult.gaps?.map(g => g.skill_name) || [];
+      if (skillNames.length === 0) return;
+      const { data: existingTasks } = await supabase
+        .from('user_custom_tasks')
+        .select('title')
+        .eq('user_id', session.user.id)
+        .in('title', skillNames);
+      const addedSet = new Set((existingTasks || []).map(t => t.title));
+      setAddedSkills(addedSet);
+    };
+    checkAddedSkills();
+  }, [displayResult?.id, displayResult?.gaps, supabase]);
 
   return (
     <div className="flex h-full flex-col bg-background">
