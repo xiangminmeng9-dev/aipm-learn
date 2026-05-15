@@ -25,6 +25,19 @@ interface Gap {
   related_module_name: string | null;
 }
 
+interface ResumeGap {
+  skill_name: string;
+  detail: string;
+  suggestion: string;
+}
+
+interface ResumeMatch {
+  match_score: number;
+  strengths: string[];
+  resume_gaps: ResumeGap[];
+  improvement_suggestions: string[];
+}
+
 interface JdAnalysis {
   id: string;
   jd_text: string;
@@ -33,6 +46,7 @@ interface JdAnalysis {
   extracted_skills: ExtractedSkill[];
   skill_module_matches?: SkillMatch[];
   gaps?: Gap[];
+  resume_match?: ResumeMatch | null;
   created_at: string;
 }
 
@@ -58,6 +72,9 @@ export default function JdAnalysisPage() {
   const [showHistory, setShowHistory] = useState(false);
   const [addingSkill, setAddingSkill] = useState<string | null>(null);
   const [addedSkills, setAddedSkills] = useState<Set<string>>(new Set());
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [resumeText, setResumeText] = useState<string | null>(null);
+  const [resumeParsing, setResumeParsing] = useState(false);
 
   const supabase = createClient();
 
@@ -102,7 +119,7 @@ export default function JdAnalysisPage() {
       const res = await fetch('/api/jd/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jdText: jdText.trim(), companyName: companyName.trim() || undefined }),
+        body: JSON.stringify({ jdText: jdText.trim(), companyName: companyName.trim() || undefined, resumeText: resumeText || undefined }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -303,6 +320,79 @@ export default function JdAnalysisPage() {
       <div className="relative z-10 flex-1 overflow-y-auto p-6 space-y-5">
         {/* JD Input */}
         <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+          {/* 简历上传（选填） */}
+          <div className="mb-4">
+            <label className="mb-2 block text-sm font-medium text-foreground">上传简历（选填）</label>
+            <p className="mb-2 text-xs text-muted-foreground">上传简历后，AI 将额外分析简历与岗位的匹配度</p>
+            {resumeFile ? (
+              <div className="flex items-center gap-3 rounded-xl border-2 border-indigo-200 bg-indigo-50/50 px-4 py-2.5">
+                <svg className="h-5 w-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                </svg>
+                <span className="text-sm font-medium text-foreground">{resumeFile.name}</span>
+                {resumeParsing && <span className="text-xs text-muted-foreground">解析中...</span>}
+                <button
+                  onClick={() => { setResumeFile(null); setResumeText(null); }}
+                  className="ml-auto rounded-lg p-1 text-muted-foreground hover:bg-rose-100 hover:text-rose-600 transition-colors"
+                  title="移除简历"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            ) : (
+              <div
+                onClick={() => {
+                  const input = document.createElement('input');
+                  input.type = 'file';
+                  input.accept = '.pdf,.docx,.txt,.md';
+                  input.onchange = async (e) => {
+                    const file = (e.target as HTMLInputElement).files?.[0];
+                    if (!file) return;
+                    if (file.size > 5 * 1024 * 1024) {
+                      alert('文件大小不能超过5MB');
+                      return;
+                    }
+                    setResumeFile(file);
+                    setResumeParsing(true);
+                    try {
+                      // TXT/MD 直接读取
+                      if (file.name.endsWith('.txt') || file.name.endsWith('.md')) {
+                        const text = await file.text();
+                        setResumeText(text);
+                      } else {
+                        // PDF/DOCX 通过API解析
+                        const formData = new FormData();
+                        formData.append('file', file);
+                        const res = await fetch('/api/resume/parse', { method: 'POST', body: formData });
+                        if (res.ok) {
+                          const data = await res.json();
+                          setResumeText(data.text || '');
+                        } else {
+                          alert('简历解析失败，请尝试粘贴简历文本');
+                          setResumeFile(null);
+                        }
+                      }
+                    } catch {
+                      alert('简历解析失败');
+                      setResumeFile(null);
+                    } finally {
+                      setResumeParsing(false);
+                    }
+                  };
+                  input.click();
+                }}
+                className="cursor-pointer rounded-xl border-2 border-dashed border-border bg-muted px-4 py-4 text-center transition-colors hover:border-indigo-300 hover:bg-indigo-50/30"
+              >
+                <svg className="mx-auto h-8 w-8 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                </svg>
+                <p className="mt-2 text-sm text-muted-foreground">点击上传简历文件</p>
+                <p className="text-xs text-muted-foreground">支持 PDF、DOCX、TXT、MD（最大5MB）</p>
+              </div>
+            )}
+          </div>
           {/* 公司名称输入 */}
           <div className="mb-4">
             <label className="mb-2 block text-sm font-medium text-foreground">公司名称（选填）</label>
@@ -416,6 +506,79 @@ export default function JdAnalysisPage() {
                 </div>
               )}
             </div>
+
+            {/* Resume Match Card */}
+            {displayResult.resume_match && (
+              <div className="rounded-2xl border-2 border-indigo-200 bg-indigo-50/30 p-6 shadow-sm">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#4F46E5]/10 text-lg">🎯</div>
+                  <h3 className="text-base font-semibold text-foreground">简历匹配度</h3>
+                  <div className="ml-auto flex items-center gap-2">
+                    <span className="text-3xl font-bold text-[#4F46E5]">{displayResult.resume_match.match_score}</span>
+                    <span className="text-sm text-muted-foreground">/ 100</span>
+                  </div>
+                </div>
+                {/* 匹配度进度条 */}
+                <div className="h-3 overflow-hidden rounded-full bg-muted mb-5">
+                  <div
+                    className={`h-full rounded-full transition-all ${
+                      displayResult.resume_match.match_score >= 70 ? 'bg-emerald-500' :
+                      displayResult.resume_match.match_score >= 40 ? 'bg-amber-500' : 'bg-red-500'
+                    }`}
+                    style={{ width: `${displayResult.resume_match.match_score}%` }}
+                  />
+                </div>
+                {/* 匹配优势 */}
+                {displayResult.resume_match.strengths.length > 0 && (
+                  <div className="mb-4">
+                    <h4 className="mb-2 text-sm font-medium text-emerald-700">匹配优势</h4>
+                    <div className="space-y-1.5">
+                      {displayResult.resume_match.strengths.map((s, i) => (
+                        <div key={i} className="flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-1.5">
+                          <svg className="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                          <span className="text-sm text-foreground">{s}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {/* 简历差距 */}
+                {displayResult.resume_match.resume_gaps.length > 0 && (
+                  <div className="mb-4">
+                    <h4 className="mb-2 text-sm font-medium text-amber-700">简历差距</h4>
+                    <div className="space-y-2">
+                      {displayResult.resume_match.resume_gaps.map((g, i) => (
+                        <div key={i} className="rounded-xl border border-amber-200 bg-amber-50/50 px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-foreground">{g.skill_name}</span>
+                          </div>
+                          {g.detail && <p className="mt-1 text-xs text-muted-foreground">{g.detail}</p>}
+                          {g.suggestion && <p className="mt-1 text-xs text-primary">{g.suggestion}</p>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {/* 提升建议 */}
+                {displayResult.resume_match.improvement_suggestions.length > 0 && (
+                  <div>
+                    <h4 className="mb-2 text-sm font-medium text-indigo-700">简历提升建议</h4>
+                    <div className="space-y-1.5">
+                      {displayResult.resume_match.improvement_suggestions.map((s, i) => (
+                        <div key={i} className="flex items-center gap-2 rounded-lg bg-indigo-50 px-3 py-1.5">
+                          <svg className="h-4 w-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                          </svg>
+                          <span className="text-sm text-foreground">{s}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Extracted Skills with Module Mapping */}
             <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">

@@ -62,7 +62,7 @@ export async function DELETE(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { jdText, companyName } = await request.json();
+    const { jdText, companyName, resumeText } = await request.json();
     if (!jdText || typeof jdText !== 'string') {
       return NextResponse.json({ error: '请提供岗位描述文本' }, { status: 400 });
     }
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
     );
 
     // AI调用
-    const prompt = buildCombinedJdAnalysisPrompt(jdText, defaultModules);
+    const prompt = buildCombinedJdAnalysisPrompt(jdText, defaultModules, resumeText);
 
     let aiResponse: string;
     try {
@@ -176,6 +176,22 @@ export async function POST(request: NextRequest) {
       };
     });
 
+    // 简历匹配结果
+    const resumeMatch = parsed.resume_match ? {
+      match_score: typeof parsed.resume_match.match_score === 'number' ? parsed.resume_match.match_score : 0,
+      strengths: Array.isArray(parsed.resume_match.strengths) ? parsed.resume_match.strengths.map(String) : [],
+      resume_gaps: Array.isArray(parsed.resume_match.resume_gaps) ? parsed.resume_match.resume_gaps.map((g: unknown) => {
+        if (typeof g === 'string') return { skill_name: g, detail: '', suggestion: '' };
+        const obj = g as Record<string, unknown>;
+        return {
+          skill_name: String(obj.skill_name || ''),
+          detail: String(obj.detail || ''),
+          suggestion: String(obj.suggestion || ''),
+        };
+      }) : [],
+      improvement_suggestions: Array.isArray(parsed.resume_match.improvement_suggestions) ? parsed.resume_match.improvement_suggestions.map(String) : [],
+    } : null;
+
     const result = {
       company_name: (() => {
         const raw = (companyName || parsed.company_name || '').trim();
@@ -186,6 +202,7 @@ export async function POST(request: NextRequest) {
       extracted_skills: skills,
       skill_module_matches: skillModuleMatches,
       gaps,
+      resume_match: resumeMatch,
     };
 
     // 并行保存分析结果和更新技能频率
@@ -217,6 +234,8 @@ export async function POST(request: NextRequest) {
         extracted_skills: result.extracted_skills,
         skill_module_matches: result.skill_module_matches,
         gaps: result.gaps,
+        resume_text: resumeText || null,
+        resume_match: resumeMatch || null,
       }).select('id').single(),
       ...skillUpserts,
     ]);
