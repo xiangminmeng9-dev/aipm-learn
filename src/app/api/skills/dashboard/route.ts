@@ -172,20 +172,70 @@ export async function GET(request: NextRequest) {
       .map(([category, count]) => ({ category, count }))
       .sort((a, b) => b.count - a.count);
 
-    // 技能统计
-    const allSkillsMap = new Map<string, { count: number; category: string; companies: string[] }>();
+    // 技能语义归一化映射：同义技能统一到标准名称
+    const skillAliases: Record<string, string[]> = {
+      'Prompt Engineering': ['提示词工程', '提示词设计', 'Prompt设计', 'Prompt优化', '提示词优化', 'Prompt撰写', '提示词编写'],
+      '用户研究': ['用户调研', '用户访谈', '用户需求分析', '用户洞察', '用户理解'],
+      '数据分析': ['数据驱动', '数据驱动决策', '数据思维', '数据敏感度', '数据运营'],
+      'A/B测试': ['AB测试', 'A/B实验', '实验设计', '灰度实验', '分流实验'],
+      '产品思维': ['产品意识', '产品sense', '产品感', '产品方法论'],
+      '需求分析': ['需求挖掘', '需求梳理', '需求定义', '需求管理', '需求拆解'],
+      'AI产品': ['AI产品经理', 'AI PM', '人工智能产品', '智能产品', 'AI应用'],
+      '大模型': ['LLM', '大语言模型', '大语言模型原理', '大模型应用', 'LLM应用'],
+      'RAG': ['检索增强生成', '检索增强', '知识检索', 'RAG架构'],
+      'Agent': ['AI Agent', '智能体', 'AI助手', '智能代理', 'Agent架构'],
+      'MLOps': ['模型部署', '模型运维', 'ML工程', '机器学习工程'],
+      '交互设计': ['用户体验设计', 'UX设计', 'UI/UX', '交互体验', '体验设计'],
+      'PRD': ['产品需求文档', '需求文档', 'PRD撰写', 'PRD编写'],
+      '项目管理': ['项目推进', '项目协调', '项目落地', '项目交付'],
+      '竞品分析': ['竞品研究', '竞品调研', '竞争分析', '竞品对标'],
+      'SQL': ['SQL查询', 'SQL分析', '数据库查询'],
+      '商业分析': ['商业洞察', '商业模式', '商业sense', '商业理解'],
+      '沟通协作': ['跨部门协作', '团队协作', '沟通能力', '跨团队沟通', '协作能力'],
+      '技术理解': ['技术sense', '技术判断', '技术评估', '技术选型', '技术可行性'],
+      '产品策略': ['产品规划', '产品路线图', '产品方向', '战略规划'],
+      '指标体系': ['指标搭建', '指标设计', '度量体系', '数据指标'],
+      '微调': ['Fine-tuning', '模型微调', 'finetune', '模型训练'],
+      '多模态': ['多模态模型', '多模态交互', '多模态理解', '跨模态'],
+      'API设计': ['接口设计', 'API', 'API规划', '开放平台'],
+    };
+
+    // 构建反向映射：每个别名 -> 标准名称
+    const aliasToCanonical = new Map<string, string>();
+    for (const [canonical, aliases] of Object.entries(skillAliases)) {
+      aliasToCanonical.set(canonical.toLowerCase(), canonical);
+      for (const alias of aliases) {
+        aliasToCanonical.set(alias.toLowerCase(), canonical);
+      }
+    }
+
+    // 归一化技能名称：先查别名表，再做模糊匹配
+    const normalizeSkill = (name: string): string => {
+      const lower = name.toLowerCase();
+      // 精确匹配别名
+      if (aliasToCanonical.has(lower)) return aliasToCanonical.get(lower)!;
+      // 包含匹配：技能名包含别名或别名包含技能名
+      for (const [alias, canonical] of aliasToCanonical) {
+        if (lower.includes(alias) || alias.includes(lower)) return canonical;
+      }
+      return name;
+    };
+
+    // 技能统计（语义归一化后）
+    const allSkillsMap = new Map<string, { count: number; category: string; companies: string[]; originalNames: Set<string> }>();
     for (const j of jdAnalyses) {
       const skills = (j.extracted_skills as Array<{ skill_name: string; category?: string }>) || [];
       for (const s of skills) {
         const skillName = s.skill_name || '';
-        if (skillName) {
-          const existing = allSkillsMap.get(skillName) || { count: 0, category: s.category || '未分类', companies: [] };
-          existing.count += 1;
-          if (j.company_name && !existing.companies.includes(j.company_name)) {
-            existing.companies.push(j.company_name);
-          }
-          allSkillsMap.set(skillName, existing);
+        if (!skillName) continue;
+        const canonical = normalizeSkill(skillName);
+        const existing = allSkillsMap.get(canonical) || { count: 0, category: s.category || '未分类', companies: [], originalNames: new Set<string>() };
+        existing.count += 1;
+        existing.originalNames.add(skillName);
+        if (j.company_name && !existing.companies.includes(j.company_name)) {
+          existing.companies.push(j.company_name);
         }
+        allSkillsMap.set(canonical, existing);
       }
     }
 
@@ -202,14 +252,15 @@ export async function GET(request: NextRequest) {
       for (const s of skills) {
         const skillName = s.skill_name || '';
         if (!skillName) continue;
-        const existing = allSkillsMap.get(skillName);
+        const canonical = normalizeSkill(skillName);
+        const existing = allSkillsMap.get(canonical);
         if (!existing) continue;
         if (!skillsByCategory[category]) {
           skillsByCategory[category] = [];
         }
-        if (!skillsByCategory[category].some(cs => cs.skill === skillName)) {
+        if (!skillsByCategory[category].some(cs => cs.skill === canonical)) {
           skillsByCategory[category].push({
-            skill: skillName,
+            skill: canonical,
             count: existing.count,
             category: existing.category,
             companies: existing.companies.slice(0, 3),
