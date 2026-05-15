@@ -513,7 +513,7 @@ JD：${jdText}${resumeSection}
 1. extracted_skills必须完整覆盖JD中提到的所有技能要求，不要遗漏，通常10-25个
 2. 逐条对照JD中的"职位要求/任职资格/技能要求"部分，每一条都提取为独立技能
 3. importance判断：JD中明确要求/必须具备=high，优先/加分项=medium，了解即可=low
-4. 每个技能在matches中有记录，match_score>=40归入模块，<40放入gaps
+4. 每个技能在matches中有记录，match_score>=60归入模块，<60放入gaps
 5. gaps中的每个技能必须指定related_module_id和related_module_name——从现有模块中选最相关的一个，即使匹配度不高也要指定，不要填null
 6. company_name如果JD中没有明确提及公司名，填null，不要填"未明确"等文字
 ${resumeText ? `7. resume_match.match_score是简历与JD的整体匹配度（0-100整数）
