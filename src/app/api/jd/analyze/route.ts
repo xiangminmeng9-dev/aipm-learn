@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
 
     let aiResponse: string;
     try {
-      aiResponse = await generateText(prompt, { system: COMBINED_JD_ANALYSIS_SYSTEM_PROMPT, maxTokens: 4096 });
+      aiResponse = await generateText(prompt, { system: COMBINED_JD_ANALYSIS_SYSTEM_PROMPT, maxTokens: 8192 });
     } catch (aiError) {
       console.error('JD analyze AI call error:', aiError);
       return NextResponse.json(

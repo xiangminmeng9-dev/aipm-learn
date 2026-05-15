@@ -495,7 +495,7 @@ export const JD_ANALYSIS_SYSTEM_PROMPT = `你是一位资深技术招聘专家�
  * 组合版：一次性完成 JD 提取 + 技能匹配，减少一次 AI 调用延迟
  */
 export function buildCombinedJdAnalysisPrompt(jdText: string, modules: { id: string; name: string; description?: string }[]): string {
-  return `分析JD并提取关键技能。输出严格JSON格式，不要markdown。
+  return `分析JD，完整提取所有技能要求。输出严格JSON格式，不要markdown。
 
 现有模块（含描述，用于语义匹配）：
 ${JSON.stringify(modules)}
@@ -506,13 +506,15 @@ JD：${jdText}
 {"company_name":null,"position_name":"岗位名","extracted_skills":[{"skill_name":"技能","category":"类别","importance":"high"}],"matches":[{"skill_name":"技能","module_id":"模块ID","module_name":"模块名","match_score":80}],"gaps":[{"skill_name":"技能","category":"类别","suggestion":"学习建议","related_module_id":"最相关的模块ID","related_module_name":"最相关的模块名"}]}
 
 重要要求：
-1. 提取5-10个核心技能，每个技能在matches中有记录
-2. matches中匹配度>=40的技能归入对应模块，<40的放入gaps
-3. gaps中的每个技能必须指定related_module_id和related_module_name——从现有模块中选最相关的一个，即使匹配度不高也要指定，不要填null
-4. company_name如果JD中没有明确提及公司名，填null，不要填"未明确"等文字`;
+1. extracted_skills必须完整覆盖JD中提到的所有技能要求，不要遗漏，通常10-25个
+2. 逐条对照JD中的"职位要求/任职资格/技能要求"部分，每一条都提取为独立技能
+3. importance判断：JD中明确要求/必须具备=high，优先/加分项=medium，了解即可=low
+4. 每个技能在matches中有记录，match_score>=40归入模块，<40放入gaps
+5. gaps中的每个技能必须指定related_module_id和related_module_name——从现有模块中选最相关的一个，即使匹配度不高也要指定，不要填null
+6. company_name如果JD中没有明确提及公司名，填null，不要填"未明确"等文字`;
 }
 
-export const COMBINED_JD_ANALYSIS_SYSTEM_PROMPT = `你是技术招聘专家。从JD提取5-10个核心技能并匹配模块。输出纯JSON，无markdown。`;
+export const COMBINED_JD_ANALYSIS_SYSTEM_PROMPT = `你是技术招聘专家。完整提取JD中所有技能要求（通常10-25个），逐条对照职位要求不遗漏。与现有模块匹配，输出纯JSON，无markdown。`;
 
 export function buildSkillMatchingPrompt(extractedSkills: { skill_name: string; category: string; importance: string }[], modules: { id: string; name: string; description?: string }[]): string {
   const skillList = extractedSkills.map(s => s.skill_name).join('、');
