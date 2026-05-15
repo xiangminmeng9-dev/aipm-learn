@@ -92,6 +92,30 @@ export default function JdAnalysisPage() {
 
   useEffect(() => { fetchHistory(); }, [fetchHistory]);
 
+  // 当显示结果变化时，检查哪些技能已添加
+  useEffect(() => {
+    if (!displayResult?.gaps) return;
+
+    const checkAddedSkills = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const skillNames = displayResult.gaps?.map(g => g.skill_name) || [];
+      if (skillNames.length === 0) return;
+
+      const { data: existingTasks } = await supabase
+        .from('user_custom_tasks')
+        .select('title')
+        .eq('user_id', session.user.id)
+        .in('title', skillNames);
+
+      const addedSet = new Set((existingTasks || []).map(t => t.title));
+      setAddedSkills(addedSet);
+    };
+
+    checkAddedSkills();
+  }, [displayResult?.id, displayResult?.gaps, supabase]);
+
   const handleAnalyze = async () => {
     if (!jdText.trim()) return;
     setLoading(true);
@@ -127,6 +151,20 @@ export default function JdAnalysisPage() {
         return;
       }
 
+      // 检查是否已添加过
+      const { data: existingTask } = await supabase
+        .from('user_custom_tasks')
+        .select('id')
+        .eq('user_id', session.user.id)
+        .eq('title', skill.skill_name)
+        .maybeSingle();
+
+      if (existingTask) {
+        alert('该技能已添加到技能树');
+        setAddedSkills(prev => new Set(prev).add(skill.skill_name));
+        return;
+      }
+
       // 验证 module_id 是否为有效 UUID
       const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       const moduleId = skill.related_module_id && uuidPattern.test(skill.related_module_id)
@@ -157,6 +195,7 @@ export default function JdAnalysisPage() {
       }
 
       setAddedSkills(prev => new Set(prev).add(skill.skill_name));
+      alert(`已添加到${moduleId ? '对应模块' : '岗位差距'}，请刷新页面查看`);
     } catch (err) {
       console.error('Add to skill tree failed:', err);
       alert('添加失败，请重试');
