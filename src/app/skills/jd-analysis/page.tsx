@@ -144,21 +144,52 @@ export default function JdAnalysisPage() {
       // 验证 module_id 是否为有效 UUID，如果不是则查找对应的真实模块
       const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       let moduleId: string | null = null;
+      let matchedModuleName: string | null = null;
 
       if (skill.related_module_id && uuidPattern.test(skill.related_module_id)) {
         // 是有效的UUID，直接使用
         moduleId = skill.related_module_id;
+        matchedModuleName = skill.related_module_name;
       } else if (skill.related_module_name) {
-        // 根据模块名称查找真实的模块ID
-        const { data: matchedModule } = await supabase
+        // 根据模块名称查找真实的模块ID（精确匹配优先）
+        const { data: exactMatch } = await supabase
           .from('skill_modules')
-          .select('id')
-          .ilike('name', `%${skill.related_module_name}%`)
+          .select('id, name')
+          .eq('name', skill.related_module_name)
+          .maybeSingle();
+
+        if (exactMatch) {
+          moduleId = exactMatch.id;
+          matchedModuleName = exactMatch.name;
+        } else {
+          // 尝试模糊匹配
+          const { data: fuzzyMatch } = await supabase
+            .from('skill_modules')
+            .select('id, name')
+            .ilike('name', `%${skill.related_module_name}%`)
+            .limit(1)
+            .maybeSingle();
+
+          if (fuzzyMatch) {
+            moduleId = fuzzyMatch.id;
+            matchedModuleName = fuzzyMatch.name;
+          }
+        }
+      }
+
+      // 如果仍未匹配，尝试根据技能名称关键词匹配模块
+      if (!moduleId && skill.skill_name) {
+        const skillKeywords = skill.skill_name.toLowerCase();
+        const { data: keywordMatch } = await supabase
+          .from('skill_modules')
+          .select('id, name, description')
+          .or(`name.ilike.%${skillKeywords}%,description.ilike.%${skillKeywords}%`)
           .limit(1)
           .maybeSingle();
 
-        if (matchedModule) {
-          moduleId = matchedModule.id;
+        if (keywordMatch) {
+          moduleId = keywordMatch.id;
+          matchedModuleName = keywordMatch.name;
         }
       }
 
@@ -189,7 +220,7 @@ export default function JdAnalysisPage() {
 
       // 根据是否有模块ID给出不同提示
       if (moduleId) {
-        alert(`已添加到模块「${skill.related_module_name || '对应模块'}」`);
+        alert(`已添加到模块「${matchedModuleName || skill.related_module_name || '对应模块'}」`);
       } else {
         alert('已添加到「岗位差距」，可在技能树总览中查看');
       }
