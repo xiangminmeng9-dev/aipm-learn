@@ -165,11 +165,26 @@ export default function JdAnalysisPage() {
         return;
       }
 
-      // 验证 module_id 是否为有效 UUID
+      // 验证 module_id 是否为有效 UUID，如果不是则查找对应的真实模块
       const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      const moduleId = skill.related_module_id && uuidPattern.test(skill.related_module_id)
-        ? skill.related_module_id
-        : null;
+      let moduleId: string | null = null;
+
+      if (skill.related_module_id && uuidPattern.test(skill.related_module_id)) {
+        // 是有效的UUID，直接使用
+        moduleId = skill.related_module_id;
+      } else if (skill.related_module_name) {
+        // 根据模块名称查找真实的模块ID
+        const { data: matchedModule } = await supabase
+          .from('skill_modules')
+          .select('id')
+          .ilike('name', `%${skill.related_module_name}%`)
+          .limit(1)
+          .maybeSingle();
+
+        if (matchedModule) {
+          moduleId = matchedModule.id;
+        }
+      }
 
       // 使用 user_custom_tasks 表添加任务
       const insertData: Record<string, unknown> = {
@@ -195,7 +210,13 @@ export default function JdAnalysisPage() {
       }
 
       setAddedSkills(prev => new Set(prev).add(skill.skill_name));
-      alert(`已添加到${moduleId ? '对应模块' : '岗位差距'}，请刷新页面查看`);
+
+      // 根据是否有模块ID给出不同提示
+      if (moduleId) {
+        alert(`已添加到模块「${skill.related_module_name || '对应模块'}」`);
+      } else {
+        alert('已添加到「岗位差距」，可在技能树总览中查看');
+      }
     } catch (err) {
       console.error('Add to skill tree failed:', err);
       alert('添加失败，请重试');
