@@ -122,26 +122,38 @@ export default function JdAnalysisPage() {
     setAddingSkill(skill.skill_name);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
+      if (!session) {
+        alert('请先登录');
+        return;
+      }
 
       // 使用 user_custom_tasks 表添加任务
-      const { error } = await supabase.from('user_custom_tasks').insert({
+      const insertData: Record<string, unknown> = {
         user_id: session.user.id,
         module_id: skill.related_module_id || null,
         title: skill.skill_name,
         objective: skill.suggestion || `针对岗位要求，深入学习 ${skill.skill_name}`,
+        resources: [],
         status: 'not_started',
-        source_jd_id: result?.id || null,
-      });
+      };
+
+      // 只有当 displayResult.id 是有效的 UUID 时才添加 source_jd_id
+      if (displayResult?.id && displayResult.id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+        insertData.source_jd_id = displayResult.id;
+      }
+
+      const { error } = await supabase.from('user_custom_tasks').insert(insertData);
 
       if (error) {
         console.error('Add to skill tree failed:', error);
+        alert('添加失败：' + error.message);
         return;
       }
 
       setAddedSkills(prev => new Set(prev).add(skill.skill_name));
     } catch (err) {
       console.error('Add to skill tree failed:', err);
+      alert('添加失败，请重试');
     } finally {
       setAddingSkill(null);
     }
