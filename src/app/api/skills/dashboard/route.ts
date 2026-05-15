@@ -150,17 +150,24 @@ export async function GET(request: NextRequest) {
       return { date: dateStr, count: trendMap.get(dateStr) || 0 };
     });
 
-    // 公司分布
+    // 公司分布（归一化：未明确/未提供等统一为"未提及公司"，展示时排除）
     const companyMap = new Map<string, number>();
+    const unknownPatterns = /^(未|无|没有|暂无|未提及|未明确|未提供|未注明|未填写|none|null|n\/a|—|-)$/i;
     for (const j of jdAnalyses) {
-      if (j.company_name) {
-        companyMap.set(j.company_name, (companyMap.get(j.company_name) || 0) + 1);
+      const raw = (j.company_name || '').trim();
+      const company = !raw || unknownPatterns.test(raw) ? null : raw;
+      if (company) {
+        companyMap.set(company, (companyMap.get(company) || 0) + 1);
       }
     }
+    const unknownCompanyCount = jdAnalyses.length - Array.from(companyMap.values()).reduce((a, b) => a + b, 0);
     const companyDistribution = Array.from(companyMap.entries())
       .map(([company, count]) => ({ company, count }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 10);
+    if (unknownCompanyCount > 0) {
+      companyDistribution.push({ company: '未提及公司', count: unknownCompanyCount });
+    }
 
     // 职位类别分布
     const categoryMap = new Map<string, number>();

@@ -177,7 +177,11 @@ export async function POST(request: NextRequest) {
     });
 
     const result = {
-      company_name: companyName || parsed.company_name || null,
+      company_name: (() => {
+        const raw = (companyName || parsed.company_name || '').trim();
+        const unknownPatterns = /^(未|无|没有|暂无|未提及|未明确|未提供|未注明|未填写|none|null|n\/a|—|-)$/i;
+        return !raw || unknownPatterns.test(raw) ? null : raw;
+      })(),
       position_name: parsed.position_name || '未命名岗位',
       extracted_skills: skills,
       skill_module_matches: skillModuleMatches,
