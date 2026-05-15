@@ -127,10 +127,16 @@ export default function JdAnalysisPage() {
         return;
       }
 
+      // 验证 module_id 是否为有效 UUID
+      const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const moduleId = skill.related_module_id && uuidPattern.test(skill.related_module_id)
+        ? skill.related_module_id
+        : null;
+
       // 使用 user_custom_tasks 表添加任务
       const insertData: Record<string, unknown> = {
         user_id: session.user.id,
-        module_id: skill.related_module_id || null,
+        module_id: moduleId,
         title: skill.skill_name,
         objective: skill.suggestion || `针对岗位要求，深入学习 ${skill.skill_name}`,
         resources: [],
@@ -138,7 +144,7 @@ export default function JdAnalysisPage() {
       };
 
       // 只有当 displayResult.id 是有效的 UUID 时才添加 source_jd_id
-      if (displayResult?.id && displayResult.id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+      if (displayResult?.id && uuidPattern.test(displayResult.id)) {
         insertData.source_jd_id = displayResult.id;
       }
 
