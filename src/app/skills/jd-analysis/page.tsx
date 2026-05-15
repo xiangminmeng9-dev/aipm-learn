@@ -646,9 +646,9 @@ export default function JdAnalysisPage() {
             )}
 
             {/* Skill Gaps */}
-            {displayResult.gaps && displayResult.gaps.length > 0 && (
-              <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-                <h3 className="mb-4 text-base font-semibold text-foreground">技能差距</h3>
+            <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+              <h3 className="mb-4 text-base font-semibold text-foreground">技能差距</h3>
+              {displayResult.gaps && displayResult.gaps.length > 0 ? (
                 <div className="space-y-3">
                   {displayResult.gaps.map((gap, i) => (
                     <div key={i} className="rounded-xl border border-amber-200 bg-amber-50/50 px-4 py-3">
@@ -678,11 +678,7 @@ export default function JdAnalysisPage() {
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+              ) : (
+                <p className="text-sm text-muted-foreground">所有提取的技能均有模块覆盖，暂无明显差距</p>
+              )}
+            </div>
