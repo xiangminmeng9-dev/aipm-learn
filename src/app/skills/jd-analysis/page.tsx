@@ -682,3 +682,9 @@ export default function JdAnalysisPage() {
                 <p className="text-sm text-muted-foreground">所有提取的技能均有模块覆盖，暂无明显差距</p>
               )}
             </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
