@@ -194,6 +194,36 @@ export async function GET(request: NextRequest) {
       .sort((a, b) => b.count - a.count)
       .slice(0, 20);
 
+    // 按职位类别分组技能
+    const skillsByCategory: Record<string, { skill: string; count: number; category?: string; companies?: string[] }[]> = { all: commonSkills };
+    for (const j of jdAnalyses) {
+      const category = getPositionCategory(j.position_name);
+      const skills = (j.extracted_skills as Array<{ skill_name: string; category?: string }>) || [];
+      for (const s of skills) {
+        const skillName = s.skill_name || '';
+        if (!skillName) continue;
+        const existing = allSkillsMap.get(skillName);
+        if (!existing) continue;
+        if (!skillsByCategory[category]) {
+          skillsByCategory[category] = [];
+        }
+        if (!skillsByCategory[category].some(cs => cs.skill === skillName)) {
+          skillsByCategory[category].push({
+            skill: skillName,
+            count: existing.count,
+            category: existing.category,
+            companies: existing.companies.slice(0, 3),
+          });
+        }
+      }
+    }
+    // 每个类别内按频次排序
+    for (const cat of Object.keys(skillsByCategory)) {
+      if (cat !== 'all') {
+        skillsByCategory[cat].sort((a, b) => b.count - a.count);
+      }
+    }
+
     // 覆盖度
     const moduleNames = new Set(allModules.map(m => m.name.toLowerCase()));
     const coveredSkills = commonSkills.filter(s =>
@@ -227,7 +257,7 @@ export async function GET(request: NextRequest) {
         company_distribution: companyDistribution,
         plan_progress: learningPlans.map(p => ({ id: p.id, title: p.title, status: p.status, progress: p.progress || 0 })),
         common_skills: commonSkills,
-        skills_by_category: { all: commonSkills },
+        skills_by_category: skillsByCategory,
         category_distribution: categoryDistribution,
         funnel_stages: [
           { stage: '待学习', count: totalPendingTasks },
