@@ -51,9 +51,9 @@ interface JdAnalysis {
 }
 
 const importanceColors: Record<string, string> = {
-  high: 'bg-red-100 text-red-700',
-  medium: 'bg-amber-100 text-amber-700',
-  low: 'bg-green-100 text-green-700',
+  high: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
+  medium: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
+  low: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
 };
 
 const importanceLabels: Record<string, string> = {
@@ -73,8 +73,18 @@ export default function JdAnalysisPage() {
   const [addingSkill, setAddingSkill] = useState<string | null>(null);
   const [addedSkills, setAddedSkills] = useState<Set<string>>(new Set());
   const [resumeFile, setResumeFile] = useState<File | null>(null);
-  const [resumeText, setResumeText] = useState<string | null>(null);
+  const [resumeText, setResumeText] = useState<string | null>(() => {
+    try { return localStorage.getItem('jd-resume-text') || null; } catch { return null; }
+  });
   const [resumeParsing, setResumeParsing] = useState(false);
+
+  // Persist resumeText to localStorage whenever it changes
+  useEffect(() => {
+    try {
+      if (resumeText) localStorage.setItem('jd-resume-text', resumeText);
+      else localStorage.removeItem('jd-resume-text');
+    } catch {}
+  }, [resumeText]);
 
   const supabase = createClient();
 
@@ -325,7 +335,7 @@ export default function JdAnalysisPage() {
             <label className="mb-2 block text-sm font-medium text-foreground">上传简历（选填）</label>
             <p className="mb-2 text-xs text-muted-foreground">上传简历后，AI 将额外分析简历与岗位的匹配度</p>
             {resumeFile ? (
-              <div className="flex items-center gap-3 rounded-xl border-2 border-indigo-200 bg-indigo-50/50 px-4 py-2.5">
+              <div className="flex items-center gap-3 rounded-xl border-2 border-indigo-200 bg-indigo-50/50 px-4 py-2.5 dark:border-indigo-800 dark:bg-indigo-950/40">
                 <svg className="h-5 w-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
                 </svg>
@@ -333,7 +343,7 @@ export default function JdAnalysisPage() {
                 {resumeParsing && <span className="text-xs text-muted-foreground">解析中...</span>}
                 <button
                   onClick={() => { setResumeFile(null); setResumeText(null); }}
-                  className="ml-auto rounded-lg p-1 text-muted-foreground hover:bg-rose-100 hover:text-rose-600 transition-colors"
+                  className="ml-auto rounded-lg p-1 text-muted-foreground hover:bg-rose-100 hover:text-rose-600 dark:hover:bg-rose-900/40 dark:hover:text-rose-300 transition-colors"
                   title="移除简历"
                 >
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -383,7 +393,7 @@ export default function JdAnalysisPage() {
                   };
                   input.click();
                 }}
-                className="cursor-pointer rounded-xl border-2 border-dashed border-border bg-muted px-4 py-4 text-center transition-colors hover:border-indigo-300 hover:bg-indigo-50/30"
+                className="cursor-pointer rounded-xl border-2 border-dashed border-border bg-muted px-4 py-4 text-center transition-colors hover:border-indigo-300 hover:bg-indigo-50/30 dark:hover:border-indigo-700 dark:hover:bg-indigo-950/30"
               >
                 <svg className="mx-auto h-8 w-8 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
@@ -430,7 +440,7 @@ export default function JdAnalysisPage() {
         </div>
 
         {error && (
-          <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
+          <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/30 dark:text-red-300">{error}</div>
         )}
 
         {/* History Toggle */}
@@ -452,7 +462,7 @@ export default function JdAnalysisPage() {
                     key={h.id}
                     onClick={() => { setResult(h); setJdText(h.jd_text || ''); }}
                     className={`cursor-pointer rounded-xl border px-4 py-3 text-sm transition-colors ${
-                      displayResult?.id === h.id ? 'border-[#4F46E5] bg-indigo-50' : 'border-border bg-card hover:bg-muted'
+                      displayResult?.id === h.id ? 'border-[#4F46E5] bg-indigo-50 dark:bg-indigo-900/30' : 'border-border bg-card hover:bg-muted'
                     }`}
                   >
                     <div className="flex items-center justify-between">
@@ -461,7 +471,7 @@ export default function JdAnalysisPage() {
                         <span className="text-xs text-muted-foreground">{new Date(h.created_at).toLocaleDateString()}</span>
                         <button
                           onClick={(e) => { e.stopPropagation(); handleDelete(h.id); }}
-                          className="rounded-lg p-1.5 text-muted-foreground hover:bg-rose-100 hover:text-rose-600 transition-colors"
+                          className="rounded-lg p-1.5 text-muted-foreground hover:bg-rose-100 hover:text-rose-600 dark:hover:bg-rose-900/40 dark:hover:text-rose-300 transition-colors"
                           title="删除"
                         >
                           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -509,12 +519,12 @@ export default function JdAnalysisPage() {
 
             {/* Resume Match Card */}
             {displayResult.resume_match && (
-              <div className="rounded-2xl border-2 border-indigo-200 bg-indigo-50/30 p-6 shadow-sm">
+              <div className="rounded-2xl border-2 border-indigo-200 bg-indigo-50/30 p-6 shadow-sm dark:border-indigo-800 dark:bg-indigo-950/30">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#4F46E5]/10 text-lg">🎯</div>
                   <h3 className="text-base font-semibold text-foreground">简历匹配度</h3>
                   <div className="ml-auto flex items-center gap-2">
-                    <span className="text-3xl font-bold text-[#4F46E5]">{displayResult.resume_match.match_score}</span>
+                    <span className="text-3xl font-bold text-[#4F46E5] dark:text-indigo-400">{displayResult.resume_match.match_score}</span>
                     <span className="text-sm text-muted-foreground">/ 100</span>
                   </div>
                 </div>
@@ -531,10 +541,10 @@ export default function JdAnalysisPage() {
                 {/* 匹配优势 */}
                 {displayResult.resume_match.strengths.length > 0 && (
                   <div className="mb-4">
-                    <h4 className="mb-2 text-sm font-medium text-emerald-700">匹配优势</h4>
+                    <h4 className="mb-2 text-sm font-medium text-emerald-700 dark:text-emerald-400">匹配优势</h4>
                     <div className="space-y-1.5">
                       {displayResult.resume_match.strengths.map((s, i) => (
-                        <div key={i} className="flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-1.5">
+                        <div key={i} className="flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-1.5 dark:bg-emerald-900/30">
                           <svg className="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                           </svg>
@@ -547,10 +557,10 @@ export default function JdAnalysisPage() {
                 {/* 简历差距 */}
                 {displayResult.resume_match.resume_gaps.length > 0 && (
                   <div className="mb-4">
-                    <h4 className="mb-2 text-sm font-medium text-amber-700">简历差距</h4>
+                    <h4 className="mb-2 text-sm font-medium text-amber-700 dark:text-amber-400">简历差距</h4>
                     <div className="space-y-2">
                       {displayResult.resume_match.resume_gaps.map((g, i) => (
-                        <div key={i} className="rounded-xl border border-amber-200 bg-amber-50/50 px-4 py-3">
+                        <div key={i} className="rounded-xl border border-amber-200 bg-amber-50/50 px-4 py-3 dark:border-amber-800 dark:bg-amber-900/20">
                           <div className="flex items-center gap-2">
                             <span className="text-sm font-medium text-foreground">{g.skill_name}</span>
                           </div>
@@ -564,10 +574,10 @@ export default function JdAnalysisPage() {
                 {/* 提升建议 */}
                 {displayResult.resume_match.improvement_suggestions.length > 0 && (
                   <div>
-                    <h4 className="mb-2 text-sm font-medium text-indigo-700">简历提升建议</h4>
+                    <h4 className="mb-2 text-sm font-medium text-indigo-700 dark:text-indigo-400">简历提升建议</h4>
                     <div className="space-y-1.5">
                       {displayResult.resume_match.improvement_suggestions.map((s, i) => (
-                        <div key={i} className="flex items-center gap-2 rounded-lg bg-indigo-50 px-3 py-1.5">
+                        <div key={i} className="flex items-center gap-2 rounded-lg bg-indigo-50 px-3 py-1.5 dark:bg-indigo-900/30">
                           <svg className="h-4 w-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                           </svg>
@@ -580,65 +590,103 @@ export default function JdAnalysisPage() {
               </div>
             )}
 
-            {/* Extracted Skills with Module Mapping */}
-            <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-              <h3 className="mb-4 text-base font-semibold text-foreground">提取的技能要求</h3>
-              <div className="space-y-2">
-                {displayResult.extracted_skills?.map((skill, i) => {
-                  // 查找对应的模块匹配
-                  const match = displayResult.skill_module_matches?.find(m => m.skill_name === skill.skill_name);
+            {/* Extracted Skills — grouped by module */}
+            {displayResult.skill_module_matches && displayResult.skill_module_matches.length > 0 ? (
+              (() => {
+                // 按模块分组
+                const moduleGroups = new Map<string, { module_name: string; skills: { skill: ExtractedSkill; match: SkillMatch; isGap: boolean }[] }>();
+                const unmatchedSkills: { skill: ExtractedSkill; isGap: boolean }[] = [];
+
+                for (const skill of displayResult.extracted_skills || []) {
+                  const match = displayResult.skill_module_matches.find(m => m.skill_name === skill.skill_name);
                   const gap = displayResult.gaps?.find(g => g.skill_name === skill.skill_name);
-                  const moduleName = match?.module_name || gap?.related_module_name;
-                  const matchScore = match?.match_score;
                   const isGap = !!gap;
-                  return (
+                  if (match && match.module_name) {
+                    const key = match.module_name;
+                    if (!moduleGroups.has(key)) {
+                      moduleGroups.set(key, { module_name: match.module_name, skills: [] });
+                    }
+                    moduleGroups.get(key)!.skills.push({ skill, match, isGap });
+                  } else {
+                    unmatchedSkills.push({ skill, isGap });
+                  }
+                }
+
+                // 按技能数量排序模块组
+                const sortedGroups = Array.from(moduleGroups.entries())
+                  .sort((a, b) => b[1].skills.length - a[1].skills.length);
+
+                return (
+                  <div className="space-y-4">
+                    {sortedGroups.map(([key, group]) => (
+                      <div key={key} className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+                        <div className="flex items-center gap-2 mb-3">
+                          <span className="text-sm font-semibold text-primary">{group.module_name}</span>
+                          <span className="rounded bg-indigo-100 px-1.5 py-0.5 text-[10px] font-medium text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">{group.skills.length} 项技能</span>
+                        </div>
+                        <div className="space-y-2">
+                          {group.skills.map(({ skill, match, isGap }) => (
+                            <div key={skill.skill_name} className="flex items-center gap-2 rounded-xl border border-border px-3 py-2">
+                              <span className="text-sm font-medium text-foreground">{skill.skill_name}</span>
+                              <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${importanceColors[skill.importance] || importanceColors.medium}`}>
+                                {importanceLabels[skill.importance] || '中'}
+                              </span>
+                              {isGap && (
+                                <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">差距</span>
+                              )}
+                              <div className="ml-auto flex items-center gap-2">
+                                <div className="h-2 w-16 overflow-hidden rounded-full bg-[#E5E7EB] dark:bg-gray-700">
+                                  <div
+                                    className={`h-full rounded-full ${match.match_score >= 70 ? 'bg-emerald-500' : match.match_score >= 40 ? 'bg-amber-500' : 'bg-red-500'}`}
+                                    style={{ width: `${Math.min(100, Math.max(0, match.match_score))}%` }}
+                                  />
+                                </div>
+                                <span className={`text-[10px] font-medium ${match.match_score >= 70 ? 'text-emerald-600 dark:text-emerald-400' : match.match_score >= 40 ? 'text-amber-600 dark:text-amber-400' : 'text-red-500 dark:text-red-400'}`}>
+                                  {match.match_score}%
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                    {unmatchedSkills.length > 0 && (
+                      <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+                        <div className="flex items-center gap-2 mb-3">
+                          <span className="text-sm font-semibold text-foreground">未匹配模块</span>
+                          <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">{unmatchedSkills.length} 项技能</span>
+                        </div>
+                        <div className="space-y-2">
+                          {unmatchedSkills.map(({ skill, isGap }) => (
+                            <div key={skill.skill_name} className="flex items-center gap-2 rounded-xl border border-border px-3 py-2">
+                              <span className="text-sm font-medium text-foreground">{skill.skill_name}</span>
+                              <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${importanceColors[skill.importance] || importanceColors.medium}`}>
+                                {importanceLabels[skill.importance] || '中'}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground">{skill.category}</span>
+                              {isGap && (
+                                <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">差距</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()
+            ) : (
+              /* Fallback: flat list when no module matches */
+              <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+                <h3 className="mb-4 text-base font-semibold text-foreground">提取的技能要求</h3>
+                <div className="space-y-2">
+                  {displayResult.extracted_skills?.map((skill, i) => (
                     <div key={i} className="flex items-center gap-2 rounded-xl border border-border px-3 py-2">
                       <span className="text-sm font-medium text-foreground">{skill.skill_name}</span>
                       <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${importanceColors[skill.importance] || importanceColors.medium}`}>
                         {importanceLabels[skill.importance] || '中'}
                       </span>
                       <span className="text-[10px] text-muted-foreground">{skill.category}</span>
-                      {moduleName && (
-                        <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${isGap ? 'bg-amber-100 text-amber-700' : 'bg-indigo-100 text-indigo-700'}`}>
-                          {isGap ? '差距→' : ''}{moduleName}
-                        </span>
-                      )}
-                      {matchScore != null && (
-                        <span className={`text-[10px] font-medium ${matchScore >= 70 ? 'text-emerald-600' : matchScore >= 40 ? 'text-amber-600' : 'text-red-500'}`}>
-                          {matchScore}%
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Skill Module Matches */}
-            {displayResult.skill_module_matches && displayResult.skill_module_matches.length > 0 && (
-              <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-                <h3 className="mb-4 text-base font-semibold text-foreground">技能模块匹配</h3>
-                <div className="space-y-3">
-                  {displayResult.skill_module_matches.map((match, i) => (
-                    <div key={i} className="flex items-center justify-between rounded-xl border border-border px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <span className="text-sm font-medium text-foreground">{match.skill_name || match.module_name}</span>
-                        {match.skill_name && match.module_name && match.skill_name !== match.module_name && (
-                          <>
-                            <span className="text-xs text-muted-foreground">→</span>
-                            <span className="text-sm text-primary">{match.module_name}</span>
-                          </>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="h-2 w-20 overflow-hidden rounded-full bg-[#E5E7EB]">
-                          <div
-                            className={`h-full rounded-full ${match.match_score >= 70 ? 'bg-emerald-500' : match.match_score >= 40 ? 'bg-amber-500' : 'bg-red-500'}`}
-                            style={{ width: `${Math.min(100, Math.max(0, match.match_score))}%` }}
-                          />
-                        </div>
-                        <span className="text-xs font-medium text-muted-foreground">{match.match_score}%</span>
-                      </div>
                     </div>
                   ))}
                 </div>
@@ -651,12 +699,12 @@ export default function JdAnalysisPage() {
               {displayResult.gaps && displayResult.gaps.length > 0 ? (
                 <div className="space-y-3">
                   {displayResult.gaps.map((gap, i) => (
-                    <div key={i} className="rounded-xl border border-amber-200 bg-amber-50/50 px-4 py-3">
+                    <div key={i} className="rounded-xl border border-amber-200 bg-amber-50/50 px-4 py-3 dark:border-amber-800 dark:bg-amber-900/20">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <span className="text-sm font-medium text-foreground">{gap.skill_name}</span>
-                            <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-700">{gap.category}</span>
+                            <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">{gap.category}</span>
                           </div>
                           {gap.suggestion && <p className="mt-1 text-xs text-muted-foreground">{gap.suggestion}</p>}
                           {gap.related_module_name && (
@@ -668,7 +716,7 @@ export default function JdAnalysisPage() {
                           disabled={addingSkill === gap.skill_name || addedSkills.has(gap.skill_name)}
                           className={`ml-3 shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
                             addedSkills.has(gap.skill_name)
-                              ? 'bg-emerald-100 text-emerald-700'
+                              ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
                               : 'bg-[#4F46E5] text-white hover:bg-[#4338CA] disabled:opacity-50'
                           }`}
                         >

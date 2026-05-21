@@ -31,7 +31,7 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   // Public paths that don't require authentication
-  const publicPaths = ['/', '/login', '/register'];
+  const publicPaths = ['/', '/login', '/register', '/skills/learning-map'];
   const isPublicPath = publicPaths.some(
     (p) => request.nextUrl.pathname === p || request.nextUrl.pathname.startsWith(p + '/')
   );

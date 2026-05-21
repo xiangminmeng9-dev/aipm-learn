@@ -1,13 +1,16 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 
 export async function GET() {
   try {
-    const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-    const { data, error } = await sb
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: '请先登录' }, { status: 401 });
+    }
+
+    const serviceClient = createServiceClient();
+    const { data, error } = await serviceClient
       .from('daily_ai_news_articles')
       .select('news_date')
       .order('news_date', { ascending: false });

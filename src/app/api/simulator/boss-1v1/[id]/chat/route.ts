@@ -79,7 +79,8 @@ export async function POST(
           score: evaluation.total_score ?? 0,
           feedback: evaluation,
         })
-        .eq('id', id);
+        .eq('id', id)
+        .eq('user_id', user.id);
 
       await supabase.from('boss_1v1_messages').insert({
         session_id: id,

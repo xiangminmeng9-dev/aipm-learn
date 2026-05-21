@@ -81,7 +81,8 @@ export async function POST(request: NextRequest) {
           stage_scores: currentScores,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', session.id);
+        .eq('id', session.id)
+        .eq('user_id', user.id);
 
       return NextResponse.json({ success: true, next_stage: nextStage, stage_scores: currentScores });
     }
@@ -106,7 +107,8 @@ export async function POST(request: NextRequest) {
           stage_scores: stage_scores || {},
           updated_at: new Date().toISOString(),
         })
-        .eq('id', session.id);
+        .eq('id', session.id)
+        .eq('user_id', user.id);
 
       return NextResponse.json({ success: true });
     }

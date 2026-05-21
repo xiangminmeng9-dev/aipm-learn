@@ -24,6 +24,33 @@ export interface Task {
   status: string;
   sort_order: number;
   from_template: boolean;
+  is_fixed: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FixedTaskTemplate {
+  id: string;
+  title: string;
+  description: string;
+  start_time: string;
+  duration: string;
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Todo {
+  id: string;
+  title: string;
+  description: string;
+  priority: 'high' | 'medium' | 'low';
+  status: 'pending' | 'in_progress' | 'completed';
+  category: string;
+  due_date: string | null;
+  sort_order: number;
+  completed_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -235,7 +262,7 @@ export async function createTasksBatch(items: (Partial<Task> & { title: string }
   }
 }
 
-export async function updateTask(id: string, updates: Partial<Pick<Task, 'title' | 'description' | 'start_time' | 'duration' | 'status' | 'sort_order'>>): Promise<{ task: Task | null }> {
+export async function updateTask(id: string, updates: Partial<Pick<Task, 'title' | 'description' | 'start_time' | 'duration' | 'status' | 'sort_order' | 'is_fixed'>>): Promise<{ task: Task | null }> {
   try {
     const res = await fetch(`/api/notebook/tasks/${id}`, {
       method: 'PATCH',
@@ -256,5 +283,132 @@ export async function deleteTask(id: string): Promise<boolean> {
     return res.ok;
   } catch {
     return false;
+  }
+}
+
+// --- Todos API wrappers ---
+
+export async function getTodos(): Promise<{ todos: Todo[]; authed: boolean }> {
+  try {
+    const res = await fetch('/api/notebook/todos');
+    if (!res.ok) throw new Error('Failed');
+    const json = await res.json();
+    return { todos: json.todos || [], authed: true };
+  } catch {
+    return { todos: [], authed: false };
+  }
+}
+
+export async function createTodo(todo: { title: string; description?: string; priority?: string; due_date?: string | null }): Promise<{ todo: Todo | null }> {
+  try {
+    const res = await fetch('/api/notebook/todos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(todo),
+    });
+    if (!res.ok) throw new Error('Failed');
+    const json = await res.json();
+    return { todo: json.todo || null };
+  } catch {
+    return { todo: null };
+  }
+}
+
+export async function updateTodo(id: string, updates: Partial<Pick<Todo, 'title' | 'description' | 'priority' | 'status' | 'due_date' | 'sort_order'>>): Promise<{ todo: Todo | null }> {
+  try {
+    const res = await fetch('/api/notebook/todos', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, ...updates }),
+    });
+    if (!res.ok) throw new Error('Failed');
+    const json = await res.json();
+    return { todo: json.todo || null };
+  } catch {
+    return { todo: null };
+  }
+}
+
+export async function deleteTodo(id: string): Promise<boolean> {
+  try {
+    const res = await fetch(`/api/notebook/todos?id=${id}`, { method: 'DELETE' });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+// --- Fixed Task Templates API wrappers ---
+
+export async function getFixedTaskTemplates(): Promise<{ templates: FixedTaskTemplate[]; authed: boolean }> {
+  try {
+    const res = await fetch('/api/notebook/fixed-tasks');
+    if (!res.ok) throw new Error('Failed');
+    const json = await res.json();
+    return { templates: json.templates || [], authed: true };
+  } catch {
+    return { templates: [], authed: false };
+  }
+}
+
+export async function createFixedTaskTemplate(template: {
+  title: string;
+  description?: string;
+  start_time?: string;
+  duration?: string;
+}): Promise<{ template: FixedTaskTemplate | null }> {
+  try {
+    const res = await fetch('/api/notebook/fixed-tasks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(template),
+    });
+    if (!res.ok) throw new Error('Failed');
+    const json = await res.json();
+    return { template: json.template || null };
+  } catch {
+    return { template: null };
+  }
+}
+
+export async function updateFixedTaskTemplate(
+  id: string,
+  updates: Partial<Pick<FixedTaskTemplate, 'title' | 'description' | 'start_time' | 'duration' | 'sort_order' | 'is_active'>>
+): Promise<{ template: FixedTaskTemplate | null }> {
+  try {
+    const res = await fetch(`/api/notebook/fixed-tasks/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates),
+    });
+    if (!res.ok) throw new Error('Failed');
+    const json = await res.json();
+    return { template: json.template || null };
+  } catch {
+    return { template: null };
+  }
+}
+
+export async function deleteFixedTaskTemplate(id: string): Promise<boolean> {
+  try {
+    const res = await fetch(`/api/notebook/fixed-tasks/${id}`, { method: 'DELETE' });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+export async function restoreFixedTaskForDate(templateId: string, date: string): Promise<{ task: Task | null }> {
+  try {
+    const res = await fetch('/api/notebook/fixed-tasks/skips', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ template_id: templateId, date }),
+    });
+    if (!res.ok) throw new Error('Failed');
+    const json = await res.json();
+    return { task: json.task || null };
+  } catch {
+    return { task: null };
   }
 }

@@ -13,7 +13,7 @@ import {
   DragOverlay,
 } from '@dnd-kit/core';
 import { useDraggable } from '@dnd-kit/core';
-import { type Task, getTasks, createTask, createTasksBatch, updateTask, deleteTask } from '@/lib/notebook-store';
+import { type Task, type FixedTaskTemplate, getTasks, createTask, createTasksBatch, updateTask, deleteTask, getFixedTaskTemplates, createFixedTaskTemplate, deleteFixedTaskTemplate, updateFixedTaskTemplate } from '@/lib/notebook-store';
 import { useToast } from '@/components/ui/toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import GradientBackground from '@/components/ui/gradient-background';
@@ -292,6 +292,9 @@ function TimelineTaskBar({
               {task.from_template && (
                 <span className="rounded bg-purple-50 px-1 py-0 text-[9px] font-medium text-purple-500">模板</span>
               )}
+              {task.is_fixed && (
+                <span className="rounded bg-amber-50 px-1 py-0 text-[9px] font-medium text-amber-600">固定</span>
+              )}
             </div>
           )}
         </div>
@@ -333,6 +336,7 @@ function TaskEditor({
   const [startTime] = useState(task.start_time);
   const [duration, setDuration] = useState(task.duration);
   const [status, setStatus] = useState(task.status);
+  const [isFixed, setIsFixed] = useState(task.is_fixed ?? false);
   const sc = STATUS_CONFIG[status] || STATUS_CONFIG.todo;
 
   return (
@@ -408,6 +412,25 @@ function TaskEditor({
               })}
             </div>
           </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">固定任务</label>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setIsFixed(!isFixed)}
+                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                  isFixed ? 'bg-amber-500' : 'bg-gray-200 dark:bg-gray-700'
+                }`}
+              >
+                <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform ${
+                  isFixed ? 'translate-x-4' : 'translate-x-0.5'
+                }`} />
+              </button>
+              <span className="text-xs text-muted-foreground">
+                {isFixed ? '每日自动创建' : '仅当天有效'}
+              </span>
+            </div>
+          </div>
         </div>
         <div className="flex items-center justify-between gap-2 border-t border-border px-6 py-3">
           {task.id !== '__new__' ? (
@@ -415,7 +438,7 @@ function TaskEditor({
           ) : <div />}
           <div className="flex items-center gap-2">
             <GlassButton onClick={onClose} color="gray">取消</GlassButton>
-            <GlassButton onClick={() => onSave(task.id, { title, description, start_time: startTime, duration, status })} color="indigo" size="md">保存</GlassButton>
+            <GlassButton onClick={() => onSave(task.id, { title, description, start_time: startTime, duration, status, is_fixed: isFixed })} color="indigo" size="md">保存</GlassButton>
           </div>
         </div>
       </motion.div>
@@ -431,6 +454,9 @@ export default function DailyTasksPage() {
   const [isAuthed, setIsAuthed] = useState(false);
   const [selectedDate, setSelectedDate] = useState('');
   const [showTemplates, setShowTemplates] = useState(false);
+  const [fixedTemplates, setFixedTemplates] = useState<FixedTaskTemplate[]>([]);
+  const [showFixedPanel, setShowFixedPanel] = useState(false);
+  const [fixedLoading, setFixedLoading] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   const [hoverHour, setHoverHour] = useState<number | null>(null);
@@ -453,6 +479,15 @@ export default function DailyTasksPage() {
   }, [selectedDate]);
 
   useEffect(() => { fetchTasks(); }, [fetchTasks]);
+
+  const loadFixedTemplates = useCallback(async () => {
+    setFixedLoading(true);
+    const { templates } = await getFixedTaskTemplates();
+    setFixedTemplates(templates);
+    setFixedLoading(false);
+  }, []);
+
+  useEffect(() => { loadFixedTemplates(); }, [loadFixedTemplates]);
 
   // Assign columns (only for scheduled tasks)
   const scheduledTasks = useMemo(() => getScheduledTasks(tasks), [tasks]);
@@ -498,6 +533,10 @@ export default function DailyTasksPage() {
   };
 
   const handleDeleteTask = async (id: string) => {
+    const task = tasks.find((t) => t.id === id);
+    if (task?.is_fixed) {
+      if (!confirm('此为固定任务，仅删除今日实例。未来日期仍会自动创建。确认删除？')) return;
+    }
     setTasks((prev) => prev.filter((t) => t.id !== id));
     await deleteTask(id);
   };
@@ -553,6 +592,7 @@ export default function DailyTasksPage() {
       status: 'todo',
       sort_order: 0,
       from_template: false,
+      is_fixed: false,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     });
@@ -663,6 +703,7 @@ export default function DailyTasksPage() {
         </div>
         <div className="flex items-center gap-3">
           <GlassButton onClick={() => setShowTemplates(!showTemplates)} color={showTemplates ? 'purple' : 'gray'}>📋 AI PM 模板</GlassButton>
+          <GlassButton onClick={() => setShowFixedPanel(!showFixedPanel)} color={showFixedPanel ? 'amber' : 'gray'}>📌 固定任务{fixedTemplates.length > 0 ? ` (${fixedTemplates.filter(t => t.is_active).length})` : ''}</GlassButton>
           <div className="flex items-center gap-2">
             <div className="text-right">
               <p className="text-[10px] text-muted-foreground">完成进度</p>
@@ -713,6 +754,63 @@ export default function DailyTasksPage() {
                   );
                 })}
               </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Fixed Task Management Panel */}
+      <AnimatePresence>
+        {showFixedPanel && (
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="mb-4 overflow-hidden">
+            <div className="rounded-2xl border border-amber-200/60 bg-amber-50/40 p-4">
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-amber-700">📌 固定任务管理</h3>
+                <span className="text-[10px] text-amber-600">每天自动创建</span>
+              </div>
+              {fixedTemplates.length === 0 ? (
+                <p className="text-xs text-muted-foreground py-4 text-center">暂无固定任务。在任务编辑器中开启「固定任务」即可添加。</p>
+              ) : (
+                <div className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-4">
+                  {fixedTemplates.map((tpl) => (
+                    <div
+                      key={tpl.id}
+                      className={`group relative flex flex-col items-start gap-1 rounded-xl border p-2.5 text-left transition-all ${!tpl.is_active ? 'border-dashed border-gray-300 bg-gray-50/50 opacity-60' : 'border-border bg-card'}`}
+                    >
+                      <div className="flex items-center gap-1.5 w-full">
+                        <span className="text-xs font-medium text-foreground truncate flex-1">{tpl.title}</span>
+                        {!tpl.is_active && <span className="text-[9px] text-gray-500 flex-shrink-0">已暂停</span>}
+                      </div>
+                      <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                        {tpl.start_time && <span>{tpl.start_time}</span>}
+                        {tpl.duration && <span>· {tpl.duration}</span>}
+                      </div>
+                      {/* Actions */}
+                      <div className="flex items-center gap-1 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={async () => {
+                            await updateFixedTaskTemplate(tpl.id, { is_active: !tpl.is_active });
+                            loadFixedTemplates();
+                          }}
+                          className="rounded px-1.5 py-0.5 text-[9px] font-medium text-amber-600 hover:bg-amber-100"
+                        >
+                          {tpl.is_active ? '暂停' : '恢复'}
+                        </button>
+                        <button
+                          onClick={async () => {
+                            if (!confirm(`确认删除固定任务「${tpl.title}」？未来将不再自动创建。`)) return;
+                            await deleteFixedTaskTemplate(tpl.id);
+                            loadFixedTemplates();
+                          }}
+                          className="rounded px-1.5 py-0.5 text-[9px] font-medium text-rose-500 hover:bg-rose-100"
+                        >
+                          删除
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </motion.div>
         )}
@@ -851,6 +949,7 @@ export default function DailyTasksPage() {
                     <div className="flex items-center gap-2 text-[10px] text-muted-foreground pl-5.5">
                       {task.duration && <span>{task.duration}</span>}
                       {task.from_template && <span className="rounded bg-purple-50 px-1 py-0 text-[9px] font-medium text-purple-500">模板</span>}
+                      {task.is_fixed && <span className="rounded bg-amber-50 px-1 py-0 text-[9px] font-medium text-amber-600">固定</span>}
                     </div>
                   </div>
                   {/* Delete on hover */}
@@ -879,8 +978,8 @@ export default function DailyTasksPage() {
             task={editingTask}
             onSave={async (id, updates) => {
               if (id === '__new__') {
-                // Create new task
                 const title = (updates.title as string) || '新任务';
+                const isFixed = updates.is_fixed ?? false;
                 await createTask({
                   title,
                   description: updates.description ?? '',
@@ -888,10 +987,40 @@ export default function DailyTasksPage() {
                   start_time: updates.start_time ?? '',
                   duration: updates.duration ?? '1h',
                   from_template: false,
+                  is_fixed: isFixed,
                 });
+                if (isFixed) {
+                  await createFixedTaskTemplate({
+                    title,
+                    description: updates.description ?? '',
+                    start_time: updates.start_time ?? '',
+                    duration: updates.duration ?? '1h',
+                  });
+                  loadFixedTemplates();
+                }
                 setEditingTask(null);
                 fetchTasks();
               } else {
+                // Check if is_fixed changed
+                const wasFixed = editingTask?.is_fixed ?? false;
+                const nowFixed = updates.is_fixed ?? wasFixed;
+                if (!wasFixed && nowFixed) {
+                  // Create fixed template
+                  await createFixedTaskTemplate({
+                    title: (updates.title as string) ?? editingTask?.title ?? '',
+                    description: (updates.description as string) ?? editingTask?.description ?? '',
+                    start_time: (updates.start_time as string) ?? editingTask?.start_time ?? '',
+                    duration: (updates.duration as string) ?? editingTask?.duration ?? '',
+                  });
+                  loadFixedTemplates();
+                } else if (wasFixed && !nowFixed) {
+                  // Delete fixed template by title
+                  const tpl = fixedTemplates.find((t) => t.title === editingTask?.title);
+                  if (tpl) {
+                    await deleteFixedTaskTemplate(tpl.id);
+                    loadFixedTemplates();
+                  }
+                }
                 handleUpdateTask(id, updates);
               }
             }}

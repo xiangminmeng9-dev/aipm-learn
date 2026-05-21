@@ -58,15 +58,22 @@ function getUpcomingTasks(records: LocalRecord[]): (LocalRecord & { daysUntil: n
 }
 
 export default function CalendarPage() {
-  const now = new Date();
-  const [year, setYear] = useState(now.getFullYear());
-  const [month, setMonth] = useState(now.getMonth() + 1);
+  const [year, setYear] = useState(0);
+  const [month, setMonth] = useState(0);
   const [days, setDays] = useState<ApplicationCalendarDay[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [allRecords, setAllRecords] = useState<LocalRecord[]>([]);
 
+  // Set initial date after mount to avoid hydration mismatch
+  useEffect(() => {
+    const now = new Date();
+    setYear(now.getFullYear());
+    setMonth(now.getMonth() + 1);
+  }, []);
+
   const fetchCalendar = useCallback(async () => {
+    if (year === 0 || month === 0) return;
     setLoading(true);
     try {
       const res = await fetch(`/api/resume/calendar?year=${year}&month=${month}`);

@@ -34,7 +34,9 @@ export default function LoginForm() {
       // Clear old cache and set new user ID
       cacheClear();
       setCacheUserId(data.session.user.id);
-      const next = searchParams.get('next') || '/';
+      const nextParam = searchParams.get('next');
+      // 防止开放重定向：只允许相对路径或以 / 开头的内部路径
+      const next = nextParam && nextParam.startsWith('/') && !nextParam.includes('://') ? nextParam : '/';
       router.push(next);
       router.refresh();
     } catch {

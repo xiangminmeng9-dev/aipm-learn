@@ -515,8 +515,8 @@ JD：${jdText}${resumeSection}
 3. importance判断：JD中明确要求/必须具备=high，优先/加分项=medium，了解即可=low
 4. 每个技能在matches中有记录，match_score>=60归入模块，<60放入gaps
 5. gaps中的每个技能必须指定related_module_id和related_module_name——从现有模块中选最相关的一个，即使匹配度不高也要指定，不要填null
-6. company_name如果JD中没有明确提及公司名，填null，不要填"未明确"等文字
-${resumeText ? `7. resume_match.match_score是简历与JD的整体匹配度（0-100整数）
+6. company_name如果JD中没有明确提及公司名，填null，不要填"未明确"等文字${resumeText ? `
+7. resume_match.match_score是简历与JD的整体匹配度（0-100整数）
 8. resume_match.strengths是简历中已具备的JD要求（3-5条）
 9. resume_match.resume_gaps是基于简历内容判断的差距——与gaps不同，resume_gaps是对比简历后发现候选人缺少什么，每条包含skill_name、detail（简历中缺少的具体内容）、suggestion（如何提升）
 10. resume_match.improvement_suggestions是针对简历本身的改进建议（2-4条）` : ''}`;
@@ -631,7 +631,7 @@ ${resumeText}`;
 
 export const RESUME_ANALYSIS_SYSTEM_PROMPT = `你是一位资深简历顾问，同时精通大厂ATS（Applicant Tracking System）简历筛选机制。你熟悉Workday、Greenhouse、Lever等主流ATS系统的解析规则和筛选逻辑。输出严格的 JSON 格式，不要添加任何JSON之外的文字。`;
 
-export function buildResumeGeneratePrompt(options: { resumeText: string; jdText?: string; styleType: string }): string {
+export function buildResumeGeneratePrompt(options: { resumeText: string; jdText?: string; styleType: string; companyType?: string; companyPreference?: string }): string {
   const styleNames: Record<string, string> = {
     standard: '标准风格',
     big_company: '大厂风格',
@@ -640,6 +640,23 @@ export function buildResumeGeneratePrompt(options: { resumeText: string; jdText?
     industry_internet: '互联网行业风格',
   };
 
+  const companyTypeNames: Record<string, string> = {
+    big_company: '大厂（BAT/TMD级别大型科技公司）',
+    foreign: '外企（跨国/外资公司）',
+    state_owned: '国企（央企/事业单位）',
+    startup: '创业公司（早期初创）',
+    traditional: '传统行业（非科技类）',
+    other: '其他',
+  };
+
+  const companyTypeSection = options.companyType && options.companyType !== 'other'
+    ? `\n目标公司类型：${companyTypeNames[options.companyType] || options.companyType}`
+    : '';
+
+  const companyPrefSection = options.companyPreference
+    ? `\n该公司招聘偏好：${options.companyPreference}\n【重要】请根据上述招聘偏好调整简历内容，重点突出该公司看重的方面。`
+    : '';
+
   return `请根据以下信息生成优化后的简历。
 
 原始简历：
@@ -647,7 +664,7 @@ ${options.resumeText}
 
 ${options.jdText ? `目标岗位 JD：\n${options.jdText}` : ''}
 
-目标风格：${styleNames[options.styleType] || options.styleType}
+目标风格：${styleNames[options.styleType] || options.styleType}${companyTypeSection}${companyPrefSection}
 
 请严格按以下 JSON 格式输出：
 {
@@ -877,6 +894,54 @@ export function buildCompetitiveAnalysisPrompt(productName: string): string {
 }
 
 // ============================================================
+// Competitive Analysis Methodology — 竞品分析方法论提炼
+// ============================================================
+
+export function buildCompetitiveMethodologyPrompt(analyses: {
+  product_name: string;
+  market_position: string;
+  feature_comparison: string;
+  strengths_weaknesses: string;
+  differentiation_strategy: string;
+  total_score: number;
+  dimension_scores: { dimension: string; score: number; comment: string }[];
+}[]): string {
+  const historyText = analyses
+    .map(
+      (a, i) =>
+        `分析${i + 1}：${a.product_name}（总分${a.total_score}）
+市场定位：${a.market_position?.slice(0, 500) || '无'}
+功能对比：${a.feature_comparison?.slice(0, 500) || '无'}
+优劣势：${a.strengths_weaknesses?.slice(0, 500) || '无'}
+差异化策略：${a.differentiation_strategy?.slice(0, 500) || '无'}
+评分：${(a.dimension_scores || []).map((d) => `${d.dimension}=${d.score}`).join(', ')}`
+    )
+    .join('\n\n');
+
+  return `请基于以下多次竞品分析的实践记录，提炼出一套通用的「竞品分析方法论」。
+
+分析历史：
+${historyText}
+
+要求：
+- 用大白话写，像给新人做培训一样，不要学术化
+- 每个步骤要具体、可操作，看了就能用
+- 典型案例要还原真实场景，让人一看就懂
+
+请按以下格式输出（严格使用 JSON）：
+{
+  "framework": "<核心框架：用2-3句大白话概括做竞品分析的本质是什么，从哪几个维度切入>",
+  "key_steps": ["<步骤1：做什么 + 怎么做 + 为什么>", "<步骤2>", ...],
+  "typical_cases": ["<案例1：在XX场景下，要分析XX产品，你可以这样用上面的框架...>", ...],
+  "common_pitfalls": ["<坑1：新手常犯的XX错误，应该XX做>", ...],
+  "scoring_insights": ["<评分洞察1：从多次评分中发现的规律，比如XX维度普遍偏低是因为...>", ...]
+}`;
+}
+
+export const COMPETITIVE_METHODOLOGY_SYSTEM_PROMPT = `你是一位资深产品经理竞品分析教练，擅长从多次竞品分析实践中总结出可复用的方法论。你的输出要像朋友聊天一样自然，用大白话讲清楚"竞品分析本质是做什么、怎么一步步做、哪些坑要避开、评分说明了什么"。输出严格的 JSON 格式。`;
+
+// ============================================================
+// AI Learning Path
 // AI Learning Path — 基于弱项分析的学习路径
 // ============================================================
 

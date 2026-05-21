@@ -15,12 +15,14 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { resume_text, jd_text, style_type, company_name, position_name } = body as {
+    const { resume_text, jd_text, style_type, company_name, position_name, company_type, company_preference } = body as {
       resume_text: string;
       jd_text: string;
       style_type: string;
       company_name?: string;
       position_name?: string;
+      company_type?: string;
+      company_preference?: string;
     };
 
     if (!resume_text || resume_text.trim().length < 5) {
@@ -39,6 +41,8 @@ export async function POST(request: NextRequest) {
       resumeText: resume_text,
       jdText: jd_text,
       styleType: style_type,
+      companyType: company_type,
+      companyPreference: company_preference,
     });
 
     const resultText = await generateText(prompt, {

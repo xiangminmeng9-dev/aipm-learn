@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,6 +17,8 @@ export async function GET(request: NextRequest) {
                     : range === '30d' ? new Date(now.getTime() - 30 * 86400000).toISOString()
                     : new Date(0).toISOString();
 
+    const serviceClient = createServiceClient();
+
     // 并行查询所有数据
     const [
       submissionsRes,
@@ -28,6 +30,7 @@ export async function GET(request: NextRequest) {
       techBookmarksRes,
       submissionsWithCategoryRes,
       submissionsWithDifficultyRes,
+      techPushCountRes,
     ] = await Promise.all([
       supabase.from('daily_challenge_submissions').select('id, score, time_spent, submitted_at, challenge_id').eq('user_id', user.id).gte('submitted_at', cutoffDate),
       supabase.from('daily_challenge_submissions').select('submitted_at').eq('user_id', user.id).order('submitted_at', { ascending: false }),
@@ -35,9 +38,10 @@ export async function GET(request: NextRequest) {
       supabase.from('flashcards').select('id', { count: 'exact', head: true }).eq('user_id', user.id).lte('next_review', now.toISOString()),
       supabase.from('flashcard_reviews').select('rating, created_at').eq('user_id', user.id).gte('created_at', cutoffDate),
       supabase.from('daily_challenge_submissions').select('id', { count: 'exact', head: true }).eq('user_id', user.id).lt('score', 60),
-      supabase.from('daily_tech_bookmarks').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+      supabase.from('daily_tech_bookmarks').select('id, tech_date, title').eq('user_id', user.id),
       supabase.from('daily_challenge_submissions').select('challenge_id, daily_challenges(category)').eq('user_id', user.id),
       supabase.from('daily_challenge_submissions').select('challenge_id, score, daily_challenges(difficulty)').eq('user_id', user.id),
+      supabase.from('daily_tech_cache').select('id', { count: 'exact', head: true }),
     ]);
 
     const submissions = submissionsRes.data || [];
@@ -46,9 +50,11 @@ export async function GET(request: NextRequest) {
     const dueFlashcards = dueFlashcardCountRes.count || 0;
     const flashcardReviews = flashcardReviewsRes.data || [];
     const wrongCount = wrongCountRes.count || 0;
-    const techBookmarks = techBookmarksRes.count || 0;
+    const techBookmarksData = techBookmarksRes.data || [];
+    const techBookmarks = techBookmarksData.length;
     const submissionsWithCategory = submissionsWithCategoryRes.data || [];
     const submissionsWithDifficulty = submissionsWithDifficultyRes.data || [];
+    const techPushCount = techPushCountRes.count || 0;
 
     // 答题统计
     const totalSubmissions = submissions.length;
@@ -158,6 +164,7 @@ export async function GET(request: NextRequest) {
         good_review_rate: goodReviewRate,
         wrong_count: wrongCount,
         tech_bookmarks: techBookmarks,
+        tech_push_count: techPushCount,
         submission_change: submissionChange,
         score_trend: scoreTrend,
         category_distribution: categoryDistribution,

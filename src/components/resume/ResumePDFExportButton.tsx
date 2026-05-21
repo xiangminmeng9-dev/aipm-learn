@@ -111,8 +111,17 @@ function buildStructuredHtml(data: ResumeData): string {
   return '<div class="page"><div class="sidebar">' + sb + '</div><div class="main">' + mn + '</div></div>';
 }
 
+function sanitizeHtml(html: string): string {
+  return html
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    .replace(/on\w+\s*=\s*"[^"]*"/gi, '')
+    .replace(/on\w+\s*=\s*'[^']*'/gi, '')
+    .replace(/javascript\s*:/gi, '')
+    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '');
+}
+
 function buildFallbackHtml(modifiedResume: string, positionName: string, companyName: string): string {
-  const mdHtml = marked.parse(modifiedResume || '') as string;
+  const mdHtml = sanitizeHtml(marked.parse(modifiedResume || '') as string);
   let sb = '<div class="avatar"><div class="avatar-inner">' + esc((positionName || 'R').slice(0, 1)) + '</div></div>';
   sb += '<div class="sb-name">' + esc(positionName || '简历') + '</div>';
   if (companyName) sb += '<div class="sb-sum">目标：' + esc(companyName) + '</div>';

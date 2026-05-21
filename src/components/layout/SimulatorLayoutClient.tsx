@@ -1,13 +1,23 @@
 'use client';
 
+import { Suspense } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import ActivityTracker from '@/components/tracking/ActivityTracker';
 import { sidebarIcon as icon } from './sidebar-icon';
 
+function PageLoader() {
+  return (
+    <div className="flex min-h-[60vh] items-center justify-center">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-violet-500 border-t-transparent" />
+    </div>
+  );
+}
+
 const NAV_ITEMS = [
-  { href: '/simulator', label: '工作流程', icon: icon('M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z') },
+  { href: '/simulator/dashboard', label: '数据看板', icon: icon('M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z') },
+  { href: '/simulator/workflow', label: '工作流程', icon: icon('M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z') },
   { href: '/simulator/project', label: '项目实战沙盒', icon: icon('M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0012 9.75c-2.551 0-5.056.2-7.5.582V21M3 21h18M12 6.75h.008v.008H12V6.75z') },
   { href: '/simulator/boss-1v1', label: 'Boss 1V1', icon: icon('M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z') },
 ];
@@ -15,7 +25,7 @@ const NAV_ITEMS = [
 export default function SimulatorLayoutClient({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const activeNav = NAV_ITEMS.find(item => {
-    if (item.href === '/simulator') return pathname === '/simulator';
+    if (item.href === '/simulator/dashboard') return pathname === '/simulator/dashboard' || pathname === '/simulator';
     return pathname.startsWith(item.href);
   });
 
@@ -66,7 +76,7 @@ export default function SimulatorLayoutClient({ children }: { children: React.Re
           <div className="border-b border-border bg-card px-6 py-3 lg:hidden">
             <h1 className="text-base font-bold text-foreground">模拟器</h1>
           </div>
-          {children}
+          <Suspense fallback={<PageLoader />}>{children}</Suspense>
         </main>
       </div>
     </div>

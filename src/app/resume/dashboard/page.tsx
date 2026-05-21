@@ -9,6 +9,7 @@ import DashboardFunnelChart from '@/components/resume-application/DashboardFunne
 import DashboardPositionCategoryChart from '@/components/resume-application/DashboardPositionCategoryChart';
 import DashboardRecentReviews from '@/components/resume-application/DashboardRecentReviews';
 import GradientBackground from '@/components/ui/gradient-background';
+import ReactECharts from '@/components/ui/EChartsWrapper';
 import type { DashboardStats } from '@/types';
 
 // localStorage 数据结构
@@ -53,10 +54,10 @@ function computeStatsFromLocal(records: LocalRecord[], range: '7d' | '30d' | 'al
   }
 
   const total = filteredRecords.length;
-  const interviewStatuses = ['面试中'];
+  const interviewStatuses = ['初面', '二面', '终面'];
   const interviews = filteredRecords.filter(r => interviewStatuses.includes(r.status)).length;
-  // Offer 包含：Offer、已接受、已拒绝（都是收到offer的记录）
-  const offers = filteredRecords.filter(r => ['Offer', '已接受', '已拒绝'].includes(r.status)).length;
+  // Offer 包含：已发offer、已接受（与API一致）
+  const offers = filteredRecords.filter(r => ['已发offer', '已接受'].includes(r.status)).length;
   const accepted = filteredRecords.filter(r => r.status === '已接受').length;
   const rejected = filteredRecords.filter(r => r.status === '已拒绝').length;
 
@@ -71,14 +72,14 @@ function computeStatsFromLocal(records: LocalRecord[], range: '7d' | '30d' | 'al
 
   const thisWeekTotal = thisWeekRecords.length;
   const thisWeekInterviews = thisWeekRecords.filter(r => interviewStatuses.includes(r.status)).length;
-  // Offer 包含：Offer、已接受、已拒绝
-  const thisWeekOffers = thisWeekRecords.filter(r => ['Offer', '已接受', '已拒绝'].includes(r.status)).length;
+  // Offer 包含：已发offer、已接受
+  const thisWeekOffers = thisWeekRecords.filter(r => ['已发offer', '已接受'].includes(r.status)).length;
   const thisWeekRejected = thisWeekRecords.filter(r => r.status === '已拒绝').length;
   const thisWeekAccepted = thisWeekRecords.filter(r => r.status === '已接受').length;
 
   const lastWeekTotal = lastWeekRecords.length;
   const lastWeekInterviews = lastWeekRecords.filter(r => interviewStatuses.includes(r.status)).length;
-  const lastWeekOffers = lastWeekRecords.filter(r => ['Offer', '已接受', '已拒绝'].includes(r.status)).length;
+  const lastWeekOffers = lastWeekRecords.filter(r => ['已发offer', '已接受'].includes(r.status)).length;
   const lastWeekRejected = lastWeekRecords.filter(r => r.status === '已拒绝').length;
 
   const totalApplicationsChange = calcChange(thisWeekTotal, lastWeekTotal);
@@ -134,7 +135,7 @@ function computeStatsFromLocal(records: LocalRecord[], range: '7d' | '30d' | 'al
     const dayRecords = recordsByDate.get(dateStr) || [];
     cumulativeCount += dayRecords.length;
     cumulativeInterviews += dayRecords.filter(r => interviewStatuses.includes(r.status)).length;
-    cumulativeOffers += dayRecords.filter(r => ['Offer', '已接受', '已拒绝'].includes(r.status)).length;
+    cumulativeOffers += dayRecords.filter(r => ['已发offer', '已接受'].includes(r.status)).length;
     cumulativeAccepted += dayRecords.filter(r => r.status === '已接受').length;
 
     allTimeTrend.push({
@@ -195,10 +196,10 @@ function computeStatsFromLocal(records: LocalRecord[], range: '7d' | '30d' | 'al
 
     const entry = categoryMap.get(category) || { total: 0, interviews: 0, offers: 0 };
     entry.total++;
-    if (interviewStatuses.includes(r.status) || r.status === 'Offer' || r.status === '已接受' || r.status === '已拒绝') {
+    if (interviewStatuses.includes(r.status) || r.status === '已发offer' || r.status === '已接受' || r.status === '已拒绝') {
       entry.interviews++;
     }
-    if (r.status === 'Offer' || r.status === '已接受') entry.offers++;
+    if (r.status === '已发offer' || r.status === '已接受') entry.offers++;
     categoryMap.set(category, entry);
   }
   const positionCategoryConversion = Array.from(categoryMap.entries()).map(([category, v]) => ({
@@ -211,15 +212,15 @@ function computeStatsFromLocal(records: LocalRecord[], range: '7d' | '30d' | 'al
   // Funnel stages - 累积关系，每个阶段包含后面所有阶段
   // 投递 >= 筛选通过 >= 面试中 >= 终面 >= Offer >= 接受
   const acceptedCount = filteredRecords.filter(r => r.status === '已接受').length;
-  const offerCount = filteredRecords.filter(r => r.status === 'Offer' || r.status === '已接受').length;
+  const offerCount = filteredRecords.filter(r => r.status === '已发offer' || r.status === '已接受').length;
   const finalInterviewCount = filteredRecords.filter(r =>
-    r.status === '终面' || r.status === 'Offer' || r.status === '已接受'
+    r.status === '终面' || r.status === '已发offer' || r.status === '已接受'
   ).length;
   const interviewingCount = filteredRecords.filter(r =>
-    ['面试中', '终面', 'Offer', '已接受'].includes(r.status)
+    ['初面', '二面', '终面'].includes(r.status)
   ).length;
   const screenedCount = filteredRecords.filter(r =>
-    r.status !== '已投递' && r.status !== '观望'
+    r.status !== '已投递'
   ).length;
 
   const funnelStages = [
@@ -266,6 +267,9 @@ function computeStatsFromLocal(records: LocalRecord[], range: '7d' | '30d' | 'al
     offers_received_change: offersReceivedChange,
     offer_acceptance_rate_change: offerAcceptanceRateChange,
     rejection_count_change: rejectionCountChange,
+    // localStorage fallback 没有简历修改数据
+    total_resume_modifications: 0,
+    resume_modification_trend: [],
   };
 }
 
@@ -276,20 +280,30 @@ export default function DashboardPage() {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/resume/dashboard?range=${range}`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.stats && d.stats.total_applications > 0) {
-          setStats(d.stats);
+    Promise.all([
+      fetch(`/api/resume/dashboard?range=${range}`).then(r => r.json()),
+      fetch('/api/resume/versions').then(r => r.json()).catch(() => ({ versions: [] })),
+    ])
+      .then(([d, vData]) => {
+        const versions: Array<{id:string; company_name:string|null; position_name:string|null; style_type:string; changes_summary:string|null; created_at:string}> = vData.versions || [];
+        const versionTrend = versions.map((v, i) => ({ date: v.created_at.slice(0, 10), count: i + 1 }));
+        const versionHistory = versions.map((v, i) => ({ id: v.id, company_name: v.company_name, position_name: v.position_name, style_type: v.style_type, changes_summary: v.changes_summary, created_at: v.created_at, version_number: i + 1 }));
+
+        let baseStats: DashboardStats;
+        if (d.stats) {
+          baseStats = d.stats;
         } else {
-          // API 无数据，从 localStorage 读取
           const localRecords = loadFromStorage();
-          if (localRecords.length > 0) {
-            setStats(computeStatsFromLocal(localRecords, range));
-          } else {
-            setStats(null);
-          }
+          baseStats = localRecords.length > 0
+            ? computeStatsFromLocal(localRecords, range)
+            : { total_applications: 0, interview_count: 0, interview_pass_rate: 0, offers_received: 0, offer_acceptance_rate: 0, rejection_count: 0, rejection_reasons: [], channel_distribution: [], status_distribution: [], application_trend: [], status_timeline: [], city_distribution: [], position_category_conversion: [], funnel_stages: [], recent_reviews: [] };
         }
+
+        setStats({
+          ...baseStats,
+          total_resume_modifications: versions.length,
+          resume_modification_trend: versionTrend,
+        } as DashboardStats);
       })
       .catch(() => {
         // API 出错，从 localStorage 读取
@@ -370,6 +384,41 @@ export default function DashboardPage() {
         <DashboardRecentReviews items={stats.recent_reviews} />
       </div>
 
+      {/* Resume Modification Trend */}
+      {stats.resume_modification_trend && stats.resume_modification_trend.length > 1 && (
+        <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold text-foreground">简历修改累计趋势</h3>
+            <span className="text-xs text-muted-foreground">累计修改 {stats.total_resume_modifications ?? 0} 次</span>
+          </div>
+          <ReactECharts
+            option={{
+              tooltip: { trigger: 'axis' },
+              xAxis: {
+                type: 'category',
+                data: stats.resume_modification_trend.map(t => t.date.slice(5)),
+                axisLabel: { fontSize: 10, color: '#6B7280' },
+              },
+              yAxis: { type: 'value', minInterval: 1, axisLabel: { fontSize: 10, color: '#6B7280' } },
+              series: [{
+                name: '累计修改',
+                type: 'line',
+                data: stats.resume_modification_trend.map(t => t.count),
+                smooth: true,
+                areaStyle: { opacity: 0.3 },
+                lineStyle: { color: '#6366F1', width: 2 },
+                itemStyle: { color: '#6366F1' },
+                symbol: 'circle',
+                symbolSize: 8,
+              }],
+              grid: { left: 40, right: 20, top: 20, bottom: 30 },
+            }}
+            style={{ height: 220 }}
+          />
+        </div>
+      )}
+
+      
       {/* Rejection reasons (if any) */}
       {stats.rejection_reasons.length > 0 && (
         <div className="rounded-2xl border border-border bg-card p-5">

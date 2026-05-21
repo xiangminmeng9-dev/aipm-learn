@@ -71,13 +71,15 @@ const topShelf: BookItem[] = [
     title: 'Notebook',
     titleEn: 'AI PM Notebook',
     label: 'AI PM 笔记本',
-    description: '问题记录 · 每日任务 · 模板速建',
+    description: '问题记录 · 待办事项 · 每日任务 · 模板速建',
     detail:
-      'AI PM 笔记本帮助你记录工作中遇到的问题和洞察，管理每日任务，并提供大厂 AI PM 每日工作模板快速生成任务。',
+      'AI PM 笔记本帮助你记录工作中遇到的问题和洞察，管理待办事项，管理每日任务，并提供大厂 AI PM 每日工作模板快速生成任务。',
     href: '/notebook',
     theme: 'notebook',
     subFeatures: [
-      { label: '笔记', href: '/notebook' },
+      { label: '数据看板', href: '/notebook/dashboard' },
+      { label: '笔记', href: '/notebook/notes' },
+      { label: '待办事项', href: '/notebook/todos' },
       { label: '每日任务', href: '/notebook/tasks' },
       { label: 'AI 分析', href: '/notebook/ai' },
     ],
@@ -93,7 +95,8 @@ const topShelf: BookItem[] = [
     href: '/simulator',
     theme: 'simulator',
     subFeatures: [
-      { label: '模拟工作流', href: '/simulator' },
+      { label: '数据看板', href: '/simulator/dashboard' },
+      { label: '模拟工作流', href: '/simulator/workflow' },
       { label: '项目实战沙盒', href: '/simulator/project' },
       { label: 'Boss 1V1', href: '/simulator/boss-1v1' },
     ],

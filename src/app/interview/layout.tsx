@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import Sidebar from '@/components/layout/Sidebar';
 import ResponsiveSidebar from '@/components/layout/ResponsiveSidebar';
 import ActivityTracker from '@/components/tracking/ActivityTracker';
@@ -9,6 +10,14 @@ export const metadata: Metadata = {
   description: 'AI 面试练习与模拟',
 };
 
+function PageLoader() {
+  return (
+    <div className="flex min-h-[60vh] items-center justify-center">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+    </div>
+  );
+}
+
 export default function InterviewLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-screen">
@@ -17,7 +26,9 @@ export default function InterviewLayout({ children }: { children: React.ReactNod
       <div className="flex flex-1 flex-col overflow-hidden">
         <div className="h-1 shrink-0 bg-gradient-to-r from-purple-600 via-violet-500 to-fuchsia-500" />
         <LearningReminderBanner />
-        <main className="flex-1 overflow-y-auto bg-background">{children}</main>
+        <main className="flex-1 overflow-y-auto bg-background">
+          <Suspense fallback={<PageLoader />}>{children}</Suspense>
+        </main>
       </div>
     </div>
   );

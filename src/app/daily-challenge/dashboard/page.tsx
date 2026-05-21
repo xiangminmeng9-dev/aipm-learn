@@ -17,6 +17,7 @@ interface DailyChallengeStats {
   good_review_rate: number;
   wrong_count: number;
   tech_bookmarks: number;
+  tech_push_count: number;
   submission_change: number;
   score_trend: { date: string; score: number }[];
   category_distribution: { category: string; count: number }[];
@@ -27,6 +28,13 @@ interface DailyChallengeStats {
   difficulties?: string[];
 }
 
+const CATEGORY_COLORS = ['#F59E0B', '#10B981', '#0EA5E9', '#8B5CF6', '#EF4444', '#EC4899'];
+const DIFFICULTY_COLORS = ['#10B981', '#F59E0B', '#EF4444'];
+const FUNNEL_COLORS = ['#F59E0B', '#10B981', '#6366F1'];
+const FUNNEL_LABELS: Record<string, string> = {
+  viewed: '浏览', attempted: '答题', completed: '完成',
+};
+
 const statCards = [
   { key: 'total_submissions', label: '答题总数', icon: '📝' },
   { key: 'avg_score', label: '平均得分', icon: '📊' },
@@ -34,6 +42,7 @@ const statCards = [
   { key: 'total_flashcards', label: '知识闪卡', icon: '🎴' },
   { key: 'wrong_count', label: '错题数', icon: '❌' },
   { key: 'tech_bookmarks', label: '技术收藏', icon: '⭐' },
+  { key: 'tech_push_count', label: '技术推送', icon: '📡' },
 ];
 
 export default function DailyChallengeDashboardPage() {
@@ -147,7 +156,7 @@ export default function DailyChallengeDashboardPage() {
         </div>
 
         {/* Stats Row */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
           {statCards.map(card => {
             const value = stats[card.key as keyof DailyChallengeStats] as number;
             const change = card.key === 'total_submissions' ? stats.submission_change : 0;
@@ -211,27 +220,41 @@ export default function DailyChallengeDashboardPage() {
               </div>
             </div>
             {scoreTrendData.length > 0 ? (
-              <ReactECharts
-                option={{
-                  tooltip: { trigger: 'axis' },
-                  xAxis: {
-                    type: 'category',
-                    data: scoreTrendData.map(t => t.date.slice(5)),
-                    axisLabel: { fontSize: 10, color: '#6B7280' },
-                  },
-                  yAxis: { type: 'value', min: 0, max: 100, axisLabel: { fontSize: 10, color: '#6B7280' } },
-                  series: [{
-                    type: 'line',
-                    data: scoreTrendData.map(t => t.score),
-                    smooth: true,
-                    areaStyle: { opacity: 0.3 },
-                    lineStyle: { color: '#F59E0B', width: 2 },
-                    itemStyle: { color: '#F59E0B' },
-                  }],
-                  grid: { left: 40, right: 20, top: 20, bottom: 30 },
-                }}
-                style={{ height: 200 }}
-              />
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <ReactECharts
+                    option={{
+                      tooltip: { trigger: 'axis' },
+                      xAxis: {
+                        type: 'category',
+                        data: scoreTrendData.map(t => t.date.slice(5)),
+                        axisLabel: { fontSize: 10, color: '#6B7280' },
+                      },
+                      yAxis: { type: 'value', min: 0, max: 100, axisLabel: { fontSize: 10, color: '#6B7280' } },
+                      series: [{
+                        type: 'line',
+                        data: scoreTrendData.map(t => t.score),
+                        smooth: true,
+                        areaStyle: { opacity: 0.3 },
+                        lineStyle: { color: '#F59E0B', width: 2 },
+                        itemStyle: { color: '#F59E0B' },
+                      }],
+                      grid: { left: 40, right: 20, top: 20, bottom: 30 },
+                    }}
+                    style={{ height: 200 }}
+                  />
+                </div>
+                <div className="w-[120px] flex flex-col gap-2 py-2">
+                  <div className="flex items-center gap-2">
+                    <span className="shrink-0 w-3 h-3 rounded-sm" style={{ backgroundColor: '#F59E0B' }} />
+                    <span className="text-xs text-muted-foreground">得分</span>
+                  </div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    <div>平均: {stats.avg_score}</div>
+                    <div>最高: {stats.max_score}</div>
+                  </div>
+                </div>
+              </div>
             ) : (
               <div className="flex h-[200px] items-center justify-center text-sm text-muted-foreground">暂无数据</div>
             )}
@@ -256,18 +279,35 @@ export default function DailyChallengeDashboardPage() {
               </div>
             </div>
             {categoryData.length > 0 ? (
-              <ReactECharts
-                option={{
-                  tooltip: { trigger: 'item' },
-                  series: [{
-                    type: 'pie',
-                    radius: ['40%', '70%'],
-                    data: categoryData.map(c => ({ name: c.category, value: c.count })),
-                    label: { fontSize: 10, color: '#6B7280' },
-                  }],
-                }}
-                style={{ height: 200 }}
-              />
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <ReactECharts
+                    option={{
+                      tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+                      series: [{
+                        type: 'pie',
+                        radius: ['40%', '70%'],
+                        data: categoryData.map((c, i) => ({
+                          name: c.category,
+                          value: c.count,
+                          itemStyle: { color: CATEGORY_COLORS[i % CATEGORY_COLORS.length] },
+                        })),
+                        label: { fontSize: 10, color: '#6B7280' },
+                      }],
+                    }}
+                    style={{ height: 200 }}
+                  />
+                </div>
+                <div className="w-[120px] flex flex-col gap-2 py-2">
+                  {categoryData.map((c, i) => (
+                    <div key={c.category} className="flex items-center gap-2">
+                      <span className="shrink-0 w-3 h-3 rounded-sm" style={{ backgroundColor: CATEGORY_COLORS[i % CATEGORY_COLORS.length] }} />
+                      <span className="text-xs text-muted-foreground truncate">{c.category}</span>
+                      <span className="text-[10px] text-muted-foreground ml-auto">{c.count}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             ) : (
               <div className="flex h-[200px] items-center justify-center text-sm text-muted-foreground">暂无数据</div>
             )}
@@ -294,26 +334,40 @@ export default function DailyChallengeDashboardPage() {
               </div>
             </div>
             {stats.daily_activity.length > 0 ? (
-              <ReactECharts
-                option={{
-                  tooltip: { trigger: 'axis' },
-                  xAxis: {
-                    type: 'category',
-                    data: stats.daily_activity.map(d => d.date.slice(5)),
-                    axisLabel: { fontSize: 10, color: '#6B7280' },
-                  },
-                  yAxis: { type: 'value', axisLabel: { fontSize: 10, color: '#6B7280' } },
-                  series: [{
-                    type: activityView,
-                    data: stats.daily_activity.map(d => d.count),
-                    smooth: activityView === 'line',
-                    itemStyle: { color: '#F59E0B', borderRadius: activityView === 'bar' ? [4, 4, 0, 0] : undefined },
-                    areaStyle: activityView === 'line' ? { opacity: 0.3 } : undefined,
-                  }],
-                  grid: { left: 40, right: 20, top: 20, bottom: 30 },
-                }}
-                style={{ height: 200 }}
-              />
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <ReactECharts
+                    option={{
+                      tooltip: { trigger: 'axis' },
+                      xAxis: {
+                        type: 'category',
+                        data: stats.daily_activity.map(d => d.date.slice(5)),
+                        axisLabel: { fontSize: 10, color: '#6B7280' },
+                      },
+                      yAxis: { type: 'value', axisLabel: { fontSize: 10, color: '#6B7280' } },
+                      series: [{
+                        type: activityView,
+                        data: stats.daily_activity.map(d => d.count),
+                        smooth: activityView === 'line',
+                        itemStyle: { color: '#F59E0B', borderRadius: activityView === 'bar' ? [4, 4, 0, 0] : undefined },
+                        areaStyle: activityView === 'line' ? { opacity: 0.3 } : undefined,
+                      }],
+                      grid: { left: 40, right: 20, top: 20, bottom: 30 },
+                    }}
+                    style={{ height: 200 }}
+                  />
+                </div>
+                <div className="w-[120px] flex flex-col gap-2 py-2">
+                  <div className="flex items-center gap-2">
+                    <span className="shrink-0 w-3 h-3 rounded-sm" style={{ backgroundColor: '#F59E0B' }} />
+                    <span className="text-xs text-muted-foreground">答题数</span>
+                  </div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    <div>总计: {stats.total_submissions}</div>
+                    <div>日均: {stats.daily_activity.length > 0 ? Math.round(stats.daily_activity.reduce((s, d) => s + d.count, 0) / stats.daily_activity.length) : 0}</div>
+                  </div>
+                </div>
+              </div>
             ) : (
               <div className="flex h-[200px] items-center justify-center text-sm text-muted-foreground">暂无数据</div>
             )}
@@ -336,36 +390,48 @@ export default function DailyChallengeDashboardPage() {
               </div>
             </div>
             {stats.difficulty_stats.length > 0 ? (
-              <ReactECharts
-                option={{
-                  tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-                  xAxis: {
-                    type: 'category',
-                    data: difficultyChartData.labels,
-                    axisLabel: { fontSize: 10, color: '#6B7280' },
-                  },
-                  yAxis: {
-                    type: 'value',
-                    name: difficultyMetric === 'count' ? '数量' : '得分',
-                    min: difficultyMetric === 'score' ? 0 : undefined,
-                    max: difficultyMetric === 'score' ? 100 : undefined,
-                    axisLabel: { fontSize: 10, color: '#6B7280' },
-                  },
-                  series: [{
-                    type: 'bar',
-                    data: difficultyChartData.values,
-                    itemStyle: {
-                      color: (params: { dataIndex: number }) => {
-                        const colors = ['#10B981', '#F59E0B', '#EF4444'];
-                        return colors[params.dataIndex] || '#F59E0B';
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <ReactECharts
+                    option={{
+                      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+                      xAxis: {
+                        type: 'category',
+                        data: difficultyChartData.labels,
+                        axisLabel: { fontSize: 10, color: '#6B7280' },
                       },
-                      borderRadius: [4, 4, 0, 0],
-                    },
-                  }],
-                  grid: { left: 50, right: 20, top: 30, bottom: 30 },
-                }}
-                style={{ height: 200 }}
-              />
+                      yAxis: {
+                        type: 'value',
+                        name: difficultyMetric === 'count' ? '数量' : '得分',
+                        min: difficultyMetric === 'score' ? 0 : undefined,
+                        max: difficultyMetric === 'score' ? 100 : undefined,
+                        axisLabel: { fontSize: 10, color: '#6B7280' },
+                      },
+                      series: [{
+                        type: 'bar',
+                        data: difficultyChartData.values,
+                        itemStyle: {
+                          color: (params: { dataIndex: number }) => {
+                            return DIFFICULTY_COLORS[params.dataIndex] || '#F59E0B';
+                          },
+                          borderRadius: [4, 4, 0, 0],
+                        },
+                      }],
+                      grid: { left: 50, right: 20, top: 30, bottom: 30 },
+                    }}
+                    style={{ height: 200 }}
+                  />
+                </div>
+                <div className="w-[120px] flex flex-col gap-2 py-2">
+                  {stats.difficulty_stats.map((d, i) => (
+                    <div key={d.difficulty} className="flex items-center gap-2">
+                      <span className="shrink-0 w-3 h-3 rounded-sm" style={{ backgroundColor: DIFFICULTY_COLORS[i] || '#F59E0B' }} />
+                      <span className="text-xs text-muted-foreground">{d.difficulty === 'easy' ? '简单' : d.difficulty === 'medium' ? '中等' : '困难'}</span>
+                      <span className="text-[10px] text-muted-foreground ml-auto">{d.count}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             ) : (
               <div className="flex h-[200px] items-center justify-center text-sm text-muted-foreground">暂无数据</div>
             )}
@@ -376,55 +442,79 @@ export default function DailyChallengeDashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
             <h3 className="mb-4 text-sm font-semibold text-foreground">学习转化漏斗</h3>
-            <ReactECharts
-              option={{
-                tooltip: { trigger: 'item' },
-                series: [{
-                  type: 'funnel',
-                  left: '10%',
-                  top: 20,
-                  bottom: 20,
-                  width: '80%',
-                  min: 0,
-                  max: Math.max(...stats.funnel_stages.map(s => s.count), 1),
-                  data: stats.funnel_stages.map((s, i) => ({
-                    name: s.stage,
-                    value: s.count,
-                    itemStyle: { color: ['#F59E0B', '#10B981', '#6366F1'][i] },
-                  })),
-                  label: { fontSize: 11, color: '#374151' },
-                }],
-              }}
-              style={{ height: 200 }}
-            />
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <ReactECharts
+                  option={{
+                    tooltip: { trigger: 'item' },
+                    series: [{
+                      type: 'funnel',
+                      left: '10%',
+                      top: 20,
+                      bottom: 20,
+                      width: '80%',
+                      min: 0,
+                      max: Math.max(...stats.funnel_stages.map(s => s.count), 1),
+                      data: stats.funnel_stages.map((s, i) => ({
+                        name: s.stage,
+                        value: s.count,
+                        itemStyle: { color: FUNNEL_COLORS[i] },
+                      })),
+                      label: { fontSize: 11, color: '#374151' },
+                    }],
+                  }}
+                  style={{ height: 200 }}
+                />
+              </div>
+              <div className="w-[120px] flex flex-col gap-2 py-2">
+                {stats.funnel_stages.map((s, i) => (
+                  <div key={s.stage} className="flex items-center gap-2">
+                    <span className="shrink-0 w-3 h-3 rounded-sm" style={{ backgroundColor: FUNNEL_COLORS[i] }} />
+                    <span className="text-xs text-muted-foreground truncate">{FUNNEL_LABELS[s.stage] || s.stage}</span>
+                    <span className="text-[10px] text-muted-foreground ml-auto">{s.count}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
           <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-semibold text-foreground">得分分布</h3>
-              <div className="flex gap-3 text-xs">
-                <span className="text-emerald-500">优秀 ≥80: {stats.high_score_count}</span>
-                <span className="text-rose-500">不及格 &lt;60: {stats.low_score_count}</span>
-              </div>
             </div>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">最高得分</span>
-                <span className="text-lg font-bold text-amber-500">{stats.max_score}</span>
+            <div className="flex gap-3">
+              <div className="flex-1 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">最高得分</span>
+                  <span className="text-lg font-bold text-amber-500">{stats.max_score}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">平均得分</span>
+                  <span className="text-lg font-bold text-foreground">{stats.avg_score}</span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-rose-500 via-amber-500 to-emerald-500"
+                    style={{ width: `${stats.avg_score}%` }}
+                  />
+                </div>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">平均得分</span>
-                <span className="text-lg font-bold text-foreground">{stats.avg_score}</span>
-              </div>
-              <div className="h-2 overflow-hidden rounded-full bg-muted">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-rose-500 via-amber-500 to-emerald-500"
-                  style={{ width: `${stats.avg_score}%` }}
-                />
+              <div className="w-[120px] flex flex-col gap-2 py-2">
+                <div className="flex items-center gap-2">
+                  <span className="shrink-0 w-3 h-3 rounded-sm" style={{ backgroundColor: '#10B981' }} />
+                  <span className="text-xs text-muted-foreground">优秀</span>
+                  <span className="text-[10px] text-muted-foreground ml-auto">{stats.high_score_count}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="shrink-0 w-3 h-3 rounded-sm" style={{ backgroundColor: '#EF4444' }} />
+                  <span className="text-xs text-muted-foreground">不及格</span>
+                  <span className="text-[10px] text-muted-foreground ml-auto">{stats.low_score_count}</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+
+        </div>
     </div>
   );
 }

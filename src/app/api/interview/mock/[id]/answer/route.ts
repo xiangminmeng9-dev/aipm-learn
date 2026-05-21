@@ -82,16 +82,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           is_skipped: true,
           answered_at: new Date().toISOString(),
         })
-        .eq('id', currentAnswer.id);
+        .eq('id', currentAnswer.id)
+        .eq('mock_interview_id', mockId); // scope to this mock
 
       const isLast = mockInterview.current_question >= mockInterview.total_questions;
       if (isLast) {
-        await serviceClient.from('mock_interviews').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', mockId);
+        await serviceClient.from('mock_interviews').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', mockId).eq('user_id', authenticatedUser.id);
         return NextResponse.json({ evaluation_text: '已跳过', is_last: true, next_question: null });
       }
 
       // Generate next question
-      const nextQ = await generateNextQuestion(serviceClient, mockInterview, mockId);
+      const nextQ = await generateNextQuestion(serviceClient, mockInterview, mockId, authenticatedUser.id);
       return NextResponse.json({ evaluation_text: '已跳过', is_last: false, next_question: nextQ });
     }
 
@@ -145,17 +146,18 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
               is_skipped: false,
               answered_at: new Date().toISOString(),
             })
-            .eq('id', currentAnswer.id);
+            .eq('id', currentAnswer.id)
+            .eq('mock_interview_id', mockId);
 
           const isLast = mockInterview.current_question >= mockInterview.total_questions;
 
           if (isLast) {
-            await serviceClient.from('mock_interviews').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', mockId);
+            await serviceClient.from('mock_interviews').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', mockId).eq('user_id', authenticatedUser.id);
             triggerMethodologyUpdate(authenticatedUser.id, mockInterview.type_id).catch(() => {});
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'done', is_last: true, next_question: null, score })}\n\n`));
           } else {
             // Generate next question (non-streaming, fast)
-            const nextQ = await generateNextQuestion(serviceClient, mockInterview, mockId);
+            const nextQ = await generateNextQuestion(serviceClient, mockInterview, mockId, authenticatedUser.id);
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'done', is_last: false, next_question: nextQ, score })}\n\n`));
           }
 
@@ -217,6 +219,7 @@ async function generateNextQuestion(
   serviceClient: ReturnType<typeof createServiceClient>,
   mockInterview: { id: string; type_id: string; current_question: number; total_questions: number; jd_text: string | null; resume_text: string | null },
   mockId: string,
+  userId: string,
 ): Promise<{ number: number; text: string }> {
   const nextQuestionNumber = mockInterview.current_question + 1;
   const { data: typeData } = await serviceClient
@@ -256,7 +259,8 @@ async function generateNextQuestion(
   await serviceClient
     .from('mock_interviews')
     .update({ current_question: nextQuestionNumber })
-    .eq('id', mockId);
+    .eq('id', mockId)
+    .eq('user_id', userId);
 
   return { number: nextQuestionNumber, text: nextQuestionText.trim() };
 }

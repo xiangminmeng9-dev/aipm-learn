@@ -6,6 +6,9 @@ import {
   Eye, Clock, CheckCircle2, XCircle, Briefcase, Building2, MapPin, Calendar, X,
   Send, FileText, PhoneCall, Award,
 } from 'lucide-react';
+import CompanyTypeBadge from './CompanyTypeBadge';
+import { COMPANY_TYPES } from './constants';
+import type { CompanyType } from '@/types';
 
 // ── Types ──────────────────────────────────────────────
 type KanbanStage = 'watching' | 'applied' | 'interviewing' | 'offer' | 'accepted' | 'rejected';
@@ -410,7 +413,13 @@ export default function ApplicationTracker() {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch {}
   };
 
-  const [records, setRecords] = useState<AppRecord[]>(() => loadFromStorage());
+  const [records, setRecords] = useState<AppRecord[]>([]);
+
+  // Load from localStorage after mount to avoid hydration mismatch
+  useEffect(() => {
+    const stored = loadFromStorage();
+    if (stored.length > 0) setRecords(stored);
+  }, []);
 
   // Keep localStorage in sync with records
   useEffect(() => {
@@ -450,6 +459,8 @@ export default function ApplicationTracker() {
               interviewTime: localRecord?.interviewTime,
               tags: [],
               notes: (a.notes as string) || localRecord?.notes || '',
+              companyType: (a.company_type as CompanyType) || 'other',
+              companyPreference: (a.company_preference as string) || '',
             };
           });
           // Merge: API records take precedence by company+position, keep local-only ones

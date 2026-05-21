@@ -142,7 +142,8 @@ export async function POST(request: NextRequest) {
             stage_scores: currentScores,
             updated_at: new Date().toISOString(),
           })
-          .eq('id', dbSessionId);
+          .eq('id', dbSessionId)
+          .eq('user_id', user.id);
       }
 
       return NextResponse.json({ evaluation, session_id: dbSessionId });

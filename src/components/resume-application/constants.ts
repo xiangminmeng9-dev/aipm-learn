@@ -1,5 +1,18 @@
 import type { ApplicationChannel, ApplicationStatus } from '@/types';
 
+import type { CompanyType } from '@/types';
+
+export const COMPANY_TYPES: { value: CompanyType; label: string; color: string; bg: string }[] = [
+  { value: 'big_company', label: '大厂', color: '#e53e3e', bg: '#fff5f5' },
+  { value: 'foreign', label: '外企', color: '#3182ce', bg: '#ebf8ff' },
+  { value: 'state_owned', label: '国企', color: '#d69e2e', bg: '#fffff0' },
+  { value: 'startup', label: '创业公司', color: '#38a169', bg: '#f0fff4' },
+  { value: 'traditional', label: '传统行业', color: '#805ad5', bg: '#faf5ff' },
+  { value: 'other', label: '其他', color: '#718096', bg: '#f7fafc' },
+];
+
+export const COMPANY_TYPE_MAP = Object.fromEntries(COMPANY_TYPES.map(t => [t.value, t]));
+
 export const APPLICATION_CHANNELS: { value: ApplicationChannel; label: string; icon: string }[] = [
   { value: 'BOSS', label: 'BOSS直聘', icon: '💼' },
   { value: '猎头', label: '猎头', icon: '🎯' },

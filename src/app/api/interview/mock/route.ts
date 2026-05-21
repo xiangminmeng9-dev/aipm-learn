@@ -220,6 +220,18 @@ export async function DELETE(request: NextRequest) {
 
     const serviceClient = createServiceClient();
 
+    // Verify ownership before deleting
+    const { data: mockOwner } = await serviceClient
+      .from('mock_interviews')
+      .select('id')
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (!mockOwner) {
+      return NextResponse.json({ error: '记录不存在或无权限' }, { status: 403 });
+    }
+
     // Delete answers first (foreign key)
     await serviceClient
       .from('interview_answers')

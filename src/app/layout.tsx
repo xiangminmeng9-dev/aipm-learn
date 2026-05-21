@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import NextTopLoader from 'nextjs-toploader';
 import { Providers } from '@/components/providers';
 import './globals.css';
 
@@ -35,6 +36,7 @@ export default function RootLayout({
   return (
     <html lang="zh-CN" suppressHydrationWarning>
       <body className="bg-background text-foreground antialiased">
+        <NextTopLoader color="#6366F1" showSpinner={false} height={2} shadow={false} />
         <Providers>
           {children}
         </Providers>

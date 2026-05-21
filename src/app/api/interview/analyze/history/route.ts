@@ -52,6 +52,7 @@ export async function GET(request: NextRequest) {
       const q = qMap.get(a.question_id);
       return {
         id: a.id,
+        question_id: a.question_id,
         question: q?.text || '',
         type_name: q?.type_id ? typeMap.get(q.type_id) : null,
         type_id: q?.type_id || null,

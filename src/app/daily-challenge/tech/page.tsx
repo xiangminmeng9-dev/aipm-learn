@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { cacheGet, cacheSet, TTL } from '@/lib/cache';
 import GradientBackground from '@/components/ui/gradient-background';
 
 interface TechItem {
@@ -14,6 +13,8 @@ interface TechItem {
   tags: string[];
   source_name?: string;
   source_url?: string;
+  source_published_at?: string;
+  source_published_display?: string;
 }
 
 export default function DailyTechPage() {
@@ -25,16 +26,6 @@ export default function DailyTechPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const fetchData = useCallback(async (forceRefresh = false) => {
-    if (!forceRefresh) {
-      const cached = cacheGet<{ tech: TechItem; history: TechItem[]; bookmarks: string[] }>('daily-tech');
-      if (cached) {
-        setToday(cached.tech);
-        setHistory(cached.history || []);
-        setBookmarks(cached.bookmarks || []);
-        setSelectedTech(cached.tech);
-        setIsLoading(false);
-      }
-    }
     try {
       const res = await fetch(`/api/daily-challenge/tech${forceRefresh ? '?refresh=1' : ''}`);
       if (res.ok) {
@@ -43,42 +34,40 @@ export default function DailyTechPage() {
         setHistory(data.history || []);
         setBookmarks(data.bookmarks || []);
         setSelectedTech(data.tech);
-        if (!forceRefresh) {
-          cacheSet('daily-tech', { tech: data.tech, history: data.history || [], bookmarks: data.bookmarks || [] }, TTL.DAILY);
-        }
       } else {
         const errorData = await res.json().catch(() => ({}));
         console.error('API error:', errorData);
-        // 如果没有数据，显示错误提示而不是白屏
-        if (!today) {
-          setToday({
+        setToday(prev => {
+          if (prev) return prev;
+          return {
             date: new Date().toISOString().split('T')[0],
             title: '获取失败',
             summary: errorData.error || '获取AI技术资讯失败，请稍后重试',
             explanation: errorData.error || '获取AI技术资讯失败，请稍后重试',
             impact: '请稍后重试或检查网络连接',
             tags: [],
-          });
-          setSelectedTech(null);
-        }
+          };
+        });
+        setSelectedTech(null);
       }
     } catch (err) {
       console.error('Fetch error:', err);
-      if (!today) {
-        setToday({
+      setToday(prev => {
+        if (prev) return prev;
+        return {
           date: new Date().toISOString().split('T')[0],
           title: '网络错误',
           summary: '网络连接失败，请检查网络后重试',
           explanation: '网络连接失败，请检查网络后重试',
           impact: '请刷新页面重试',
           tags: [],
-        });
-        setSelectedTech(null);
-      }
+        };
+      });
+      setSelectedTech(null);
     } finally {
       setIsLoading(false);
     }
-  }, [today]);
+  }, []);
 
   useEffect(() => { fetchData(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -112,6 +101,15 @@ export default function DailyTechPage() {
   };
 
   const displayTech = selectedTech || today;
+
+  // Format published date for display
+  const formatPublishedDate = (tech: TechItem) => {
+    if (tech.source_published_display) return tech.source_published_display;
+    if (tech.source_published_at) {
+      return new Date(tech.source_published_at).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' });
+    }
+    return null;
+  };
 
   if (isLoading) {
     return (
@@ -151,22 +149,29 @@ export default function DailyTechPage() {
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <h2 className="text-lg font-bold text-foreground">{displayTech.title}</h2>
-                    <p className="mt-1 text-xs text-muted-foreground">{displayTech.date}</p>
+                    <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
+                      <span>{displayTech.date}</span>
+                      {formatPublishedDate(displayTech) && (
+                        <span className="text-indigo-600 dark:text-indigo-400 font-medium">
+                          原文发布于 {formatPublishedDate(displayTech)}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <button
                     onClick={() => toggleBookmark(displayTech.date)}
                     className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
                       bookmarks.includes(displayTech.date)
-                        ? 'bg-indigo-100 text-indigo-700'
-                        : 'bg-secondary text-muted-foreground hover:bg-gray-200'
+                        ? 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300'
+                        : 'bg-secondary text-muted-foreground hover:bg-muted'
                     }`}
                   >
                     {bookmarks.includes(displayTech.date) ? '已收藏' : '收藏'}
                   </button>
                 </div>
 
-                <div className="mt-4 rounded-xl bg-indigo-50 p-4">
-                  <p className="text-xs font-medium text-indigo-700 mb-1">摘要</p>
+                <div className="mt-4 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 p-4">
+                  <p className="text-xs font-medium text-indigo-700 dark:text-indigo-300 mb-1">摘要</p>
                   <p className="text-sm text-foreground">{displayTech.summary}</p>
                 </div>
 
@@ -175,8 +180,8 @@ export default function DailyTechPage() {
                   <p className="text-sm text-foreground leading-relaxed">{displayTech.explanation}</p>
                 </div>
 
-                <div className="mt-4 rounded-xl bg-amber-50 p-4">
-                  <p className="text-xs font-medium text-amber-700 mb-1">对 AI PM 的影响</p>
+                <div className="mt-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 p-4">
+                  <p className="text-xs font-medium text-amber-700 dark:text-amber-300 mb-1">对 AI PM 的影响</p>
                   <p className="text-sm text-foreground">{displayTech.impact}</p>
                 </div>
 
@@ -187,6 +192,26 @@ export default function DailyTechPage() {
                         {tag}
                       </span>
                     ))}
+                  </div>
+                )}
+
+                {/* 来源信息 */}
+                {(displayTech.source_url || displayTech.source_name) && (
+                  <div className="mt-4 pt-4 border-t border-border">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>来源：</span>
+                      {displayTech.source_name && <span className="font-medium text-foreground">{displayTech.source_name}</span>}
+                      {displayTech.source_url && (
+                        <a
+                          href={displayTech.source_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-indigo-600 dark:text-indigo-400 hover:underline truncate max-w-[300px]"
+                        >
+                          查看原文
+                        </a>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -209,15 +234,22 @@ export default function DailyTechPage() {
                       onClick={() => setSelectedTech(item)}
                       className={`w-full rounded-xl border p-3 text-left transition-colors ${
                         selectedTech?.date === item.date
-                          ? 'border-indigo-200 bg-indigo-50'
-                          : 'border-border bg-card hover:bg-muted'
+                          ? 'border-indigo-200 bg-indigo-50 dark:border-indigo-800 dark:bg-indigo-950/40'
+                          : 'border-border hover:border-indigo-200 dark:hover:border-indigo-800 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/30'
                       }`}
                     >
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium text-foreground line-clamp-1">{item.title}</span>
                         <span className="text-xs text-muted-foreground shrink-0 ml-2">{item.date}</span>
                       </div>
-                      <p className="mt-1 text-xs text-muted-foreground line-clamp-1">{item.summary}</p>
+                      <div className="mt-1 flex items-center gap-2">
+                        <p className="text-xs text-muted-foreground line-clamp-1 flex-1">{item.summary}</p>
+                        {item.source_published_at && (
+                          <span className="text-[10px] text-indigo-500 dark:text-indigo-400 shrink-0">
+                            {new Date(item.source_published_at).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })}
+                          </span>
+                        )}
+                      </div>
                     </button>
                   ))}
                 </div>

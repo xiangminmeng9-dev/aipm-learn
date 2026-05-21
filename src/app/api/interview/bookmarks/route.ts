@@ -12,6 +12,18 @@ export async function GET(request: NextRequest) {
     const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
     const pageSize = Math.min(50, Math.max(1, parseInt(searchParams.get('page_size') || '20')));
     const masteryLevel = searchParams.get('mastery_level') || null;
+    const questionId = searchParams.get('question_id') || null;
+
+    // Quick check for single question bookmark status
+    if (questionId) {
+      const { data: existing } = await supabase
+        .from('user_question_bookmarks')
+        .select('id, question_id, mastery_level, notes, created_at, updated_at')
+        .eq('user_id', user.id)
+        .eq('question_id', questionId)
+        .maybeSingle();
+      return NextResponse.json({ bookmark: existing || null });
+    }
 
     const serviceClient = createServiceClient();
 

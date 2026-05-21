@@ -605,6 +605,8 @@ export interface ResumeRepositoryItem {
   file_url: string | null;
   resume_text: string;
   resume_version_id: string | null;
+  company_type: CompanyType;
+  company_preference: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -626,6 +628,8 @@ export interface StatusHistoryEntry {
   note?: string;
 }
 
+export type CompanyType = 'big_company' | 'foreign' | 'state_owned' | 'startup' | 'traditional' | 'other';
+
 export interface ResumeApplication {
   id: string;
   user_id: string;
@@ -639,6 +643,8 @@ export interface ResumeApplication {
   position_category: string | null;
   resume_version_id: string | null;
   status_history: StatusHistoryEntry[];
+  company_type: CompanyType;
+  company_preference: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -673,6 +679,18 @@ export interface DashboardStats {
   offers_received_change?: number;
   offer_acceptance_rate_change?: number;
   rejection_count_change?: number;
+  // 简历修改数据
+  total_resume_modifications?: number;
+  resume_modification_trend?: { date: string; count: number }[];
+  resume_version_history?: {
+    id: string;
+    company_name: string | null;
+    position_name: string | null;
+    style_type: string;
+    changes_summary: string | null;
+    created_at: string;
+    version_number: number;
+  }[];
 }
 
 export interface ApplicationCalendarDay {

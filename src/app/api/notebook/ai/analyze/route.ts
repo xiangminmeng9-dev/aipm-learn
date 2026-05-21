@@ -1,8 +1,13 @@
 import { generateText } from '@/lib/ai/claude';
+import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: '请先登录' }, { status: 401 });
+
     const { prompt } = await request.json();
 
     if (!prompt || typeof prompt !== 'string') {

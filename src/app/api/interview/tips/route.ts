@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServiceClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 
 export async function GET(request: NextRequest) {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: '请先登录' }, { status: 401 });
+
     const { searchParams } = request.nextUrl;
     const category = searchParams.get('category') || null;
 

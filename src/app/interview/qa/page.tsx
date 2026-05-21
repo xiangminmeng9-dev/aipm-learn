@@ -27,7 +27,7 @@ export default function QAPage() {
   const [error, setError] = useState('');
   const [frequency, setFrequency] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
-  const [history, setHistory] = useState<{ id: string; question: string; type_name: string | null; type_id: string | null; created_at: string; analysis: string; thinking_framework: string; answer_approach: string; answer_template: string }[]>([]);
+  const [history, setHistory] = useState<{ id: string; question_id: string; question: string; type_name: string | null; type_id: string | null; created_at: string; analysis: string; thinking_framework: string; answer_approach: string; answer_template: string }[]>([]);
 
   const fetchHistory = useCallback(async () => {
     try {
@@ -169,7 +169,7 @@ export default function QAPage() {
   const handleHistorySelect = useCallback((h: typeof history[number]) => {
     setLastQuestion(h.question);
     setResult({
-      question_id: '',
+      question_id: h.question_id || '',
       type: { id: h.type_id || '', name: h.type_name || '通用', is_new: false },
       analysis: h.analysis,
       thinking_framework: h.thinking_framework,
@@ -297,7 +297,7 @@ export default function QAPage() {
               <span className="text-xs text-muted-foreground">该类型问题出现频率</span>
             </div>
           )}
-          <AnalysisResult result={result} />
+          <AnalysisResult result={result} questionText={lastQuestion} />
         </div>
       )}
 

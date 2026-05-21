@@ -15,6 +15,7 @@ interface SkillsStats {
   jd_change: number;
   skill_completion_trend: { date: string; count: number }[];
   company_distribution: { company: string; count: number }[];
+  company_by_category: Record<string, { company: string; count: number }[]>;
   plan_progress: { id: string; title: string; status: string; progress: number }[];
   common_skills: { skill: string; count: number; category?: string; companies?: string[] }[];
   skills_by_category: Record<string, { skill: string; count: number; category?: string; companies?: string[] }[]>;
@@ -39,6 +40,9 @@ export default function SkillsDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [range, setRange] = useState<'7d' | '30d' | 'all'>('30d');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedCompany, setSelectedCompany] = useState<string>('all');
+  const [companyPreference, setCompanyPreference] = useState<string>('');
+  const [preferenceLoading, setPreferenceLoading] = useState(false);
   const [commonSkillsData, setCommonSkillsData] = useState<{ skill: string; count: number; category?: string; companies?: string[] }[]>([]);
 
   // 加载数据
@@ -169,22 +173,128 @@ export default function SkillsDashboardPage() {
             />
           </div>
           <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-            <h3 className="mb-4 text-sm font-semibold text-foreground">JD来源公司分布</h3>
-            {stats.company_distribution.length > 0 ? (
-              <ReactECharts
-                option={{
-                  tooltip: { trigger: 'item' },
-                  series: [{
-                    type: 'pie',
-                    radius: ['40%', '70%'],
-                    data: stats.company_distribution.map(c => ({ name: c.company, value: c.count })),
-                    label: { fontSize: 10, color: '#6B7280' },
-                  }],
-                }}
-                style={{ height: 200 }}
-              />
-            ) : (
-              <div className="flex h-[200px] items-center justify-center text-sm text-muted-foreground">暂无数据</div>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-semibold text-foreground">JD来源公司分布</h3>
+              <div className="relative">
+                <select
+                  className="appearance-none text-xs text-muted-foreground bg-transparent pr-4 py-1 outline-none cursor-pointer hover:text-foreground transition-colors"
+                  value={selectedCompany}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setSelectedCompany(val);
+                    setCompanyPreference('');
+                    if (val !== 'all') {
+                      setPreferenceLoading(true);
+                      fetch(`/api/skills/company-preference?company=${encodeURIComponent(val)}`)
+                        .then(r => r.json())
+                        .then(d => { if (d.preference) setCompanyPreference(d.preference); })
+                        .catch(() => {})
+                        .finally(() => setPreferenceLoading(false));
+                    }
+                  }}
+                >
+                  <option value="all">全部公司</option>
+                  {stats.company_distribution.filter(c => c.company !== '未提及公司').map((c, i) => (
+                    <option key={i} value={c.company}>{c.company} ({c.count})</option>
+                  ))}
+                </select>
+                <svg className="absolute right-0 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+            {(() => {
+              const colors = ['#6366F1', '#F59E0B', '#10B981', '#EF4444', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316', '#3B82F6', '#84CC16'];
+              const pieData = stats.company_distribution.map((c, i) => ({
+                name: c.company,
+                value: c.count,
+                itemStyle: {
+                  color: colors[i % colors.length],
+                  opacity: selectedCompany === 'all' ? 1 : (c.company === selectedCompany ? 1 : 0.25),
+                },
+              }));
+              return stats.company_distribution.length > 0 ? (
+                <div className="flex gap-3">
+                  <div className="flex-1">
+                    <ReactECharts
+                      option={{
+                        tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+                        series: [{
+                          type: 'pie',
+                          radius: ['40%', '70%'],
+                          center: ['50%', '50%'],
+                          data: pieData,
+                          label: { fontSize: 10, color: '#6B7280' },
+                          emphasis: {
+                            itemStyle: { opacity: 1 },
+                          },
+                        }],
+                      }}
+                      style={{ height: 220 }}
+                      onEvents={{
+                        click: (params: { name: string }) => {
+                          const companyName = params.name;
+                          if (companyName === '未提及公司') return;
+                          setSelectedCompany(companyName);
+                          setCompanyPreference('');
+                          setPreferenceLoading(true);
+                          fetch(`/api/skills/company-preference?company=${encodeURIComponent(companyName)}`)
+                            .then(r => r.json())
+                            .then(d => { if (d.preference) setCompanyPreference(d.preference); })
+                            .catch(() => {})
+                            .finally(() => setPreferenceLoading(false));
+                        },
+                      }}
+                    />
+                  </div>
+                  <div className="w-[140px] flex flex-col gap-1.5 py-2 overflow-y-auto max-h-[220px]">
+                    {stats.company_distribution.filter(c => c.company !== '未提及公司').map((c, i) => (
+                      <button
+                        key={i}
+                        onClick={() => {
+                          setSelectedCompany(c.company);
+                          setCompanyPreference('');
+                          setPreferenceLoading(true);
+                          fetch(`/api/skills/company-preference?company=${encodeURIComponent(c.company)}`)
+                            .then(r => r.json())
+                            .then(d => { if (d.preference) setCompanyPreference(d.preference); })
+                            .catch(() => {})
+                            .finally(() => setPreferenceLoading(false));
+                        }}
+                        className={`flex items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-all ${
+                          selectedCompany === c.company
+                            ? 'bg-indigo-100 dark:bg-indigo-900/40 ring-1 ring-indigo-400'
+                            : 'hover:bg-muted/50'
+                        }`}
+                      >
+                        <span className="shrink-0 w-3 h-3 rounded-sm" style={{ backgroundColor: colors[i % colors.length] }} />
+                        <span className={`text-xs truncate ${selectedCompany === c.company ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
+                          {c.company}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground ml-auto">{c.count}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex h-[220px] items-center justify-center text-sm text-muted-foreground">暂无数据</div>
+              );
+            })()}
+            {selectedCompany !== 'all' && (
+              <div className="mt-3 rounded-xl border border-indigo-200 bg-indigo-50/50 px-3 py-2 dark:border-indigo-800 dark:bg-indigo-950/30">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className="text-xs font-semibold text-indigo-700 dark:text-indigo-300">{selectedCompany}</span>
+                  <span className="text-[10px] text-muted-foreground">招聘偏好</span>
+                </div>
+                {preferenceLoading ? (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <div className="h-3 w-3 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+                    <span>正在分析...</span>
+                  </div>
+                ) : companyPreference ? (
+                  <p className="text-xs leading-relaxed text-foreground">{companyPreference}</p>
+                ) : null}
+              </div>
             )}
           </div>
         </div>

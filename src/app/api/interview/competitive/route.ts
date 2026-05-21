@@ -85,6 +85,14 @@ export async function POST(request: NextRequest) {
             console.error('Competitive analysis save error:', JSON.stringify(error));
           }
 
+          // Trigger competitive methodology generation (non-blocking)
+          if (data) {
+            try {
+              const { generateOrUpdateCompetitiveMethodology } = await import('@/lib/ai/competitive-methodology');
+              generateOrUpdateCompetitiveMethodology(supabase, user.id).catch(() => {});
+            } catch {}
+          }
+
           // Send final event with scoring and record id
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({
             done: true,

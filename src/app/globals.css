@@ -51,23 +51,23 @@
 :root {
   /* Light Theme */
   --background: #F5F7FA;
-  --foreground: #1F2937;
+  --foreground: #111827;
   --card: #FFFFFF;
-  --card-foreground: #1F2937;
+  --card-foreground: #111827;
   --popover: #FFFFFF;
-  --popover-foreground: #1F2937;
-  --primary: #4F46E5;
+  --popover-foreground: #111827;
+  --primary: #4338CA;
   --primary-foreground: #FFFFFF;
   --secondary: #F3F4F6;
   --secondary-foreground: #6B7280;
   --muted: #F3F4F6;
   --muted-foreground: #6B7280;
   --accent: #EEF2FF;
-  --accent-foreground: #4F46E5;
+  --accent-foreground: #4338CA;
   --destructive: #EF4444;
   --border: #D1D5DB;
   --input: #D1D5DB;
-  --ring: #4F46E5;
+  --ring: #4338CA;
   --chart-1: #4F46E5;
   --chart-2: #7C3AED;
   --chart-3: #06B6D4;
@@ -86,26 +86,26 @@
 }
 
 .dark {
-  --background: #0F172A;
-  --foreground: #E2E8F0;
-  --card: #1E293B;
-  --card-foreground: #E2E8F0;
-  --popover: #1E293B;
-  --popover-foreground: #E2E8F0;
-  --primary: #4F46E5;
+  --background: #090E1A;
+  --foreground: #F1F5F9;
+  --card: #111827;
+  --card-foreground: #F1F5F9;
+  --popover: #111827;
+  --popover-foreground: #F1F5F9;
+  --primary: #6366F1;
   --primary-foreground: #FFFFFF;
   --secondary: #1E293B;
   --secondary-foreground: #94A3B8;
-  --muted: #334155;
+  --muted: #1E293B;
   --muted-foreground: #94A3B8;
   --accent: #312E81;
   --accent-foreground: #C7D2FE;
   --destructive: #EF4444;
-  --border: #475569;
-  --input: #475569;
+  --border: #374151;
+  --input: #374151;
   --ring: #818CF8;
-  --chart-1: #4F46E5;
-  --chart-2: #7C3AED;
+  --chart-1: #6366F1;
+  --chart-2: #8B5CF6;
   --chart-3: #06B6D4;
   --chart-4: #10B981;
   --chart-5: #F59E0B;
@@ -123,190 +123,95 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
-    /* 强制GPU渲染 + 16K终极清晰度 */
-    -webkit-transform: translateZ(0) scale(1);
-    transform: translateZ(0) scale(1);
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
     -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
-    -webkit-perspective: 2000px;
-    perspective: 2000px;
-    /* 16K超高DPI优化 */
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: auto;
-    /* 16K像素级精度 */
-    shape-rendering: geometricPrecision;
-    text-rendering: geometricPrecision;
-    /* 16K GPU加速 */
-    will-change: transform;
-    -webkit-will-change: transform;
   }
+
   html {
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: auto;
-    text-rendering: geometricPrecision;
-    font-feature-settings: "kern" 1, "liga" 1, "calt" 1, "dlig" 1, "hlig" 1, "tnum" 1, "lnum" 1, "zero" 1, "ss01" 1, "ss02" 1;
     @apply font-sans;
-    /* 强制硬件加速 - 16K级别 */
-    -webkit-transform: translateZ(0) scale(1);
-    transform: translateZ(0) scale(1);
-    /* 高对比度渲染 */
+    font-size: 16px;
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
-    /* 字体清晰度 - 16K终极优化 */
-    font-size: 16px;
-    /* 子像素定位优化 */
-    -webkit-font-variant-ligatures: common-ligatures contextual;
-    font-variant-ligatures: common-ligatures contextual;
-    /* 16K屏幕支持 - 超超高DPI */
-    -webkit-min-device-pixel-ratio: 1;
-    min-resolution: 96dpi;
-    /* 16K超高DPI字体渲染 */
-    -webkit-text-stroke: 0 transparent;
-    /* 强制亚像素渲染 */
-    -webkit-font-subpixel-positioning: true;
-    font-subpixel-positioning: true;
-    /* 16K GPU层合成 */
-    -webkit-layer-rendering: true;
-    /* 16K像素对齐 */
-    -webkit-pixel-align: true;
-  }
-  body {
-    @apply bg-background text-foreground;
-    letter-spacing: -0.011em;
-    /* 最高清晰度 - 16K终极优化 */
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: auto;
-    text-rendering: geometricPrecision;
-    -webkit-transform: translateZ(0) scale(1);
-    transform: translateZ(0) scale(1);
-    /* 16K字体微调 - 超超细腻 */
-    -webkit-text-stroke: 0 transparent;
-    /* 16K亚像素渲染 */
-    -webkit-font-subpixel-positioning: true;
-    font-subpixel-positioning: true;
-    -webkit-font-feature-settings: "kern" 1, "tnum" 1, "lnum" 1;
-    /* 16K GPU加速 */
-    will-change: transform;
-    -webkit-will-change: transform;
-  }
-  h1, h2, h3, h4, h5, h6 {
-    letter-spacing: -0.025em;
-    font-weight: 700 !important;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: auto;
-    text-rendering: geometricPrecision;
-    -webkit-text-stroke: 0 transparent;
-    /* 16K标题增强 */
-    -webkit-font-subpixel-positioning: true;
-    font-subpixel-positioning: true;
-    /* 16K标题GPU加速 */
-    will-change: transform;
-    -webkit-will-change: transform;
-  }
-  /* 文字最高清晰度 - 16K终极优化 */
-  p, span, li, a, label, input, textarea, select, button, div {
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: auto;
-    text-rendering: geometricPrecision;
-    /* 16K亚像素定位 */
-    -webkit-font-subpixel-positioning: true;
-    font-subpixel-positioning: true;
-  }
-  /* 按钮和输入框增强 */
-  button, input, select, textarea {
-    font-weight: 500;
-    letter-spacing: -0.005em;
-  }
-  /* SVG图标最高清晰度 - 16K终极级别 */
-  svg {
-    shape-rendering: geometricPrecision;
-    -webkit-transform: translateZ(0) scale(1);
-    transform: translateZ(0) scale(1);
-    -webkit-backface-visibility: hidden;
-    backface-visibility: hidden;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    /* 16K图标锐利渲染 */
-    image-rendering: optimizeQuality;
-    /* 16K矢量精度 */
-    vector-effect: non-scaling-stroke;
-    /* 亚像素渲染 */
-    -webkit-font-subpixel-positioning: true;
-    /* 16K GPU加速 */
-    will-change: transform;
-    -webkit-will-change: transform;
-    /* 16K像素对齐 */
-    -webkit-pixel-align: true;
-  }
-  /* 图片最高清晰度 - 16K终极级别 */
-  img {
-    -webkit-transform: translateZ(0) scale(1);
-    transform: translateZ(0) scale(1);
-    image-rendering: -webkit-optimize-contrast;
-    image-rendering: high-quality;
-    image-rendering: crisp-edges;
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
-    /* 16K图片优化 */
-    -ms-interpolation-mode: bicubic;
-    image-resolution: from-image;
-    /* 16K超高清 */
-    -webkit-image-smoothing: high-quality;
-    /* 16K GPU加速 */
-    will-change: transform;
-    -webkit-will-change: transform;
-  }
-  /* Canvas最高清晰度 - 16K终极级别 */
-  canvas {
-    -webkit-transform: translateZ(0) scale(1);
-    transform: translateZ(0) scale(1);
-    image-rendering: high-quality;
-    image-rendering: crisp-edges;
-    /* 16K Canvas优化 */
-    -webkit-image-smoothing: high-quality;
-    image-rendering: -webkit-optimize-contrast;
-    /* 16K亚像素渲染 */
-    -webkit-font-subpixel-positioning: true;
-    font-subpixel-positioning: true;
-    /* 16K GPU加速 */
-    will-change: transform;
-    -webkit-will-change: transform;
-  }
-  /* 表格文字清晰 */
-  table, th, td {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+    font-feature-settings: "kern" 1, "liga" 1, "calt" 1, "tnum" 1;
+    font-variant-numeric: tabular-nums;
   }
-  /* 代码块清晰 - 16K终极优化 */
+
+  body {
+    @apply bg-background text-foreground;
+    font-weight: 450;
+    letter-spacing: -0.006em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    letter-spacing: -0.018em;
+    font-weight: 700;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "kern" 1, "liga" 1, "calt" 1, "dlig" 1;
+  }
+
+  button, input, select, textarea {
+    font-weight: 500;
+    letter-spacing: -0.003em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "kern" 1, "liga" 1;
+  }
+
+  p, span, li, a, label, td, th {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+  }
+
   code, pre, kbd, samp {
     -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: auto;
-    text-rendering: geometricPrecision;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
     font-feature-settings: "tnum" 1, "lnum" 1, "zero" 1, "ss01" 1;
-    /* 16K代码字体精度 */
-    -webkit-font-subpixel-positioning: true;
-    font-subpixel-positioning: true;
+    font-variant-numeric: tabular-nums;
   }
-  /* 表格文字清晰 - 16K优化 */
-  table, th, td {
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: auto;
-    text-rendering: geometricPrecision;
-    -webkit-font-subpixel-positioning: true;
+
+  svg {
+    shape-rendering: geometricPrecision;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
   }
-  /* ECharts图表16K终极优化 */
-  div[_echarts_instance_], canvas {
-    -webkit-transform: translateZ(0) scale(1);
-    transform: translateZ(0) scale(1);
+
+  img {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
     -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
-    /* 16K图表亚像素渲染 */
-    -webkit-font-subpixel-positioning: true;
-    font-subpixel-positioning: true;
-    /* 16K GPU加速 */
-    will-change: transform;
-    -webkit-will-change: transform;
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+  }
+
+  canvas {
+    image-rendering: crisp-edges;
+    -webkit-font-smoothing: none;
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+  }
+
+  div[_echarts_instance_] canvas {
+    image-rendering: auto;
   }
 }
 
@@ -395,6 +300,29 @@
   --sidebar-daily-accent: #161628;
   --sidebar-daily-border: #1C1C2E;
   --sidebar-daily-active: #A78BFA;
+}
+
+/* HiDPI / Retina — 2x+ device pixel ratio */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  * {
+    -webkit-font-smoothing: subpixel-antialiased;
+    font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+  }
+  svg {
+    shape-rendering: geometricPrecision;
+    stroke-width: 1.5;
+  }
+}
+
+/* Ultra HiDPI — 3x+ (ProMotion / 4K+ screens) */
+@media (-webkit-min-device-pixel-ratio: 3), (min-resolution: 288dpi) {
+  * {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  svg {
+    stroke-width: 1.2;
+  }
 }
 
 /* Scrollbar - 更清晰的滚动条 */
@@ -505,14 +433,15 @@
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12), 0 0 1px rgba(0, 0, 0, 0.06);
 }
 
-/* 文字锐利 - 高对比度 */
+/* 文字锐利 - 高对比度 + 字体特性 */
 .text-sharp {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
   font-weight: 600;
   letter-spacing: -0.01em;
-  -webkit-text-stroke: 0.01px transparent;
+  font-feature-settings: "kern" 1, "liga" 1, "calt" 1, "tnum" 1;
+  font-variant-numeric: tabular-nums;
 }
 
 /* 标题锐利 */
@@ -522,21 +451,22 @@
   text-rendering: optimizeLegibility;
   font-weight: 700;
   letter-spacing: -0.02em;
-  -webkit-text-stroke: 0.01px transparent;
+  font-feature-settings: "kern" 1, "liga" 1, "calt" 1, "dlig" 1;
 }
 
-/* 图标高清 - 2K级别 */
+/* 图标高清 - 几何精度 + GPU合成 */
 .icon-hd {
   -webkit-transform: translateZ(0) scale(1);
   transform: translateZ(0) scale(1);
-  shape-rendering: crispEdges;
   shape-rendering: geometricPrecision;
   stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
 }
 
-/* 图片高清 - 2K级别 */
+/* 图片高清 - GPU合成 + 对度增强 */
 .image-hd {
   -webkit-transform: translateZ(0);
   transform: translateZ(0);
@@ -556,6 +486,8 @@
   will-change: transform;
   image-rendering: high-quality;
   image-rendering: crisp-edges;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
 }
 
 /* 卡片高清 */
@@ -564,7 +496,6 @@
   transform: translateZ(0);
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
-  /* 边框锐利 */
   -webkit-box-decoration-break: clone;
   box-decoration-break: clone;
 }
@@ -731,151 +662,3 @@
   .print-break-after { break-after: page; }
 }
 
-/* ============================================================
-   无敌清晰 - Ultra Sharp Mode (顶级清晰度)
-   ============================================================ */
-
-/* 强制所有元素使用抗锯齿渲染 - 保持清晰 */
-* {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-}
-
-/* 高对比度模式 */
-.high-contrast {
-  -webkit-filter: contrast(1.05);
-  filter: contrast(1.05);
-}
-
-/* 超锐利边框 */
-.border-ultra-sharp {
-  border-width: 2px;
-  border-style: solid;
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
-}
-
-/* 超清晰文字 */
-.text-ultra-sharp {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-  font-weight: 600;
-  letter-spacing: -0.011em;
-  -webkit-text-stroke: 0.001px transparent;
-}
-
-/* 超清晰标题 */
-.heading-ultra-sharp {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-  font-weight: 700;
-  letter-spacing: -0.025em;
-  -webkit-text-stroke: 0.001px transparent;
-}
-
-/* 超清晰图标 */
-.icon-ultra-sharp {
-  shape-rendering: geometricPrecision;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
-  -webkit-filter: contrast(1.02);
-  filter: contrast(1.02);
-}
-
-/* 超清晰图片 */
-.image-ultra-sharp {
-  image-rendering: -webkit-optimize-contrast;
-  image-rendering: crisp-edges;
-  image-rendering: high-quality;
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
-  -webkit-filter: contrast(1.03) saturate(1.02);
-  filter: contrast(1.03) saturate(1.02);
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-}
-
-/* 超清晰阴影 */
-.shadow-ultra-sharp {
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.08),
-    0 2px 4px rgba(0, 0, 0, 0.06),
-    0 0 1px rgba(0, 0, 0, 0.04);
-}
-
-.shadow-ultra-sharp-lg {
-  box-shadow:
-    0 4px 8px rgba(0, 0, 0, 0.1),
-    0 8px 16px rgba(0, 0, 0, 0.08),
-    0 0 1px rgba(0, 0, 0, 0.05);
-}
-
-/* 超清晰卡片 */
-.card-ultra-sharp {
-  background: var(--card);
-  border: 2px solid var(--border);
-  border-radius: 12px;
-  box-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.1),
-    0 0 1px rgba(0, 0, 0, 0.05);
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
-}
-
-/* 按钮超清晰 */
-.btn-ultra-sharp {
-  font-weight: 600;
-  letter-spacing: -0.005em;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-  border-width: 2px;
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
-}
-
-/* 输入框超清晰 */
-.input-ultra-sharp {
-  font-weight: 500;
-  letter-spacing: -0.005em;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-  border-width: 2.5px;
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
-}
-
-/* 表格超清晰 */
-.table-ultra-sharp {
-  border-collapse: separate;
-  border-spacing: 0;
-  border-width: 2px;
-}
-
-.table-ultra-sharp th,
-.table-ultra-sharp td {
-  border-width: 1.5px;
-  font-weight: 500;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-}
-
-/* 代码块超清晰 */
-.code-ultra-sharp {
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-weight: 500;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-  letter-spacing: -0.011em;
-}

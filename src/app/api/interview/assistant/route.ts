@@ -167,7 +167,8 @@ export async function POST(request: NextRequest) {
         await serviceClient
           .from('assistant_qa_records')
           .update({ answer: fullAnswer })
-          .eq('id', recordId);
+          .eq('id', recordId)
+          .eq('user_id', authenticatedUser.id);
 
         // Also save to question_analyses for methodology/stats integration
         try {

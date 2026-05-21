@@ -9,15 +9,17 @@ export interface RssSourceConfig {
 }
 
 export const RSS_SOURCES: RssSourceConfig[] = [
-  // -- AI Tech: 技术路线、RAG/Agent 实现、前沿技术 --
+  // -- AI Tech: 官方AI博客优先（技术发布、新模型、新功能） --
   { name: 'OpenAI Blog', url: 'https://openai.com/blog/rss.xml', category: 'ai_tech', language: 'en' },
+  { name: 'Google AI Blog', url: 'https://blog.google/innovation-and-ai/technology/ai/rss/', category: 'ai_tech', language: 'en' },
+  { name: 'Google DeepMind', url: 'https://www.deepmind.google/feed/', category: 'ai_tech', language: 'en' },
+  { name: 'Microsoft Research Blog', url: 'https://www.microsoft.com/en-us/research/feed/', category: 'ai_tech', language: 'en' },
   { name: 'Hugging Face Blog', url: 'https://huggingface.co/blog/feed.xml', category: 'ai_tech', language: 'en' },
+  { name: 'AWS ML Blog', url: 'https://aws.amazon.com/blogs/machine-learning/feed/', category: 'ai_tech', language: 'en' },
+  // -- AI Tech: 技术博客（深度技术分析） --
   { name: 'Lilian Weng', url: 'https://lilianweng.github.io/index.xml', category: 'ai_tech', language: 'en' },
   { name: 'Simon Willison', url: 'https://simonwillison.net/atom/everything', category: 'ai_tech', language: 'en' },
   { name: 'Drew Breunig', url: 'https://www.dbreunig.com/feed.xml', category: 'ai_tech', language: 'en' },
-  { name: 'The Decoder', url: 'https://the-decoder.com/feed/', category: 'ai_tech', language: 'en' },
-  { name: "Ben's Bites", url: 'https://bensbites.com/feed', category: 'ai_tech', language: 'en' },
-  { name: 'Google AI Blog', url: 'https://blog.google/innovation-and-ai/technology/ai/rss/', category: 'ai_tech', language: 'en' },
 
   // -- AI PM: 产品经理技术文章 --
   { name: '人人都是产品经理', url: 'https://www.woshipm.com/feed', category: 'ai_pm', language: 'zh' },

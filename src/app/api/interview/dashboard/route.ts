@@ -30,11 +30,11 @@ export async function GET(request: NextRequest) {
     ] = await Promise.all([
       supabase.from('assistant_qa_records').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
       supabase.from('question_analyses').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
-      supabase.from('mock_interviews').select('id, total_score, created_at').eq('user_id', user.id),
-      supabase.from('competitive_analyses').select('id, total_score, created_at').eq('user_id', user.id),
+      supabase.from('mock_interviews').select('id, total_score, created_at').eq('user_id', user.id).gte('created_at', cutoffDate),
+      supabase.from('competitive_analyses').select('id, total_score, created_at').eq('user_id', user.id).gte('created_at', cutoffDate),
       supabase.from('interview_sessions').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
       supabase.from('interview_methodologies').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
-      supabase.from('interview_methodologies').select('type_id, source_count').eq('user_id', user.id),
+      supabase.from('interview_methodologies').select('type_id, source_count, framework, key_steps').eq('user_id', user.id),
       supabase.from('question_analyses').select('question_id').eq('user_id', user.id),
     ]);
 
@@ -62,13 +62,18 @@ export async function GET(request: NextRequest) {
 
     // 方法论类型分布
     const methodTypeIds = methodologies.map(m => m.type_id).filter(Boolean);
-    let methodologyTypeDistribution: { type: string; count: number }[] = [];
+    let methodologyTypeDistribution: { type: string; count: number; framework: string; key_steps: string[] }[] = [];
     if (methodTypeIds.length > 0) {
       const { data: methodTypes } = await supabase.from('question_types').select('id, name').in('id', methodTypeIds);
       const typeMap = new Map((methodTypes || []).map(t => [t.id, t.name]));
       methodologyTypeDistribution = methodologies
         .filter(m => m.type_id && m.source_count)
-        .map(m => ({ type: typeMap.get(m.type_id) || '未知类型', count: m.source_count || 0 }))
+        .map(m => ({
+          type: typeMap.get(m.type_id) || '未知类型',
+          count: m.source_count || 0,
+          framework: m.framework || '',
+          key_steps: (m.key_steps as string[]) || [],
+        }))
         .sort((a, b) => b.count - a.count);
     }
 
@@ -142,8 +147,9 @@ export async function GET(request: NextRequest) {
         .slice(0, 6);
     }
 
-    // 漏斗
-    const totalPractices = assistantCount + qaCount + mockCount;
+    // 漏斗：总练习包含所有类型，良好/优秀只统计有评分的模拟面试和竞品分析
+    const totalPractices = assistantCount + qaCount + mockCount + competitiveCount;
+    const scoredPractices = validScores.length + validCompScores.length;
     const goodPractices = validScores.filter(m => (m.total_score || 0) >= 70).length +
                           validCompScores.filter(c => (c.total_score || 0) >= 70).length;
     const excellentPractices = validScores.filter(m => (m.total_score || 0) >= 90).length +
@@ -151,6 +157,7 @@ export async function GET(request: NextRequest) {
 
     const funnelStages = [
       { stage: '总练习', count: totalPractices },
+      { stage: '已评分', count: scoredPractices },
       { stage: '良好(≥70)', count: goodPractices },
       { stage: '优秀(≥90)', count: excellentPractices },
     ];
@@ -170,7 +177,7 @@ export async function GET(request: NextRequest) {
         assistant_count: assistantCount,
         qa_count: qaCount,
         mock_count: mockCount,
-        total_count: assistantCount + qaCount + mockCount,
+        total_count: assistantCount + qaCount + mockCount + competitiveCount,
         methodology_count: methodologyCount,
         competitive_count: competitiveCount,
         avg_mock_score: avgMockScore,

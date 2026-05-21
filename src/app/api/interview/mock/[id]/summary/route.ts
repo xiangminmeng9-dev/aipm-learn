@@ -143,7 +143,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         summary_suggestions: summary.suggestions,
         weak_skill_modules: weakSkillModules,
       })
-      .eq('id', mockId);
+      .eq('id', mockId)
+      .eq('user_id', authenticatedUser.id);
 
     return NextResponse.json({
       id: mockInterview.id,
