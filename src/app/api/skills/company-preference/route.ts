@@ -56,24 +56,44 @@ export async function GET(request: NextRequest) {
       .slice(0, 10)
       .map(([skill, count]) => `${skill}(${count}次)`);
 
-    const prompt = `基于以下数据，用一段连贯的大白话总结${company}的招聘偏好。不要列点，写成一整段话，像跟朋友聊天一样自然流畅。
+    const prompt = `基于以下数据，分析${company}偏好什么样的人，输出结构化JSON。
 
 招聘岗位：${positions.join('、')}
 高频技能要求：${topSkills.join('、')}
 常见技能差距：${topGaps.join('、')}
 
+请输出如下JSON（不要输出其他内容）：
+{
+  "persona_tags": ["3-5个画像标签，如：技术型PM、数据驱动型、AI实战派"],
+  "core_skills": ["最核心的3个技能偏好，每个不超过6字"],
+  "background": "一句话描述偏好的背景/经验类型（不超过20字）",
+  "soft_skills": ["2-3个软技能偏好，如：跨部门协作、抗压能力"],
+  "avoid": "一句话描述这类公司不太看重什么（不超过15字）"
+}
+
 要求：
-- 直接说结论，不要"从数据来看"这种废话
-- 提到最核心的2-3个技能偏好
-- 如果有明显的岗位倾向也要提
-- 写成一整段话，5-8句话左右，要有逻辑递进`;
+- persona_tags 要抽象出画像特征，不是简单罗列技能名
+- core_skills 只写最突出的3个，不要贪多
+- background 要具体，如"3年以上AI产品落地经验"而非"有经验"
+- avoid 要有洞察，如"不太看重纯学术背景"
+- 所有字段精炼，杜绝废话`;
 
     const result = await generateText(prompt, {
       model: 'haiku',
       maxTokens: 500,
     });
 
-    return NextResponse.json({ preference: result.trim() });
+    // Parse structured JSON from AI response
+    const jsonMatch = result.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      try {
+        const parsed = JSON.parse(jsonMatch[0]);
+        return NextResponse.json({ preference: parsed });
+      } catch {
+        // fallback: return raw text if JSON parse fails
+      }
+    }
+    return NextResponse.json({ preference: { persona_tags: [], core_skills: [], background: result.trim(), soft_skills: [], avoid: '' } });
   } catch (err) {
     console.error('Company preference error:', err);
     return NextResponse.json({ error: '生成失败' }, { status: 500 });

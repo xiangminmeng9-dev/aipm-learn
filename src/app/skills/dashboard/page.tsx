@@ -281,19 +281,63 @@ export default function SkillsDashboardPage() {
               );
             })()}
             {selectedCompany !== 'all' && (
-              <div className="mt-3 rounded-xl border border-indigo-200 bg-indigo-50/50 px-3 py-2 dark:border-indigo-800 dark:bg-indigo-950/30">
-                <div className="flex items-center gap-1.5 mb-1">
+              <div className="mt-3 rounded-xl border border-indigo-200 bg-indigo-50/50 px-3 py-2.5 dark:border-indigo-800 dark:bg-indigo-950/30">
+                <div className="flex items-center gap-1.5 mb-1.5">
                   <span className="text-xs font-semibold text-indigo-700 dark:text-indigo-300">{selectedCompany}</span>
-                  <span className="text-[10px] text-muted-foreground">招聘偏好</span>
+                  <span className="text-[10px] text-muted-foreground">偏好画像</span>
                 </div>
                 {preferenceLoading ? (
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <div className="h-3 w-3 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
                     <span>正在分析...</span>
                   </div>
-                ) : companyPreference ? (
-                  <p className="text-xs leading-relaxed text-foreground">{companyPreference}</p>
-                ) : null}
+                ) : companyPreference ? (() => {
+                  const pref = typeof companyPreference === 'object' ? companyPreference : null;
+                  if (!pref) return <p className="text-xs leading-relaxed text-foreground">{companyPreference}</p>;
+                  return (
+                    <div className="space-y-2">
+                      {pref.persona_tags?.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {pref.persona_tags.map((tag: string, i: number) => (
+                            <span key={i} className="inline-flex items-center rounded-md bg-indigo-100 dark:bg-indigo-900/50 px-1.5 py-0.5 text-[11px] font-medium text-indigo-700 dark:text-indigo-300">{tag}</span>
+                          ))}
+                        </div>
+                      )}
+                      {pref.core_skills?.length > 0 && (
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] text-muted-foreground shrink-0">核心技能</span>
+                          <div className="flex flex-wrap gap-1">
+                            {pref.core_skills.map((s: string, i: number) => (
+                              <span key={i} className="inline-flex items-center rounded bg-emerald-100 dark:bg-emerald-900/50 px-1.5 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-300">{s}</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {pref.background && (
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] text-muted-foreground shrink-0">偏好背景</span>
+                          <span className="text-[11px] text-foreground">{pref.background}</span>
+                        </div>
+                      )}
+                      {pref.soft_skills?.length > 0 && (
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] text-muted-foreground shrink-0">软技能</span>
+                          <div className="flex flex-wrap gap-1">
+                            {pref.soft_skills.map((s: string, i: number) => (
+                              <span key={i} className="inline-flex items-center rounded bg-amber-100 dark:bg-amber-900/50 px-1.5 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-300">{s}</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {pref.avoid && (
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] text-muted-foreground shrink-0">不太看重</span>
+                          <span className="text-[11px] text-muted-foreground italic">{pref.avoid}</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })() : null}
               </div>
             )}
           </div>
