@@ -292,7 +292,7 @@ export default function SkillsDashboardPage() {
                     <span>正在分析...</span>
                   </div>
                 ) : companyPreference ? (() => {
-                  const pref = typeof companyPreference === 'object' ? companyPreference : null;
+                  const pref = typeof companyPreference === 'object' ? companyPreference as Record<string, unknown> : null;
                   if (!pref) return <p className="text-xs leading-relaxed text-foreground">{companyPreference}</p>;
                   return (
                     <div className="space-y-2">
