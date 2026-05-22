@@ -79,15 +79,26 @@ export async function GET(request: NextRequest) {
 - 所有字段精炼，杜绝废话`;
 
     const result = await generateText(prompt, {
-      model: 'haiku',
-      maxTokens: 500,
+      maxTokens: 1024,
     });
 
     // Parse structured JSON from AI response
     const jsonMatch = result.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       try {
-        const parsed = JSON.parse(jsonMatch[0]);
+        let jsonStr = jsonMatch[0];
+        // Fix truncated JSON
+        const openB = (jsonStr.match(/\[/g) || []).length;
+        const closeB = (jsonStr.match(/\]/g) || []).length;
+        const openC = (jsonStr.match(/\{/g) || []).length;
+        const closeC = (jsonStr.match(/\}/g) || []).length;
+        if (openB > closeB || openC > closeC) {
+          jsonStr = jsonStr.replace(/,\s*"[^"]*":\s*[^,}\]]*$/g, '');
+          jsonStr = jsonStr.replace(/,\s*$/g, '');
+          for (let i = 0; i < openB - closeB; i++) jsonStr += ']';
+          for (let i = 0; i < openC - closeC; i++) jsonStr += '}';
+        }
+        const parsed = JSON.parse(jsonStr);
         return NextResponse.json({ preference: parsed });
       } catch {
         // fallback: return raw text if JSON parse fails
