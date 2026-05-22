@@ -35,17 +35,26 @@ export async function GET(request: NextRequest) {
         if (g.skill_name) gapFreq.set(g.skill_name, (gapFreq.get(g.skill_name) || 0) + 1);
       }
     }
-    const topSkills = Array.from(skillFreq.entries()).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([s, c]) => `${s}(${c})`);
-    const topGaps = Array.from(gapFreq.entries()).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([s, c]) => `${s}(${c})`);
+    const topSkills = Array.from(skillFreq.entries()).sort((a, b) => b[1] - a[1]).slice(0, 10);
+    const topGaps = Array.from(gapFreq.entries()).sort((a, b) => b[1] - a[1]).slice(0, 8);
+    const skillDetail = topSkills.map(([s, c]) => `${s}(${c}次)`).join('、');
+    const gapDetail = topGaps.map(([s, c]) => `${s}(${c}次)`).join('、');
 
-    const prompt = `分析${company}的JD数据，抽象出该公司偏好的人才画像。
+    const prompt = `基于以下JD数据，分析${company}偏好什么样的人。
 
-岗位：${positions.join('、')}
-高频技能：${topSkills.join('、')}
-常见差距：${topGaps.join('、')}
+招聘岗位：${positions.join('、')}
+高频技能（含出现次数）：${skillDetail}
+常见技能差距（含出现次数）：${gapDetail}
 
-严格输出JSON，不要输出任何其他文字：
-{"persona_tags":["画像标签1","画像标签2","画像标签3","画像标签4"],"core_skills":["技能1","技能2","技能3"],"background":"偏好背景描述","soft_skills":["软技能1","软技能2"],"avoid":"不太看重的方面","position_trend":"岗位倾向描述","growth_direction":"成长方向建议"}`;
+严格输出JSON，不要输出其他内容：
+{
+  "persona": "画像描述，如：具备AI技术落地经验、数据驱动决策的产品经理",
+  "core_skills": [{"name":"技能名","count":出现次数}],
+  "soft_skills": ["软技能1","软技能2"],
+  "not_care": "不看重的内容",
+  "suggestion": "给求职者的建议",
+  "strengthen": "需要补强的技能"
+}`;
 
     const result = await generateText(prompt, { maxTokens: 2048 });
 
@@ -70,7 +79,7 @@ export async function GET(request: NextRequest) {
         // fallback
       }
     }
-    return NextResponse.json({ preference: { persona_tags: [], core_skills: [], background: result.trim(), soft_skills: [], avoid: '', position_trend: '', growth_direction: '' } });
+    return NextResponse.json({ preference: { persona: result.trim(), core_skills: [], soft_skills: [], not_care: '', suggestion: '', strengthen: '' } });
   } catch (err) {
     console.error('Company preference error:', err);
     return NextResponse.json({ error: '生成失败' }, { status: 500 });

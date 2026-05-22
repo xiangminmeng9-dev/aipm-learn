@@ -41,7 +41,7 @@ export default function SkillsDashboardPage() {
   const [range, setRange] = useState<'7d' | '30d' | 'all'>('30d');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedCompany, setSelectedCompany] = useState<string>('all');
-  const [companyPreference, setCompanyPreference] = useState<Record<string, unknown> | string | null>(null);
+  const [companyPreference, setCompanyPreference] = useState<Record<string, unknown> | null>(null);
   const [preferenceLoading, setPreferenceLoading] = useState(false);
   const [commonSkillsData, setCommonSkillsData] = useState<{ skill: string; count: number; category?: string; companies?: string[] }[]>([]);
 
@@ -292,67 +292,38 @@ export default function SkillsDashboardPage() {
                     <span>正在分析...</span>
                   </div>
                 ) : companyPreference ? (() => {
-                  const pref = typeof companyPreference === 'object' ? companyPreference : null;
-                  if (!pref) return <p className="text-xs leading-relaxed text-foreground">{String(companyPreference)}</p>;
-                  const personaTags = (pref.persona_tags as string[]) || [];
-                  const coreSkills = (pref.core_skills as string[]) || [];
-                  const softSkills = (pref.soft_skills as string[]) || [];
-                  const background = (pref.background as string) || '';
-                  const avoid = (pref.avoid as string) || '';
-                  const positionTrend = (pref.position_trend as string) || '';
-                  const growthDirection = (pref.growth_direction as string) || '';
+                  const p = companyPreference;
+                  const persona = (p.persona as string) || '';
+                  const coreSkills = (p.core_skills as Array<{ name: string; count: number }>) || [];
+                  const softSkills = (p.soft_skills as string[]) || [];
+                  const notCare = (p.not_care as string) || '';
+                  const suggestion = (p.suggestion as string) || '';
+                  const strengthen = (p.strengthen as string) || '';
                   return (
-                    <div className="space-y-2">
-                      {personaTags.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                          {personaTags.map((tag, i) => (
-                            <span key={i} className="inline-flex items-center rounded-md bg-indigo-100 dark:bg-indigo-900/50 px-1.5 py-0.5 text-[11px] font-medium text-indigo-700 dark:text-indigo-300">{tag}</span>
-                          ))}
-                        </div>
+                    <div className="space-y-1.5 text-[11px] leading-relaxed">
+                      {persona && (
+                        <div><span className="text-indigo-700 dark:text-indigo-300 font-medium">{selectedCompany}</span>更偏好<span className="text-foreground font-medium">{persona}</span>样的人</div>
                       )}
                       {coreSkills.length > 0 && (
-                        <div className="flex items-center gap-1">
-                          <span className="text-[10px] text-muted-foreground shrink-0">核心技能</span>
-                          <div className="flex flex-wrap gap-1">
-                            {coreSkills.map((s, i) => (
-                              <span key={i} className="inline-flex items-center rounded bg-emerald-100 dark:bg-emerald-900/50 px-1.5 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-300">{s}</span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      {background && (
-                        <div className="flex items-center gap-1">
-                          <span className="text-[10px] text-muted-foreground shrink-0">偏好背景</span>
-                          <span className="text-[11px] text-foreground">{background}</span>
-                        </div>
+                        <div>原因在于岗位JD中体现了{coreSkills.map((s, i) => (
+                          <span key={i}><span className="text-emerald-700 dark:text-emerald-300 font-medium">{s.name}</span>{i < coreSkills.length - 1 ? '、' : ''}</span>
+                        ))}等核心技能要求，重复次数分别达到了{coreSkills.map((s, i) => (
+                          <span key={i}><span className="text-emerald-700 dark:text-emerald-300 font-medium">{s.count}次</span>{i < coreSkills.length - 1 ? '、' : ''}</span>
+                        ))}</div>
                       )}
                       {softSkills.length > 0 && (
-                        <div className="flex items-center gap-1">
-                          <span className="text-[10px] text-muted-foreground shrink-0">软技能</span>
-                          <div className="flex flex-wrap gap-1">
-                            {softSkills.map((s, i) => (
-                              <span key={i} className="inline-flex items-center rounded bg-amber-100 dark:bg-amber-900/50 px-1.5 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-300">{s}</span>
-                            ))}
-                          </div>
-                        </div>
+                        <div>其次还包括了{softSkills.map((s, i) => (
+                          <span key={i}><span className="text-amber-700 dark:text-amber-300 font-medium">{s}</span>{i < softSkills.length - 1 ? '、' : ''}</span>
+                        ))}等软技能要求</div>
                       )}
-                      {positionTrend && (
-                        <div className="flex items-center gap-1">
-                          <span className="text-[10px] text-muted-foreground shrink-0">岗位倾向</span>
-                          <span className="text-[11px] text-foreground">{positionTrend}</span>
-                        </div>
+                      {notCare && (
+                        <div>不看重<span className="text-muted-foreground italic">{notCare}</span></div>
                       )}
-                      {avoid && (
-                        <div className="flex items-center gap-1">
-                          <span className="text-[10px] text-muted-foreground shrink-0">不太看重</span>
-                          <span className="text-[11px] text-muted-foreground italic">{avoid}</span>
-                        </div>
+                      {suggestion && (
+                        <div className="pt-1 border-t border-indigo-200 dark:border-indigo-800">建议：<span className="text-blue-600 dark:text-blue-400">{suggestion}</span></div>
                       )}
-                      {growthDirection && (
-                        <div className="flex items-center gap-1">
-                          <span className="text-[10px] text-muted-foreground shrink-0">成长方向</span>
-                          <span className="text-[11px] text-blue-600 dark:text-blue-400">{growthDirection}</span>
-                        </div>
+                      {strengthen && (
+                        <div>补强：<span className="text-rose-600 dark:text-rose-400 font-medium">{strengthen}</span></div>
                       )}
                     </div>
                   );
