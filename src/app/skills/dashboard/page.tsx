@@ -299,6 +299,8 @@ export default function SkillsDashboardPage() {
                   const softSkills = (pref.soft_skills as string[]) || [];
                   const background = (pref.background as string) || '';
                   const avoid = (pref.avoid as string) || '';
+                  const positionTrend = (pref.position_trend as string) || '';
+                  const growthDirection = (pref.growth_direction as string) || '';
                   return (
                     <div className="space-y-2">
                       {personaTags.length > 0 && (
@@ -334,10 +336,22 @@ export default function SkillsDashboardPage() {
                           </div>
                         </div>
                       )}
+                      {positionTrend && (
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] text-muted-foreground shrink-0">岗位倾向</span>
+                          <span className="text-[11px] text-foreground">{positionTrend}</span>
+                        </div>
+                      )}
                       {avoid && (
                         <div className="flex items-center gap-1">
                           <span className="text-[10px] text-muted-foreground shrink-0">不太看重</span>
                           <span className="text-[11px] text-muted-foreground italic">{avoid}</span>
+                        </div>
+                      )}
+                      {growthDirection && (
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] text-muted-foreground shrink-0">成长方向</span>
+                          <span className="text-[11px] text-blue-600 dark:text-blue-400">{growthDirection}</span>
                         </div>
                       )}
                     </div>
