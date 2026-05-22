@@ -41,7 +41,7 @@ export default function SkillsDashboardPage() {
   const [range, setRange] = useState<'7d' | '30d' | 'all'>('30d');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedCompany, setSelectedCompany] = useState<string>('all');
-  const [companyPreference, setCompanyPreference] = useState<string>('');
+  const [companyPreference, setCompanyPreference] = useState<Record<string, unknown> | string | null>(null);
   const [preferenceLoading, setPreferenceLoading] = useState(false);
   const [commonSkillsData, setCommonSkillsData] = useState<{ skill: string; count: number; category?: string; companies?: string[] }[]>([]);
 
@@ -182,7 +182,7 @@ export default function SkillsDashboardPage() {
                   onChange={(e) => {
                     const val = e.target.value;
                     setSelectedCompany(val);
-                    setCompanyPreference('');
+                    setCompanyPreference(null);
                     if (val !== 'all') {
                       setPreferenceLoading(true);
                       fetch(`/api/skills/company-preference?company=${encodeURIComponent(val)}`)
@@ -236,7 +236,7 @@ export default function SkillsDashboardPage() {
                           const companyName = params.name;
                           if (companyName === '未提及公司') return;
                           setSelectedCompany(companyName);
-                          setCompanyPreference('');
+                          setCompanyPreference(null);
                           setPreferenceLoading(true);
                           fetch(`/api/skills/company-preference?company=${encodeURIComponent(companyName)}`)
                             .then(r => r.json())
@@ -253,7 +253,7 @@ export default function SkillsDashboardPage() {
                         key={i}
                         onClick={() => {
                           setSelectedCompany(c.company);
-                          setCompanyPreference('');
+                          setCompanyPreference(null);
                           setPreferenceLoading(true);
                           fetch(`/api/skills/company-preference?company=${encodeURIComponent(c.company)}`)
                             .then(r => r.json())
@@ -292,47 +292,52 @@ export default function SkillsDashboardPage() {
                     <span>正在分析...</span>
                   </div>
                 ) : companyPreference ? (() => {
-                  const pref = typeof companyPreference === 'object' ? companyPreference as Record<string, unknown> : null;
-                  if (!pref) return <p className="text-xs leading-relaxed text-foreground">{companyPreference}</p>;
+                  const pref = typeof companyPreference === 'object' ? companyPreference : null;
+                  if (!pref) return <p className="text-xs leading-relaxed text-foreground">{String(companyPreference)}</p>;
+                  const personaTags = (pref.persona_tags as string[]) || [];
+                  const coreSkills = (pref.core_skills as string[]) || [];
+                  const softSkills = (pref.soft_skills as string[]) || [];
+                  const background = (pref.background as string) || '';
+                  const avoid = (pref.avoid as string) || '';
                   return (
                     <div className="space-y-2">
-                      {pref.persona_tags?.length > 0 && (
+                      {personaTags.length > 0 && (
                         <div className="flex flex-wrap gap-1">
-                          {pref.persona_tags.map((tag: string, i: number) => (
+                          {personaTags.map((tag, i) => (
                             <span key={i} className="inline-flex items-center rounded-md bg-indigo-100 dark:bg-indigo-900/50 px-1.5 py-0.5 text-[11px] font-medium text-indigo-700 dark:text-indigo-300">{tag}</span>
                           ))}
                         </div>
                       )}
-                      {pref.core_skills?.length > 0 && (
+                      {coreSkills.length > 0 && (
                         <div className="flex items-center gap-1">
                           <span className="text-[10px] text-muted-foreground shrink-0">核心技能</span>
                           <div className="flex flex-wrap gap-1">
-                            {pref.core_skills.map((s: string, i: number) => (
+                            {coreSkills.map((s, i) => (
                               <span key={i} className="inline-flex items-center rounded bg-emerald-100 dark:bg-emerald-900/50 px-1.5 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-300">{s}</span>
                             ))}
                           </div>
                         </div>
                       )}
-                      {pref.background && (
+                      {background && (
                         <div className="flex items-center gap-1">
                           <span className="text-[10px] text-muted-foreground shrink-0">偏好背景</span>
-                          <span className="text-[11px] text-foreground">{pref.background}</span>
+                          <span className="text-[11px] text-foreground">{background}</span>
                         </div>
                       )}
-                      {pref.soft_skills?.length > 0 && (
+                      {softSkills.length > 0 && (
                         <div className="flex items-center gap-1">
                           <span className="text-[10px] text-muted-foreground shrink-0">软技能</span>
                           <div className="flex flex-wrap gap-1">
-                            {pref.soft_skills.map((s: string, i: number) => (
+                            {softSkills.map((s, i) => (
                               <span key={i} className="inline-flex items-center rounded bg-amber-100 dark:bg-amber-900/50 px-1.5 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-300">{s}</span>
                             ))}
                           </div>
                         </div>
                       )}
-                      {pref.avoid && (
+                      {avoid && (
                         <div className="flex items-center gap-1">
                           <span className="text-[10px] text-muted-foreground shrink-0">不太看重</span>
-                          <span className="text-[11px] text-muted-foreground italic">{pref.avoid}</span>
+                          <span className="text-[11px] text-muted-foreground italic">{avoid}</span>
                         </div>
                       )}
                     </div>
