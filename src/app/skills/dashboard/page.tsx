@@ -306,12 +306,12 @@ export default function SkillsDashboardPage() {
                       )}
                       {coreSkills.length > 0 && (
                         <div>原因在于岗位JD中体现了{coreSkills.map((s, i) => (
-                          <span key={i}><span className="text-emerald-700 dark:text-emerald-300 font-medium">{s.name}</span>{i < coreSkills.length - 1 ? '、' : ''}</span>
-                        ))}等核心技能要求，重复次数分别达到了{coreSkills.map((s, i) => (
-                          <span key={i}><span className="text-emerald-700 dark:text-emerald-300 font-medium">{s.count}次</span>{i < coreSkills.length - 1 ? '、' : ''}</span>
-                        ))}</div>
+                          <span key={i}><span className="text-emerald-700 dark:text-emerald-300 font-medium">{s.name}（{s.count}次）</span>{i < coreSkills.length - 1 ? '、' : ''}</span>
+                        ))}等核心技能要求，其次还包括了{softSkills.map((s, i) => (
+                          <span key={i}><span className="text-amber-700 dark:text-amber-300 font-medium">{s}</span>{i < softSkills.length - 1 ? '、' : ''}</span>
+                        ))}等软技能要求</div>
                       )}
-                      {softSkills.length > 0 && (
+                      {coreSkills.length === 0 && softSkills.length > 0 && (
                         <div>其次还包括了{softSkills.map((s, i) => (
                           <span key={i}><span className="text-amber-700 dark:text-amber-300 font-medium">{s}</span>{i < softSkills.length - 1 ? '、' : ''}</span>
                         ))}等软技能要求</div>
