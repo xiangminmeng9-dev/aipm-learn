@@ -713,6 +713,14 @@ const NODES: MapNode[] = [
           '人机交互Human-in-the-loop：interrupt_before/interrupt_after设置中断点、人工审批后继续执行、Command恢复与修改状态',
           'LangGraph与LangChain的关系：LangChain负责单步调用(模型/工具/解析)、LangGraph负责多步编排(状态/路由/循环)、两者组合覆盖从简单到复杂的全部场景',
         ] },
+        { name: '大模型训练全流程', points: [
+          '预训练Pre-training：海量无标注文本(网页/书籍/代码/论文TB级)→Next Token Prediction自回归训练→学习语言规律和世界知识、训练成本极高(GPT-4约1亿美元/数万张A100)、只有大厂和头部实验室能做、产出基座模型(Base Model)',
+          'SFT监督微调：高质量指令-回答对(数万~数十万条)→在基座模型上继续训练→模型学会按指令回答、数据质量>数量(1万条高质量>10万条低质量)、ChatML/ShareGPT格式、产出对话模型(Chat Model)',
+          'RLHF/DPO对齐训练：人类偏好数据(好回答vs差回答)→训练奖励模型→PPO强化学习优化(DPO跳过奖励模型直接优化)、让模型回答更安全/更有用/更符合人类意图、产出对齐模型(Aligned Model)',
+          '模型评估与迭代：自动评估(Benchmark/MMLU/HumanEval)→人工评估(安全性/有用性/诚实性)→Bad Case分析→修复→重新评估、多轮迭代直到达标',
+          '模型部署与推理：模型量化(GPTQ/AWQ/GGUF降低精度减少显存)→推理引擎(vLLM/TGI/TensorRT-LLM加速推理)→API服务部署→监控(延迟/吞吐/Token消耗/幻觉率)',
+          '全流程总结：预训练(学知识)→SFT(学指令)→RLHF/DPO(学偏好)→评估(验证效果)→部署(上线服务)→监控迭代(持续优化)，每一步都有明确输入输出和质量门控',
+        ] },
         { name: '模型微调与对齐训练', points: [
           '为什么需要微调：预训练模型通用但不够专→SFT让模型学会任务格式→RLHF/DPO对齐人类偏好→部署为领域专家',
           'SFT监督微调：数据集格式(ChatML/ShareGPT/Alpaca格式)、训练超参数(学习率/epoch/batch_size)、损失函数(CrossEntropy)、SFT的局限(容易过拟合/灾难性遗忘)',
