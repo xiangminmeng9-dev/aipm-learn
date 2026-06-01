@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import GradientBackground from '@/components/ui/gradient-background';
 import ReactECharts from 'echarts-for-react';
+import { RESOURCE_TYPES, getResourceTypeIcon, getResourceTypeLabel } from '@/components/resources/constants';
 
 interface SkillsStats {
   system_modules: number;
@@ -44,6 +45,8 @@ export default function SkillsDashboardPage() {
   const [companyPreference, setCompanyPreference] = useState<Record<string, unknown> | null>(null);
   const [preferenceLoading, setPreferenceLoading] = useState(false);
   const [commonSkillsData, setCommonSkillsData] = useState<{ skill: string; count: number; category?: string; companies?: string[] }[]>([]);
+  const [resourceStats, setResourceStats] = useState<{ type_distribution: { type: string; count: number }[]; total: number } | null>(null);
+  const [reextracting, setReextracting] = useState(false);
 
   // 加载数据
   const loadData = useCallback(async (r: string) => {
@@ -66,6 +69,25 @@ export default function SkillsDashboardPage() {
     setLoading(true);
     loadData(range);
   }, [range, loadData]);
+
+  // 加载资源统计
+  useEffect(() => {
+    fetch('/api/external-resources')
+      .then(r => r.json())
+      .then(data => {
+        const resources = data.resources || [];
+        const typeMap: Record<string, number> = {};
+        for (const r of resources) {
+          const t = r.resource_type || 'website';
+          typeMap[t] = (typeMap[t] || 0) + 1;
+        }
+        setResourceStats({
+          total: resources.filter((r: any) => r.type !== 'folder').length,
+          type_distribution: Object.entries(typeMap).map(([type, count]) => ({ type, count })).sort((a, b) => b.count - a.count),
+        });
+      })
+      .catch(() => {});
+  }, []);
 
   // 前端筛选职位类型（从已加载的数据中筛选，无需请求API）
   const handleSelectCategory = useCallback((cat: string) => {
@@ -520,6 +542,47 @@ export default function SkillsDashboardPage() {
             </div>
           </div>
         </div>
+
+        {/* Row 4: Resource Statistics */}
+        {resourceStats && resourceStats.total > 0 && (
+          <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-foreground">学习资源统计</h3>
+              <span className="text-sm text-indigo-600 font-medium">共 {resourceStats.total} 个资源</span>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div>
+                <ReactECharts
+                  option={{
+                    tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+                    series: [{
+                      type: 'pie',
+                      radius: ['35%', '65%'],
+                      data: resourceStats.type_distribution.map(t => ({
+                        name: getResourceTypeLabel(t.type) ?? t.type,
+                        value: t.count,
+                        itemStyle: { color: ['#6366F1', '#F59E0B', '#34c759', '#06B6D4', '#07c160', '#ff3b30', '#af52de'][RESOURCE_TYPES.findIndex(rt => rt.value === t.type) % 7] },
+                      })),
+                      label: { fontSize: 11, color: '#6B7280' },
+                    }],
+                  }}
+                  style={{ height: 180 }}
+                />
+              </div>
+              <div className="space-y-2">
+                {resourceStats.type_distribution.map((t, i) => (
+                  <div key={i} className="flex items-center justify-between text-sm">
+                    <span className="flex items-center gap-2">
+                      <span>{getResourceTypeIcon(t.type)}</span>
+                      <span className="text-foreground">{getResourceTypeLabel(t.type) ?? t.type}</span>
+                    </span>
+                    <span className="text-muted-foreground">{t.count} 个</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

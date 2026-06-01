@@ -265,12 +265,23 @@ export interface ResourcesStatsResponse {
 }
 
 // --- External Resource ---
+export type ResourceCategoryType = 'website' | 'paper' | 'blog' | 'lark_doc' | 'wechat' | 'video' | 'book';
+export type ExternalResourceType = ResourceCategoryType | 'link' | 'video' | 'doc' | 'folder';
+
 export interface ExternalResource {
   id: string;
   parent_id: string | null;
   title: string;
   url: string;
-  type: 'link' | 'video' | 'doc' | 'folder';
+  type: ExternalResourceType;
+  resource_type: ResourceCategoryType | null;
+  subcategory: string | null;
+  thumbnail_url: string | null;
+  local_path: string | null;
+  author: string | null;
+  year: number | null;
+  platform: string | null;
+  duration: string | null;
   source: string;
   notes: string | null;
   related_module_name: string | null;

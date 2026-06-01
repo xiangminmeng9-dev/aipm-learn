@@ -6,7 +6,7 @@ import { useToast } from '@/components/ui/toast';
 
 interface PlanTask { day: number; title: string; description: string; module: string; estimated_minutes: number; }
 interface PlanWeek { week: number; theme: string; tasks: PlanTask[]; }
-interface Plan { weeks: PlanWeek[]; summary: string; }
+interface Plan { weeks: PlanWeek[]; summary: string; direction?: string; directionDescription?: string; alignedCompanies?: string[]; }
 
 export default function LearningPlanPage() {
   const [plan, setPlan] = useState<Plan | null>(null);
@@ -14,6 +14,15 @@ export default function LearningPlanPage() {
   const [generating, setGenerating] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [targetRole, setTargetRole] = useState('AI产品经理');
+  const DIRECTION_OPTIONS = [
+    { value: 'AI产品经理', label: '通用AI产品经理' },
+    { value: 'Agent/智能体产品经理', label: 'Agent/智能体产品经理' },
+    { value: '大模型产品经理', label: '大模型产品经理' },
+    { value: '对话/客服产品经理', label: '对话/客服产品经理' },
+    { value: 'AIGC/创作产品经理', label: 'AIGC/创作产品经理' },
+    { value: '搜索/推荐产品经理', label: '搜索/推荐产品经理' },
+    { value: 'AI平台产品经理', label: 'AI平台产品经理' },
+  ];
   const [targetDate, setTargetDate] = useState('');
   const [weeklyHours, setWeeklyHours] = useState(10);
   const toast = useToast();
@@ -62,8 +71,10 @@ export default function LearningPlanPage() {
           <div className="grid gap-4 sm:grid-cols-3">
             <div>
               <label className="mb-1 block text-xs font-medium text-muted-foreground">目标岗位</label>
-              <input value={targetRole} onChange={e => setTargetRole(e.target.value)}
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" placeholder="AI产品经理" />
+              <select value={targetRole} onChange={e => setTargetRole(e.target.value)}
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm">
+                {DIRECTION_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+              </select>
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-muted-foreground">目标日期</label>
@@ -98,7 +109,21 @@ export default function LearningPlanPage() {
         </div>
       ) : (
         <div className="space-y-6">
-          {plan.summary && (
+          {plan.directionDescription && (
+            <div className="rounded-lg border-2 border-amber-200 bg-amber-50/50 p-4 dark:border-amber-800 dark:bg-amber-950/20">
+              <div className="flex items-start gap-3">
+                <span className="text-2xl">🎯</span>
+                <div>
+                  <p className="text-sm font-medium text-amber-800 dark:text-amber-300">{plan.direction}</p>
+                  <p className="mt-1 text-sm text-amber-700 dark:text-amber-400">{plan.directionDescription}</p>
+                  {plan.alignedCompanies && plan.alignedCompanies.length > 0 && (
+                    <p className="mt-2 text-xs text-amber-600 dark:text-amber-500">对齐公司：{plan.alignedCompanies.join('、')}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+          {plan.summary && !plan.directionDescription && (
             <div className="rounded-lg border border-amber-100 bg-amber-50/50 p-4 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/20 dark:text-amber-300">
               {plan.summary}
             </div>
