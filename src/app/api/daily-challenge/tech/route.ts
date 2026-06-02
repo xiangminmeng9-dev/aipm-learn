@@ -312,6 +312,7 @@ async function generateAndCache(
 
   let aiTitle = articleTitle;
   let aiSummary = rawSummary;
+  let aiExplanation = rawSummary;
   let aiImpact = '关注此技术动态，理解其对 AI PM 工作的影响';
 
   try {
@@ -328,14 +329,16 @@ ${article.published_at ? `发布时间：${article.published_at}` : ''}
 
 要求：
 1. 中文标题（如果原文是英文标题，翻译成中文，简洁有力，突出技术/功能关键词）
-2. 技术解读（2-3句中文，说明这项技术/功能是什么、能做什么、为什么重要，如果原文是英文请翻译成中文）
-3. 对AI产品经理的影响（1-2句中文，具体说明对产品决策、用户需求或市场竞争的影响，不要写空泛的话）
+2. 技术摘要（1句话，精炼概括核心内容，偏专业表达）
+3. 白话解读（2-3句，用通俗易懂的语言解释这项技术是什么、能做什么，多用类比和产品场景帮助理解，避免晦涩术语）
+4. 对AI产品经理的影响（1-2句中文，具体说明对产品决策、用户需求或市场竞争的影响，不要写空泛的话）
 
 格式（严格遵守）：
 标题：...
-解读：...
+摘要：...
+白话解读：...
 影响：...`,
-      { maxTokens: 600 }
+      { maxTokens: 800 }
     );
 
     const lines = aiResult.split('\n').filter((l: string) => l.trim());
@@ -343,21 +346,26 @@ ${article.published_at ? `发布时间：${article.published_at}` : ''}
       if (line.startsWith('标题：') || line.startsWith('标题:') || line.startsWith('标题：**') || line.startsWith('标题:**')) {
         const parsed = line.replace(/^标题[：:]\*{0,2}\s*/, '').trim();
         if (parsed) aiTitle = parsed;
-      } else if (line.startsWith('解读：') || line.startsWith('解读:') || line.startsWith('解读：**') || line.startsWith('解读:**')) {
-        aiSummary = line.replace(/^解读[：:]\*{0,2}\s*/, '').trim();
+      } else if (line.startsWith('摘要：') || line.startsWith('摘要:') || line.startsWith('摘要：**') || line.startsWith('摘要:**')) {
+        aiSummary = line.replace(/^摘要[：:]\*{0,2}\s*/, '').trim();
+      } else if (line.startsWith('白话解读：') || line.startsWith('白话解读:') || line.startsWith('白话解读：**') || line.startsWith('白话解读:**')) {
+        aiExplanation = line.replace(/^白话解读[：:]\*{0,2}\s*/, '').trim();
       } else if (line.startsWith('影响：') || line.startsWith('影响:') || line.startsWith('影响：**') || line.startsWith('影响:**')) {
         aiImpact = line.replace(/^影响[：:]\*{0,2}\s*/, '').trim();
       }
     }
-    // If only "影响" was found but "解读" wasn't parsed, use remaining text as summary
-    if (aiSummary === rawSummary && aiResult.length > 0 && aiImpact !== '关注此技术动态，理解其对 AI PM 工作的影响') {
-      const impactIdx = aiResult.indexOf('影响');
-      if (impactIdx > 0) {
-        aiSummary = aiResult.slice(0, impactIdx).replace(/^解读[：:]\s*/, '').trim();
-      }
+    // Fallback: if "摘要" wasn't parsed but "解读" was (old format), split it
+    if (aiSummary === rawSummary && aiExplanation === rawSummary && aiResult.length > 0) {
+      const summaryMatch = aiResult.match(/(?:摘要|解读)[：:]\*{0,2}\s*([\s\S]+?)(?=(?:白话解读|影响)[：:])/);
+      const explainMatch = aiResult.match(/白话解读[：:]\*{0,2}\s*([\s\S]+?)(?=影响[：:])/);
+      if (summaryMatch) aiSummary = summaryMatch[1].trim();
+      if (explainMatch) aiExplanation = explainMatch[1].trim();
     }
     if (aiSummary === rawSummary && aiResult.length > 0) {
       aiSummary = aiResult.slice(0, 200);
+    }
+    if (aiExplanation === rawSummary && aiResult.length > 0) {
+      aiExplanation = aiSummary;
     }
   } catch (aiErr) {
     console.error('AI summary generation failed, using raw content:', aiErr);
@@ -372,7 +380,7 @@ ${article.published_at ? `发布时间：${article.published_at}` : ''}
     date: today,
     title: aiTitle,
     summary: aiSummary.slice(0, 200),
-    explanation: aiSummary,
+    explanation: aiExplanation,
     impact: aiImpact,
     tags: [] as string[],
     source_url: article.url,

@@ -507,7 +507,7 @@ ${JSON.stringify(modules)}
 JD：${jdText}${resumeSection}
 
 输出格式：
-{"company_name":null,"position_name":"岗位名","extracted_skills":[{"skill_name":"技能","category":"类别","importance":"high"}],"matches":[{"skill_name":"技能","module_id":"模块ID","module_name":"模块名","match_score":80}],"gaps":[{"skill_name":"技能","category":"类别","suggestion":"学习建议","related_module_id":"最相关的模块ID","related_module_name":"最相关的模块名"}]${resumeText ? ',"resume_match":{"match_score":85,"strengths":["匹配优势1","匹配优势2"],"resume_gaps":[{"skill_name":"差距技能","detail":"简历中缺少的具体内容","suggestion":"提升建议"}],"improvement_suggestions":["简历改进建议1","简历改进建议2"]}' : ''}}
+{"company_name":null,"position_name":"岗位名","extracted_skills":[{"skill_name":"技能","category":"类别","importance":"high"}],"matches":[{"skill_name":"技能","module_id":"模块ID","module_name":"模块名","match_score":80}],"gaps":[{"skill_name":"技能","category":"类别","suggestion":"学习建议","related_module_id":"最相关的模块ID","related_module_name":"最相关的模块名"}]${resumeText ? ',"resume_match":{"match_score":85,"strengths":["匹配优势1","匹配优势2"],"resume_gaps":[{"skill_name":"差距技能","detail":"简历中缺少的具体内容","suggestion":"提升建议"}],"improvement_suggestions":["简历改进建议1","简历改进建议2"],"apply_recommendation":{"should_apply":true,"confidence":"medium","reason":"核心AI产品经验匹配，但数据技能需补强","key_actions":["简历中添加XX项目经验描述","面试前准备XX案例"]}}' : ''}}
 
 重要要求：
 1. extracted_skills必须完整覆盖JD中提到的所有技能要求，不要遗漏，通常10-25个
@@ -516,13 +516,19 @@ JD：${jdText}${resumeSection}
 4. 每个技能在matches中有记录，match_score>=60归入模块，<60放入gaps
 5. gaps中的每个技能必须指定related_module_id和related_module_name——从现有模块中选最相关的一个，即使匹配度不高也要指定，不要填null
 6. company_name如果JD中没有明确提及公司名，填null，不要填"未明确"等文字${resumeText ? `
-7. resume_match.match_score是简历与JD的整体匹配度（0-100整数）
+7. resume_match.match_score是简历与JD的整体匹配度（0-100整数），必须严格按以下标准评分：
+   - 90-100：简历完全覆盖JD核心要求，几乎没有差距
+   - 75-89：简历覆盖大部分核心要求，有少量差距
+   - 60-74：简历覆盖部分核心要求，有明显差距
+   - 40-59：简历与JD要求差距较大，只覆盖少数要求
+   - 0-39：简历与JD几乎不匹配
+   重要：不要默认给80左右的分数！必须逐条对比JD要求和简历内容后给出差异化评分，不同岗位的匹配度应该有明显区分
 8. resume_match.strengths是简历中已具备的JD要求（3-5条）
 9. resume_match.resume_gaps是基于简历内容判断的差距——与gaps不同，resume_gaps是对比简历后发现候选人缺少什么，每条包含skill_name、detail（简历中缺少的具体内容）、suggestion（如何提升）
 10. resume_match.improvement_suggestions是针对简历本身的改进建议（2-4条）` : ''}`;
 }
 
-export const COMBINED_JD_ANALYSIS_SYSTEM_PROMPT = `你是技术招聘专家。完整提取JD中所有技能要求（通常10-25个），逐条对照职位要求不遗漏。与现有模块匹配，输出纯JSON，无markdown。`;
+export const COMBINED_JD_ANALYSIS_SYSTEM_PROMPT = `你是技术招聘专家。完整提取JD中所有技能要求（通常10-25个），逐条对照职位要求不遗漏。与现有模块匹配，输出纯JSON，无markdown。简历匹配度评分必须严格差异化，根据实际覆盖情况拉开分差，禁止默认给80左右的分数。`;
 
 export function buildSkillMatchingPrompt(extractedSkills: { skill_name: string; category: string; importance: string }[], modules: { id: string; name: string; description?: string }[]): string {
   const skillList = extractedSkills.map(s => s.skill_name).join('、');

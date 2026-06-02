@@ -61,7 +61,7 @@ export async function DELETE(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { jdText, companyName, resumeText } = await request.json();
+    const { jdText, companyName, resumeText, existingId } = await request.json();
     if (!jdText || typeof jdText !== 'string') {
       return NextResponse.json({ error: '请提供岗位描述文本' }, { status: 400 });
     }
@@ -126,8 +126,15 @@ export async function POST(request: NextRequest) {
       const closeBraces = (jsonStr.match(/\}/g) || []).length;
 
       if (openBrackets > closeBrackets || openBraces > closeBraces) {
-        jsonStr = jsonStr.replace(/,\s*"[^"]*":\s*[^,}\]]*$/g, '');
-        jsonStr = jsonStr.replace(/,\s*$/g, '');
+        // Try to preserve resume_match if it was partially written
+        const resumeMatchStart = jsonStr.lastIndexOf('"resume_match"');
+        if (resumeMatchStart !== -1 && resumeMatchStart > jsonStr.lastIndexOf('}')) {
+          // resume_match field exists but object is incomplete — remove it entirely so null is used
+          jsonStr = jsonStr.slice(0, resumeMatchStart).replace(/,\s*$/, '');
+        } else {
+          jsonStr = jsonStr.replace(/,\s*"[^"]*":\s*[^,}\]]*$/g, '');
+          jsonStr = jsonStr.replace(/,\s*$/g, '');
+        }
         for (let i = 0; i < openBrackets - closeBrackets; i++) jsonStr += ']';
         for (let i = 0; i < openBraces - closeBraces; i++) jsonStr += '}';
       }
@@ -189,6 +196,12 @@ export async function POST(request: NextRequest) {
         };
       }) : [],
       improvement_suggestions: Array.isArray(parsed.resume_match.improvement_suggestions) ? parsed.resume_match.improvement_suggestions.map(String) : [],
+      apply_recommendation: parsed.resume_match.apply_recommendation ? {
+        should_apply: !!parsed.resume_match.apply_recommendation.should_apply,
+        confidence: ['high', 'medium', 'low'].includes(parsed.resume_match.apply_recommendation.confidence) ? parsed.resume_match.apply_recommendation.confidence : 'medium',
+        reason: String(parsed.resume_match.apply_recommendation.reason || ''),
+        key_actions: Array.isArray(parsed.resume_match.apply_recommendation.key_actions) ? parsed.resume_match.apply_recommendation.key_actions.map(String) : [],
+      } : null,
     } : null;
 
     const result = {
@@ -224,6 +237,34 @@ export async function POST(request: NextRequest) {
       });
     });
 
+    // Update existing record or insert new one
+    if (existingId) {
+      const { error: updateError } = await supabase
+        .from('jd_analyses')
+        .update({
+          extracted_skills: skills,
+          skill_module_matches: skillModuleMatches,
+          gaps,
+          resume_match: resumeMatch || null,
+          resume_text: resumeText || null,
+        })
+        .eq('id', existingId)
+        .eq('user_id', user.id);
+
+      if (updateError) {
+        return NextResponse.json({ error: updateError.message }, { status: 500 });
+      }
+
+      // Also update skill frequencies
+      await Promise.all(skillUpserts);
+
+      return NextResponse.json({
+        ...result,
+        id: existingId,
+        jd_text: jdText,
+      });
+    }
+
     const [insertResult] = await Promise.all([
       supabase.from('jd_analyses').insert({
         user_id: user.id,
@@ -235,11 +276,11 @@ export async function POST(request: NextRequest) {
         gaps: result.gaps,
         resume_text: resumeText || null,
         resume_match: resumeMatch || null,
-      }).select('id').single(),
+      }).select('id, created_at').single(),
       ...skillUpserts,
     ]);
 
-    return NextResponse.json({ ...result, id: insertResult.data?.id });
+    return NextResponse.json({ ...result, id: insertResult.data?.id, jd_text: jdText, created_at: insertResult.data?.created_at });
   } catch (err) {
     console.error('JD analyze error:', err);
     return NextResponse.json(

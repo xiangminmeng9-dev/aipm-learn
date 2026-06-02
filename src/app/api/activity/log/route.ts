@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
 const VALID_MODULES = ['interview', 'coding', 'skills', 'simulator', 'notebook', 'resume', 'resources', 'daily-challenge'];
-const VALID_ACTIONS = ['ai_call', 'page_view', 'practice_submit', 'analysis_complete'];
+const VALID_ACTIONS = ['ai_call', 'page_view', 'practice_submit', 'analysis_complete', 'resource_add', 'resource_delete', 'resource_view', 'resource_search'];
 
 export async function POST(request: NextRequest) {
   try {

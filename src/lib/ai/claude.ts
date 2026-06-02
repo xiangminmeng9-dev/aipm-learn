@@ -32,6 +32,11 @@ function isRateLimitError(err: unknown): boolean {
   return msg.includes('11202') || msg.includes('QpsOverFlow') || msg.includes('rate_limit') || msg.includes('429');
 }
 
+function isTimeoutError(err: unknown): boolean {
+  const msg = String(err);
+  return msg.includes('timed out') || msg.includes('ETIMEDOUT') || msg.includes('ECONNRESET');
+}
+
 async function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
@@ -94,7 +99,7 @@ function buildAnthropic(cfg: AIConfig): Anthropic {
   return new Anthropic({
     apiKey: cfg.apiKey,
     baseURL: cfg.baseURL,
-    timeout: 120_000,
+    timeout: 180_000,
     maxRetries: 0,
     // Third-party APIs (Xunfei MaaS etc.) don't understand the SDK's
     // generated Authorization header and only accept x-api-key.
@@ -112,7 +117,7 @@ function buildOpenAI(cfg: AIConfig): OpenAI {
   return new OpenAI({
     apiKey: cfg.apiKey,
     baseURL: cfg.baseURL,
-    timeout: 120_000,
+    timeout: 180_000,
     maxRetries: 0,
   });
 }
@@ -185,7 +190,7 @@ async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
       return await fn();
     } catch (err) {
       lastErr = err;
-      if (i < RETRY_DELAYS.length && isRateLimitError(err)) {
+      if (i < RETRY_DELAYS.length && (isRateLimitError(err) || isTimeoutError(err))) {
         await sleep(RETRY_DELAYS[i]);
         continue;
       }

@@ -35,7 +35,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN" suppressHydrationWarning>
-      <body className="bg-background text-foreground antialiased">
+      <body className="min-h-screen bg-background text-foreground antialiased">
         <NextTopLoader color="#6366F1" showSpinner={false} height={2} shadow={false} />
         <Providers>
           {children}
