@@ -252,6 +252,16 @@ export const EXTRA_TOPICS: Record<string, { name: string; points: string[] }[]> 
       '数据留存：工作流数据的留存策略和合规要求',
       '安全审计：定期的AI工作流安全审计和渗透测试',
     ] },
+    { name: 'Vibe Coding开发与实战', points: [
+      'Vibe Coding理念：用自然语言描述需求，AI生成代码，人负责意图和验收、AI负责实现细节，从"写代码"到"审代码"的角色转变',
+      '核心工具链：Cursor（AI原生IDE+Agent模式）、Claude Code（终端AI助手+多文件编辑）、GitHub Copilot（行内补全+Chat）、Windsurf（AI流式编辑）、Cline（VS Code自主编码Agent）',
+      'Cursor实战：Composer多文件编辑、Agent模式自动探索代码库、@引用上下文（文件/文档/网页）、.cursorrules项目规范、Review模式代码审查',
+      'Claude Code实战：终端交互式开发、CLAUDE.md项目指令、多文件并行编辑、MCP工具扩展、/commands自定义工作流、worktree隔离开发',
+      '开发模式：Spec驱动（先写规格再让AI实现）、TDD驱动（先写测试再让AI补实现）、增量迭代（小步修改逐步验证）、Agent自主（给目标让AI自主完成）',
+      '代码审查与质量：AI生成代码必须人工Review、关注边界处理/错误处理/安全漏洞、建立AI代码Review Checklist、用AI辅助Review AI生成的代码',
+      '项目管理：.cursorrules/CLAUDE.md项目规范文件、统一代码风格和架构约定、AI上下文管理（避免幻觉）、版本控制策略（AI修改的原子提交）',
+      '进阶技巧：多Agent协作（设计Agent+编码Agent+测试Agent）、MCP协议扩展工具能力、自定义命令自动化工作流、AI辅助调试和性能优化、从原型到生产的代码质量提升路径',
+    ] },
   ],
   'ai-architecture': [
     { name: '技术沟通与可行性评估', points: [
