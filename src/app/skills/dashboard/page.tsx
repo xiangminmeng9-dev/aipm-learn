@@ -42,7 +42,6 @@ export default function SkillsDashboardPage() {
   const [range, setRange] = useState<'7d' | '30d' | 'all'>('30d');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedCompany, setSelectedCompany] = useState<string>('all');
-  const [companySearch, setCompanySearch] = useState('');
   const [companyPreference, setCompanyPreference] = useState<Record<string, unknown> | null>(null);
   const [preferenceLoading, setPreferenceLoading] = useState(false);
   const [commonSkillsData, setCommonSkillsData] = useState<{ skill: string; count: number; category?: string; companies?: string[] }[]>([]);
@@ -270,42 +269,33 @@ export default function SkillsDashboardPage() {
                       }}
                     />
                   </div>
-                  <div className="w-[160px] flex flex-col gap-1.5 py-2">
-                    <input
-                      type="text"
-                      value={companySearch}
-                      onChange={e => setCompanySearch(e.target.value)}
-                      placeholder="搜索公司..."
-                      className="w-full rounded-md border border-border bg-background px-2 py-1 text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-indigo-400"
-                    />
-                    <div className="flex flex-col gap-1.5 overflow-y-auto max-h-[180px]">
-                      {stats.company_distribution.filter(c => c.company !== '未提及公司' && (!companySearch || c.company.toLowerCase().includes(companySearch.toLowerCase()))).map((c, i) => (
-                        <button
-                          key={i}
-                          onClick={() => {
-                            setSelectedCompany(c.company);
-                            setCompanyPreference(null);
-                            setPreferenceLoading(true);
-                            fetch(`/api/skills/company-preference?company=${encodeURIComponent(c.company)}`)
-                              .then(r => r.json())
-                              .then(d => { if (d.preference) setCompanyPreference(d.preference); })
-                              .catch(() => {})
-                              .finally(() => setPreferenceLoading(false));
-                          }}
-                          className={`flex items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-all ${
-                            selectedCompany === c.company
-                              ? 'bg-indigo-100 dark:bg-indigo-900/40 ring-1 ring-indigo-400'
-                              : 'hover:bg-muted/50'
-                          }`}
-                        >
-                          <span className="shrink-0 w-3 h-3 rounded-sm" style={{ backgroundColor: colors[i % colors.length] }} />
-                          <span className={`text-xs truncate ${selectedCompany === c.company ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
-                            {c.company}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground ml-auto">{c.count}</span>
-                        </button>
-                      ))}
-                    </div>
+                  <div className="w-[140px] flex flex-col gap-1.5 py-2 overflow-y-auto max-h-[220px]">
+                    {stats.company_distribution.filter(c => c.company !== '未提及公司').map((c, i) => (
+                      <button
+                        key={i}
+                        onClick={() => {
+                          setSelectedCompany(c.company);
+                          setCompanyPreference(null);
+                          setPreferenceLoading(true);
+                          fetch(`/api/skills/company-preference?company=${encodeURIComponent(c.company)}`)
+                            .then(r => r.json())
+                            .then(d => { if (d.preference) setCompanyPreference(d.preference); })
+                            .catch(() => {})
+                            .finally(() => setPreferenceLoading(false));
+                        }}
+                        className={`flex items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-all ${
+                          selectedCompany === c.company
+                            ? 'bg-indigo-100 dark:bg-indigo-900/40 ring-1 ring-indigo-400'
+                            : 'hover:bg-muted/50'
+                        }`}
+                      >
+                        <span className="shrink-0 w-3 h-3 rounded-sm" style={{ backgroundColor: colors[i % colors.length] }} />
+                        <span className={`text-xs truncate ${selectedCompany === c.company ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
+                          {c.company}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground ml-auto">{c.count}</span>
+                      </button>
+                    ))}
                   </div>
                 </div>
               ) : (

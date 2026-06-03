@@ -81,6 +81,7 @@ export default function JdAnalysisPage() {
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
   const [companyReport, setCompanyReport] = useState<string | null>(null);
   const [companyLoading, setCompanyLoading] = useState(false);
+  const [companySearch, setCompanySearch] = useState('');
   const [backfilling, setBackfilling] = useState(false);
   const [companyTopSkills, setCompanyTopSkills] = useState<{ name: string; count: number; positions: string[] }[]>([]);
   const [resumeFile, setResumeFile] = useState<File | null>(null);
@@ -575,7 +576,14 @@ export default function JdAnalysisPage() {
                 </div>
               </div>
               <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
-                {Object.entries(companyGroups).map(([company, items]) => (
+                <input
+                  type="text"
+                  value={companySearch}
+                  onChange={e => setCompanySearch(e.target.value)}
+                  placeholder="搜索公司..."
+                  className="w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#4F46E5] mb-1"
+                />
+                {Object.entries(companyGroups).filter(([company]) => !companySearch || company.toLowerCase().includes(companySearch.toLowerCase())).map(([company, items]) => (
                   <div key={company}>
                     {/* Company header with analysis button */}
                     <div className="flex items-center gap-1.5 px-2 pt-2 pb-1">
