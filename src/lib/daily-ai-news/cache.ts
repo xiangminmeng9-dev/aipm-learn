@@ -1,17 +1,10 @@
-import { createClient } from '@supabase/supabase-js';
+import { createServiceClient } from '@/lib/supabase/server';
 import type { DailyAiNewsArticle, DailyAiNewsDigest } from '@/types';
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-function getServiceClient() {
-  return createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-}
 
 const CACHE_STALE_MS = 3 * 60 * 60 * 1000; // 3 hours
 
 export async function getCachedArticles(date: string): Promise<DailyAiNewsArticle[]> {
-  const sb = getServiceClient();
+  const sb = createServiceClient();
   const { data } = await sb
     .from('daily_ai_news_articles')
     .select('*')
@@ -21,7 +14,7 @@ export async function getCachedArticles(date: string): Promise<DailyAiNewsArticl
 }
 
 export async function getCachedDigest(date: string): Promise<DailyAiNewsDigest | null> {
-  const sb = getServiceClient();
+  const sb = createServiceClient();
   const { data } = await sb
     .from('daily_ai_news_digests')
     .select('*')
@@ -31,7 +24,7 @@ export async function getCachedDigest(date: string): Promise<DailyAiNewsDigest |
 }
 
 export async function saveArticlesToCache(date: string, articles: { title: string; url: string; source: string; summary: string | null; published_at: string }[]): Promise<void> {
-  const sb = getServiceClient();
+  const sb = createServiceClient();
   await sb.from('daily_ai_news_articles').delete().eq('news_date', date);
   if (articles.length === 0) return;
   const rows = articles.map((a) => ({
@@ -46,7 +39,7 @@ export async function saveArticlesToCache(date: string, articles: { title: strin
 }
 
 export async function saveDigestToCache(date: string, digest: string, articleCount: number): Promise<void> {
-  const sb = getServiceClient();
+  const sb = createServiceClient();
   await sb
     .from('daily_ai_news_digests')
     .upsert({ news_date: date, digest, article_count: articleCount }, { onConflict: 'news_date' });

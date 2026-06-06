@@ -1,6 +1,6 @@
 // 资源类型体系定义
-
-export type ResourceType = 'website' | 'paper' | 'blog' | 'lark_doc' | 'wechat' | 'video' | 'book' | 'workflow';
+import type { ResourceCategoryType } from '@/types';
+export type ResourceType = ResourceCategoryType;
 
 export interface ResourceTypeDefinition {
   value: ResourceType;

@@ -1,21 +1,11 @@
-import { createClient } from '@supabase/supabase-js';
-import { fetchFeed, stripHtml, truncateContent } from './fetcher';
+import { fetchFeed, truncateContent } from './fetcher';
+import { stripHtml, isAiRelated as isAiRelatedShared } from './shared-utils';
 import { translateToPlainLanguage } from './translator';
 import { getSourcesForCategory, type RssSourceConfig } from './sources';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-function getServiceClient() {
-  return createClient(supabaseUrl, supabaseKey);
-}
-
-// AI-related keyword filter for zh sources
-const AI_KEYWORDS = /(AI|人工智能|大模型|LLM|GPT|生成式|智能体|Agent|机器学习|深度学习|多模态|RAG|Claude|Gemini|DeepSeek|通义|文心|Kimi|智谱|Sora|Copilot|AutoGPT|NLP|CV|AIGC|ChatGPT|Midjourney|开源模型|基座模型|推理优化|向量数据库|知识图谱|prompt|token|embedding|fine-tuning|微调)/i;
+import { createServiceClient } from '@/lib/supabase/server';
 
 function isAiRelated(text: string, language: string): boolean {
-  if (language === 'zh') return AI_KEYWORDS.test(text);
-  // EN sources are already AI-focused, skip keyword filter
+  if (language === 'zh') return isAiRelatedShared(text);
   return true;
 }
 
@@ -24,7 +14,7 @@ export async function refreshRssArticles(category?: 'ai_tech' | 'ai_pm'): Promis
   translated: number;
   errors: string[];
 }> {
-  const supabase = getServiceClient();
+  const supabase = createServiceClient();
   const sources = category
     ? getSourcesForCategory(category)
     : [...getSourcesForCategory('ai_tech'), ...getSourcesForCategory('ai_pm')];

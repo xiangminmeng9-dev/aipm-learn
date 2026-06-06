@@ -1,40 +1,12 @@
-import { AI_NEWS_RSS_FEEDS, isAiRelated, type RawNewsArticle } from './sources';
+import { AI_NEWS_RSS_FEEDS, type RawNewsArticle } from './sources';
+import { stripHtml, fetchWithTimeout, isAiRelated } from '../rss/shared-utils';
 
 export type { RawNewsArticle };
 
 const FETCH_TIMEOUT_MS = 8000;
 
-function stripHtml(html: string): string {
-  return html
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-async function fetchWithTimeout(url: string): Promise<string> {
-  const controller = new AbortController();
-  const t = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-  try {
-    const res = await fetch(url, {
-      signal: controller.signal,
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; AIPMBot/1.0; +https://example.com/bot)' },
-      next: { revalidate: 0 },
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return await res.text();
-  } finally {
-    clearTimeout(t);
-  }
-}
-
 async function parseNewsFeed(url: string, source: string): Promise<RawNewsArticle[]> {
-  const xml = await fetchWithTimeout(url);
+  const xml = await fetchWithTimeout(url, FETCH_TIMEOUT_MS);
   const { XMLParser } = await import('fast-xml-parser');
   const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '@_' });
   const doc = parser.parse(xml);

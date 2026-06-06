@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { stripHtml, fetchWithTimeout } from '@/lib/rss/shared-utils';
 
 const CACHE_DURATION_MS = 6 * 60 * 60 * 1000; // 6 hours
-const FETCH_TIMEOUT_MS = 8000;
 
 interface Job {
   title: string;
@@ -47,19 +47,6 @@ const RSS_FEEDS = [
   { url: 'https://ruby-china.org/topics/node23/feed', source: 'Ruby China · Jobs' },
 ];
 
-function stripHtml(html: string): string {
-  return html
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
 /** 判断一段文本是否含有至少 30% 的中日韩字符 → 认为是"中文 JD" */
 function isChineseText(text: string): boolean {
   if (!text) return false;
@@ -87,24 +74,12 @@ function extractCnLocation(text: string): string {
   return '中国';
 }
 
-async function fetchWithTimeout(url: string): Promise<string> {
-  const controller = new AbortController();
-  const t = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-  try {
-    const res = await fetch(url, {
-      signal: controller.signal,
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; AIPMBot/1.0; +https://example.com/bot)' },
-      next: { revalidate: 0 },
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return await res.text();
-  } finally {
-    clearTimeout(t);
-  }
+async function fetchJobsRss(url: string): Promise<string> {
+  return fetchWithTimeout(url, 8000);
 }
 
 async function parseFeed(url: string, source: string): Promise<Job[]> {
-  const xml = await fetchWithTimeout(url);
+  const xml = await fetchJobsRss(url);
   const { XMLParser } = await import('fast-xml-parser');
   const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '@_' });
   const doc = parser.parse(xml);

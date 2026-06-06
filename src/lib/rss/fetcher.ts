@@ -1,4 +1,7 @@
 import { XMLParser } from 'fast-xml-parser';
+import { stripHtml } from './shared-utils';
+
+export { stripHtml };
 
 export interface RawFeedItem {
   title: string;
@@ -93,19 +96,6 @@ export async function fetchFeed(url: string): Promise<RawFeed> {
     console.error(`Failed to fetch RSS feed: ${url}`, err);
     return { items: [] };
   }
-}
-
-export function stripHtml(html: string): string {
-  return html
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/\s+/g, ' ')
-    .trim();
 }
 
 export function truncateContent(content: string, maxLength = 3000): string {

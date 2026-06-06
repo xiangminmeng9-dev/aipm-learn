@@ -7,12 +7,6 @@ export const AI_NEWS_RSS_FEEDS = [
   { url: 'https://sspai.com/feed', source: '少数派', category: 'tech' },
 ];
 
-const AI_NEWS_KEYWORDS = /(AI|人工智能|大模型|LLM|GPT|生成式|智能体|Agent|机器学习|深度学习|多模态|RAG|Claude|Gemini|DeepSeek|通义|文心|Kimi|智谱|Sora|Copilot|AutoGPT|NLP|CV|AIGC|ChatGPT|Midjourney|Stable Diffusion|开源模型|基座模型|推理优化|向量数据库|知识图谱)/i;
-
-export function isAiRelated(text: string): boolean {
-  return AI_NEWS_KEYWORDS.test(text);
-}
-
 export interface RawNewsArticle {
   title: string;
   url: string;

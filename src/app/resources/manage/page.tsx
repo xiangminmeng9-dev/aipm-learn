@@ -2,12 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import type { ExternalResource } from '@/types';
+import type { ExternalResource, ResourceCategoryType as ResourceType } from '@/types';
 import { RESOURCE_TYPES, PRESET_RESOURCES, AI_PM_DIRECTIONS, AI_PM_WORKFLOW, getResourceTypeIcon, getSubcategoriesForType, getResourceTypeLabel, getSubcategoryLabel, getFoldersForType, getDirectChildrenCount, getFolderPath, LEARNING_MAP_TO_SKILL_MODULE, SKILL_MODULE_TO_LEARNING_MAP } from '@/components/resources/constants';
 import { ResourceCard, FolderCard } from '@/components/resources/ResourceCard';
 import GradientBackground from '@/components/ui/gradient-background';
-
-type ResourceType = 'website' | 'paper' | 'blog' | 'lark_doc' | 'wechat' | 'video' | 'book' | 'workflow';
 
 const TYPE_HEADER_STYLES: Record<ResourceType, string> = {
   website:  'bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-600/40 dark:to-purple-600/40',
