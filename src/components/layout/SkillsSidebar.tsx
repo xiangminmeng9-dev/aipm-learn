@@ -1,8 +1,6 @@
 'use client';
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { ThemeToggle } from '@/components/ui/theme-toggle';
+import AppSidebar from './AppSidebar';
 import { sidebarIcon as icon } from './sidebar-icon';
 
 const navItems = [
@@ -18,45 +16,7 @@ const navItems = [
   { label: '收藏技术', href: '/skills/bookmarked-tech', icon: icon('M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z') },
 ];
 
+// Layout imports this as `Sidebar` from '@/components/layout/SkillsSidebar'
 export default function SkillsSidebar() {
-  const pathname = usePathname();
-
-  return (
-    <aside className="flex h-full flex-col border-r bg-sidebar" style={{ backgroundColor: 'var(--sidebar-skills)', borderColor: 'var(--sidebar-skills-border)' }}>
-      <div className="border-b px-5 py-5" style={{ borderColor: 'var(--sidebar-skills-border)' }}>
-        <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-primary">
-          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-          </svg>
-          返回首页
-        </Link>
-        <h2 className="mt-3 text-lg font-semibold text-foreground">AI PM 技能学习</h2>
-      </div>
-      <nav className="flex-1 space-y-1 px-3 py-4">
-        {navItems.map((item) => {
-          const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
-          return (
-            <Link key={item.href} href={item.href}
-              className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-base transition-all duration-200 ${
-                isActive ? 'font-medium' : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
-              }`}
-              style={isActive ? { backgroundColor: 'var(--sidebar-skills-accent)', color: 'var(--sidebar-skills-active)' } : {}}>
-              <span style={isActive ? { color: 'var(--sidebar-skills-active)' } : {}}>{item.icon}</span>
-              <span>{item.label}</span>
-              {isActive && <span className="ml-auto h-1.5 w-1.5 rounded-full" style={{ backgroundColor: 'var(--sidebar-skills-active)' }} />}
-            </Link>
-          );
-        })}
-      </nav>
-      <div className="border-t px-5 py-4" style={{ borderColor: 'var(--sidebar-skills-border)' }}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-sm text-muted-foreground">在线</span>
-          </div>
-          <ThemeToggle compact />
-        </div>
-      </div>
-    </aside>
-  );
+  return <AppSidebar title="AI PM 技能学习" themeKey="skills" navItems={navItems} />;
 }
