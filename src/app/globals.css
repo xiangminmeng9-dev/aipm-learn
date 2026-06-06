@@ -342,24 +342,6 @@
   background: rgba(0, 0, 0, 0.35);
 }
 
-/* Card style - 超锐利卡片 */
-.app-card {
-  background: var(--card);
-  border: 2px solid var(--border);
-  border-radius: 12px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1), 0 0 1px rgba(0, 0, 0, 0.05);
-  transition: box-shadow 0.15s ease, border-color 0.15s ease;
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
-  /* 卡片锐利增强 */
-  -webkit-backdrop-filter: blur(0);
-  backdrop-filter: blur(0);
-}
-.app-card:hover {
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12), 0 0 1px rgba(0, 0, 0, 0.06);
-  border-color: rgba(79, 70, 229, 0.35);
-}
-
 /* Input style - 超清晰输入框 */
 .app-input {
   background: var(--card);
@@ -400,7 +382,7 @@
   opacity: 0.5;
 }
 
-/* Outline button - 更锐利 */
+/* Outline button */
 .app-btn-outline {
   background: var(--card);
   border: 1.5px solid var(--border);
@@ -415,89 +397,9 @@
   color: var(--primary);
 }
 
-/* 全局锐利边框 */
-.border-sharp {
-  border-width: 1.5px;
-}
-
-/* 清晰的阴影 */
-.shadow-sharp {
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 0 1px rgba(0, 0, 0, 0.04);
-}
-
-.shadow-sharp-md {
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1), 0 0 1px rgba(0, 0, 0, 0.05);
-}
-
-.shadow-sharp-lg {
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12), 0 0 1px rgba(0, 0, 0, 0.06);
-}
-
-/* 文字锐利 - 高对比度 + 字体特性 */
-.text-sharp {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  font-feature-settings: "kern" 1, "liga" 1, "calt" 1, "tnum" 1;
-  font-variant-numeric: tabular-nums;
-}
-
-/* 标题锐利 */
-.heading-sharp {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  font-feature-settings: "kern" 1, "liga" 1, "calt" 1, "dlig" 1;
-}
-
-/* 图标高清 - 几何精度 + GPU合成 */
-.icon-hd {
-  -webkit-transform: translateZ(0) scale(1);
-  transform: translateZ(0) scale(1);
-  shape-rendering: geometricPrecision;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
-}
-
-/* 图片高清 - GPU合成 + 对度增强 */
-.image-hd {
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
-  image-rendering: -webkit-optimize-contrast;
-  image-rendering: crisp-edges;
-  image-rendering: high-quality;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-  -webkit-filter: contrast(1.02) saturate(1.02);
-  filter: contrast(1.02) saturate(1.02);
-}
-
-/* 图表高清容器 */
-.chart-hd {
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
-  will-change: transform;
-  image-rendering: high-quality;
-  image-rendering: crisp-edges;
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
-}
-
-/* 卡片高清 */
-.card-hd {
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-  -webkit-box-decoration-break: clone;
-  box-decoration-break: clone;
+/* 3D perspective utility for book cards */
+.perspective-\[800px\] {
+  perspective: 800px;
 }
 
 /* Gradient text - indigo */
@@ -508,56 +410,9 @@
   background-clip: text;
 }
 
-/* Gradient border */
-.gradient-border {
-  position: relative;
-  border: 1.5px solid #4F46E5;
-}
-
-/* Page transition */
-.page-enter {
-  animation: fadeIn 0.2s ease-out;
-}
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
 /* Progress bar solid */
 .progress-gradient {
   background: #4F46E5;
-}
-
-/* Status dot animation */
-@keyframes pulse-dot {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
-.status-dot {
-  animation: pulse-dot 2s ease-in-out infinite;
-}
-
-/* Backward compat aliases - map old class names to new */
-.dark-card { }
-.dark-input { }
-.dark-btn-primary { }
-.dark-btn-outline { }
-
-/* 3D perspective utility for book cards */
-.perspective-\[800px\] {
-  perspective: 800px;
-}
-
-/* Mobile horizontal scroll for bookshelf */
-@media (max-width: 767px) {
-  .shelf-scroll {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-  }
-  .shelf-scroll::-webkit-scrollbar {
-    display: none;
-  }
 }
 
 /* ============================================================
