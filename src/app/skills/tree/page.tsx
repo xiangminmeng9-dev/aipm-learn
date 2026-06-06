@@ -178,7 +178,7 @@ export default function SkillsTreePage() {
           {/* Tree view */}
           {viewMode === 'tree' && modules.length > 0 && (
             <div className="relative z-10 rounded-2xl border border-border bg-card p-4">
-              <SkillTreeChart data={graphData} onNodeClick={handleNodeClick} />
+              <SkillTreeChart data={graphData} onNodeClick={handleNodeClick} onNodeDelete={handleDeleteCustomModule} />
             </div>
           )}
 

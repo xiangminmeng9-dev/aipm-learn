@@ -1,12 +1,26 @@
 'use client';
 
+import Link from 'next/link';
 import type { SkillModuleWithProgress } from '@/types';
+import { SKILL_MODULE_TO_LEARNING_MAP } from '@/components/resources/constants';
 
 interface SkillModuleCardProps {
   module: SkillModuleWithProgress & { is_custom?: boolean };
   onClick: () => void;
   onDelete?: () => void;
 }
+
+const MAP_NODE_NAMES: Record<string, string> = {
+  'pm-thinking': '产品思维模型', 'user-research': '用户研究', 'product-design': 'AI产品设计',
+  'ai-commercialization': 'AI商业化', 'pm-capability': 'AI PM能力模型', 'ai-fundamentals': 'AI技术基础',
+  'prompt-engineering': 'Prompt工程', 'ai-architecture': 'AI系统架构', 'ai-workflow': 'AI工作流',
+  'conversational-ai': '对话式AI', 'data-metrics': '指标体系', 'ai-evaluation': 'AI效果评估',
+  'product-strategy': '产品战略', 'ai-leadership': 'AI领导力', 'job-preparation': '求职备战',
+  'rag-architecture': 'RAG架构', 'ai-agent-design': 'Agent设计', 'data-quality-annotation': '数据标注',
+  'ai-requirement-spec': '需求规格', 'hitl-design': '人机协同', 'content-compliance': '合规审核',
+  'cn-llm-ecosystem': '国产模型', 'badcase-analysis': 'Bad Case', 'ai-vendor-evaluation': '技术选型',
+  'learning-resources': '学习资源',
+};
 
 export default function SkillModuleCard({ module, onClick, onDelete }: SkillModuleCardProps) {
   const isCustom = module.is_custom ?? false;
@@ -54,6 +68,9 @@ export default function SkillModuleCard({ module, onClick, onDelete }: SkillModu
       </div>
       <span className="text-sm text-muted-foreground">
         {module.completed_count}/{module.task_count} 任务
+        {module.resource_count && module.resource_count > 0 && (
+          <span className="ml-1 text-xs">· {module.resource_count} 资源</span>
+        )}
       </span>
       {!isCustom && module.interview_weak_types && module.interview_weak_types.length > 0 && (
         <div className="mt-2 flex items-center gap-1 flex-wrap">
@@ -70,6 +87,18 @@ export default function SkillModuleCard({ module, onClick, onDelete }: SkillModu
           {module.interview_methodology_count} 条方法论
         </span>
       )}
+      {!isCustom && (() => {
+        const mapNodeSlug = module.slug ? SKILL_MODULE_TO_LEARNING_MAP[module.slug] : undefined;
+        return mapNodeSlug ? (
+          <Link
+            href={`/skills/learning-map?node=${mapNodeSlug}`}
+            className="mt-2 inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-600 transition-colors hover:bg-indigo-100"
+            onClick={(e) => e.stopPropagation()}
+          >
+            🗺️ {MAP_NODE_NAMES[mapNodeSlug] || mapNodeSlug}
+          </Link>
+        ) : null;
+      })()}
     </div>
   );
 }

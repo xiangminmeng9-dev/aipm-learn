@@ -511,6 +511,106 @@ export const EXTRA_TOPICS: Record<string, { name: string; points: string[] }[]> 
       '持续学习：AI领域变化快，终身学习是必须而非选择',
     ] },
   ],
+  'conversational-ai': [
+    { name: '对话流设计进阶', points: [
+      '对话状态管理：有限状态机(FSM)建模、状态转移条件设计、异常状态恢复',
+      '多轮对话管理：上下文窗口管理、对话历史压缩、话题切换与回溯',
+      '槽位填充设计：必填/可选槽位、槽位依赖关系、多值槽位、槽位确认策略',
+      '意图识别体系：显式意图/隐式意图/复合意图的识别和处理策略',
+      '对话评估：任务完成率/对话轮数/转人工率/用户满意度的评估体系',
+    ] },
+    { name: '知识库运营', points: [
+      '知识库架构：FAQ/文档/结构化知识的多层知识库设计',
+      '知识更新机制：新增/修改/失效知识的自动检测和更新流程',
+      '知识质量评估：覆盖度/准确度/时效性的量化评估',
+      'RAG增强知识库：向量检索+知识图谱的混合知识库架构',
+    ] },
+    { name: '人机协作对话设计', points: [
+      '转人工策略：基于意图/情绪/复杂度的智能转人工判断',
+      '坐席辅助：AI实时建议/知识推荐/话术生成的坐席辅助系统',
+      '降本增效路径：从全人工到AI辅助到AI为主到全自动的渐进路径',
+      '用户预期管理：AI能力边界沟通、避免过度承诺、渐进式能力展示',
+    ] },
+  ],
+  'learning-resources': [
+    { name: '学习路径推荐', points: [
+      '产品优先路径：产品思维→用户研究→AI基础→产品设计→商业化→战略',
+      '技术优先路径：AI基础→Prompt→RAG→Agent→评估→架构',
+      '均衡发展路径：产品+AI双线并进，每阶段产品+技术结合学习',
+    ] },
+  ],
+  'ai-requirement-spec': [
+    { name: 'AI需求拆解实践', points: [
+      '需求拆解模板：功能需求/模型需求/数据需求/评测需求四维度拆解',
+      '模型规格书：输入输出定义/能力边界/性能指标/安全约束',
+      '验收标准设计：分级标准/Bad Case容忍度/验收门禁',
+      'AI PRD模板：标准结构+模型行为规范+降级方案+上线Checklist',
+    ] },
+  ],
+  'rag-architecture': [
+    { name: 'RAG架构设计实践', points: [
+      'Naive RAG到Advanced RAG：从简单检索到混合检索+重排序的演进',
+      'Agentic RAG：Agent自主决定何时检索、检索什么、如何整合',
+      'RAG评测体系：RAGAS/TruLens自动化评测、检索准确率/回答忠实度',
+      'RAG产品设计：企业知识库/智能客服/文档问答的RAG方案设计',
+    ] },
+  ],
+  'ai-agent-design': [
+    { name: 'Agent设计实践', points: [
+      'Agent架构选型：ReAct/Plan-and-Execute/Reflexion的适用场景',
+      '工具调用设计：Function Calling/MCP协议/工具选择策略',
+      '多Agent协作：分工策略/通信协议/冲突解决/AutoGen/CrewAI',
+      'Agent评测：任务完成率/工具调用准确率/规划合理性评估',
+    ] },
+  ],
+  'cn-llm-ecosystem': [
+    { name: '国产模型选型实践', points: [
+      '模型对比：文心/通义/智谱/Kimi/DeepSeek的能力和成本对比',
+      'API生态：OpenAI兼容格式/SDK成熟度/定价对比',
+      '私有化部署：开源模型选择/硬件需求/运维成本评估',
+      '选型决策：评测集设计/POC验证/成本效益分析',
+    ] },
+  ],
+  'ai-vendor-evaluation': [
+    { name: '供应商评估实践', points: [
+      '评估框架：能力/成本/稳定性/生态/合规五维评估',
+      'POC验证：评测集设计/通过标准/时间规划',
+      '成本分析：TCO计算/ROI预估/隐性成本识别',
+      '风险评估：供应商锁定/技术路线/合规/迁移风险',
+    ] },
+  ],
+  'data-quality-annotation': [
+    { name: '数据标注管理实践', points: [
+      '标注规范设计：定义/示例/边界Case/常见错误四部分',
+      '质量管控：抽检策略/一致性指标(Kappa)/标注员培训',
+      '数据飞轮：用户反馈→自动标注→主动学习→效果提升闭环',
+      'Bad Case管理：分类/归因/修复优先级/回归验证',
+    ] },
+  ],
+  'badcase-analysis': [
+    { name: 'Bad Case分析实践', points: [
+      '分类体系：幻觉/偏题/安全/格式/一致性/逻辑错误',
+      '归因分析：数据/模型/Prompt/系统四维归因+5-Why深度追问',
+      '回归测试集：核心场景+历史Bad Case的测试集维护',
+      '效果追踪：核心指标看板/趋势分析/异常告警/效果归因',
+    ] },
+  ],
+  'hitl-design': [
+    { name: '人机协同设计实践', points: [
+      '人机分工策略：任务分类/置信度阈值/动态调整/分级处理',
+      '审核流程设计：审核队列/审核界面/效率指标/审核员管理',
+      '渐进式自动化：全人工→AI辅助→AI为主→全自动的四阶段路径',
+      '实战案例：内容审核/智能客服/AI写作/数据分析的HITL设计',
+    ] },
+  ],
+  'content-compliance': [
+    { name: '内容合规实践', points: [
+      '合规框架：生成式AI管理办法/算法推荐规定/数据安全法/个人信息保护法',
+      '审核策略：前置过滤/实时审核/后置复审/用户举报多层体系',
+      '敏感词体系：分类管理/动态更新/模糊匹配/对抗检测',
+      '合规评审：评审节点/评审清单/风险分级/整改流程',
+    ] },
+  ],
 };
 
 export const EXTRA_CASES: Record<string, { title: string; company: string; lesson: string }[]> = {
@@ -584,6 +684,56 @@ export const EXTRA_CASES: Record<string, { title: string; company: string; lesso
     { title: '大厂AI PM面试全记录', company: '某大厂', lesson: '5轮面试的完整记录，每轮的题目、回答和复盘，最真实的面试参考' },
     { title: 'AI PM的薪资谈判实录', company: '社区案例', lesson: '从初始offer到最终package，每一步的谈判策略和结果' },
   ],
+  'conversational-ai': [
+    { title: '小冰的情感对话引擎', company: '小冰', lesson: 'EQ优先的对话设计，情感连接比任务完成更能留住用户' },
+    { title: '阿里小蜜的双11实战', company: '阿里巴巴', lesson: '对话系统在极端流量下的稳定性设计，智能转人工策略应对突发峰值' },
+    { title: 'Intercom的客服机器人', company: 'Intercom', lesson: '从FAQ机器人到全栈客服平台的演进，人机协作的渐进式自动化路径' },
+  ],
+  'learning-resources': [
+    { title: 'Andrew Ng的AI课程生态', company: 'DeepLearning.AI', lesson: '从Coursera入门到专项课程体系，系统化学习路径比碎片化学习效率高3倍' },
+    { title: 'Hugging Face的模型实战', company: 'Hugging Face', lesson: '从模型库到Spaces到课程，边做边学比纯看课程效果更好' },
+  ],
+  'ai-requirement-spec': [
+    { title: '某大厂AI搜索PRD实战', company: '某大厂', lesson: 'AI搜索需求的四维拆解：功能需求/模型需求/数据需求/评测需求缺一不可' },
+    { title: '智能客服需求翻车案例', company: '某金融公司', lesson: '需求只写了"回答用户问题"，没有定义能力边界和降级方案，上线后Bad Case率40%' },
+  ],
+  'rag-architecture': [
+    { title: 'Notion AI的知识检索', company: 'Notion', lesson: '个人知识库的RAG实践，语义检索+结构化元数据的混合方案效果最佳' },
+    { title: '某银行智能问答RAG', company: '某银行', lesson: '金融RAG的核心挑战：准确率要求99%+，必须加验证层和兜底机制' },
+    { title: 'Perplexity的实时RAG', company: 'Perplexity', lesson: '实时网页检索+AI总结的RAG架构，检索质量决定回答质量的上限' },
+  ],
+  'ai-agent-design': [
+    { title: 'Devin的自主编程Agent', company: 'Cognition', lesson: '自主Agent的天花板在于规划能力，复杂任务分解是核心瓶颈' },
+    { title: 'AutoGPT的兴衰启示', company: '开源社区', lesson: 'Agent不是万能的——没有明确目标和约束的自主Agent只会无限循环' },
+    { title: 'Cursor的编码Agent', company: 'Cursor', lesson: '实用Agent设计：人在回路中做关键决策，Agent负责执行，效率提升5x' },
+  ],
+  'cn-llm-ecosystem': [
+    { title: 'DeepSeek的逆袭', company: 'DeepSeek', lesson: '开源模型性能逼近GPT-4，中国AI的开源路线可以弯道超车' },
+    { title: 'Kimi的长上下文突破', company: '月之暗面', lesson: '200万字上下文窗口的产品化，长文本是中文场景的差异化竞争力' },
+    { title: '文心一言的企业化路径', company: '百度', lesson: '从通用模型到行业模型的落地，企业级场景需要领域定制而非通用能力' },
+  ],
+  'ai-vendor-evaluation': [
+    { title: '某银行AI供应商切换', company: '某银行', lesson: '从OpenAI切换到国产模型，TCO降低60%但需要3个月迁移和效果对齐' },
+    { title: '某SaaS公司的多供应商策略', company: '某SaaS公司', lesson: '不绑定单一供应商，用模型路由根据任务复杂度选择最优模型，成本降40%' },
+  ],
+  'data-quality-annotation': [
+    { title: 'Scale AI的标注平台', company: 'Scale AI', lesson: '标注质量=标注员培训+质检体系+工具支持，三者缺一不可' },
+    { title: '某自动驾驶标注项目', company: '某自动驾驶公司', lesson: '2D标注→3D标注→4D标注的复杂度跳跃，标注成本占项目总成本30%' },
+    { title: 'ChatGPT的RLHF标注', company: 'OpenAI', lesson: '人类偏好标注是RLHF的核心，标注员选择和培训直接影响模型对齐质量' },
+  ],
+  'badcase-analysis': [
+    { title: '某搜索AI的Bad Case治理', company: '某搜索引擎', lesson: '建立Bad Case分类体系后，修复效率提升3倍——先分类再归因再修复' },
+    { title: '某客服机器人的幻觉治理', company: '某电商平台', lesson: '幻觉类Bad Case占60%，根因是知识库覆盖不足+模型过度推理，双管齐下解决' },
+  ],
+  'hitl-design': [
+    { title: 'Tesla自动驾驶的人机协同', company: 'Tesla', lesson: '渐进式自动化的典范：从辅助驾驶到FSD，每一步都保留人类接管能力' },
+    { title: '医疗AI的诊断辅助', company: '某医疗AI公司', lesson: 'AI给建议、医生做决策，人机协同在医疗场景的核心是"辅助"而非"替代"' },
+    { title: '内容审核的人机分工', company: '某社交平台', lesson: 'AI过滤95%的明确违规，人工处理5%的灰色地带，效率和质量的最优平衡' },
+  ],
+  'content-compliance': [
+    { title: '某AIGC平台的合规整改', company: '某AIGC平台', lesson: '算法备案+内容审核+数据合规三座大山，合规不是成本而是准入门槛' },
+    { title: 'TikTok的内容审核体系', company: '字节跳动', lesson: '全球化的内容合规挑战：不同国家不同法规，本地化审核团队+AI审核的组合方案' },
+  ],
 };
 
 export const EXTRA_MUSTREAD: Record<string, { title: string; author: string; why: string }[]> = {
@@ -642,6 +792,50 @@ export const EXTRA_MUSTREAD: Record<string, { title: string; author: string; why
   'job-preparation': [
     { title: '《What Color Is Your Parachute》', author: 'Richard Bolles', why: '职业规划的经典，找到最适合你的职业方向' },
     { title: 'AI PM面试题库（GitHub）', author: '社区整理', why: '最全的AI PM面试题库，持续更新的社区资源' },
+  ],
+  'conversational-ai': [
+    { title: '《Designing Bots》', author: 'Amir Shevat', why: '对话式产品设计的实战指南，从用户需求到对话流的完整方法论' },
+    { title: '《Conversational AI》', author: 'Michael McTear', why: '对话AI的技术与设计，理解对话系统从NLU到DM到NLG的全链路' },
+  ],
+  'learning-resources': [
+    { title: 'DeepLearning.AI课程体系', author: 'Andrew Ng', why: '从AI入门到专项领域最系统的课程路径，适合PM补充技术基础' },
+    { title: 'Anthropic官方文档', author: 'Anthropic', why: 'Claude模型的最佳实践和Prompt指南，一线厂商的工程经验' },
+  ],
+  'ai-requirement-spec': [
+    { title: '《AI产品经理手册》', author: '多位作者', why: 'AI需求拆解和PRD写作的实战参考，含模型规格书和验收标准模板' },
+    { title: 'Google PAIR Guide', author: 'Google PAIR', why: 'AI产品设计的指南，从需求定义到公平性评估的系统方法' },
+  ],
+  'rag-architecture': [
+    { title: '《Building LLM Apps》', author: 'Valentina Alto', why: 'LLM应用开发实战，含RAG架构设计的完整案例' },
+    { title: 'LlamaIndex官方文档', author: 'LlamaIndex', why: 'RAG框架的最佳实践，从索引构建到检索优化到评估的完整指南' },
+  ],
+  'ai-agent-design': [
+    { title: '《Multi-Agent Systems》', author: 'Yoav Shoham', why: '多Agent系统的理论基础，理解Agent协作和博弈的学术视角' },
+    { title: 'LangGraph官方文档', author: 'LangChain', why: 'Agent工作流编排的工程实践，ReAct和Plan-and-Execute的实现指南' },
+  ],
+  'cn-llm-ecosystem': [
+    { title: '《大模型时代》', author: '龙志勇', why: '中国大模型产业的全景分析，从技术到商业到政策的系统梳理' },
+    { title: '智谱AI技术博客', author: '智谱AI', why: '国产模型的技术解读和应用案例，理解GLM系列的技术路线' },
+  ],
+  'ai-vendor-evaluation': [
+    { title: 'Gartner AI供应商评估报告', author: 'Gartner', why: '权威的AI供应商评估框架和排名，选型决策的重要参考' },
+    { title: '《Vendor Risk Management》', author: 'Norman Marks', why: '供应商风险管理的系统方法，AI供应商的特殊风险识别' },
+  ],
+  'data-quality-annotation': [
+    { title: '《Data Quality for ML》', author: 'Elena Suvorova', why: 'ML数据质量的实战指南，从标注规范到质检体系到数据飞轮' },
+    { title: 'Scale AI最佳实践文档', author: 'Scale AI', why: '数据标注行业的标杆实践，标注员培训和质检流程的参考' },
+  ],
+  'badcase-analysis': [
+    { title: 'Google SRE第11章', author: 'Google SRE Team', why: '故障分析的工程方法论，Bad Case分析可借鉴的系统化排查思路' },
+    { title: '《Thinking in Bets》', author: 'Annie Duke', why: '不确定条件下的决策思维，Bad Case归因需要避免后见之明偏差' },
+  ],
+  'hitl-design': [
+    { title: '《Human-in-the-Loop Machine Learning》', author: 'Robert Monarch', why: 'HITL的实战指南，从主动学习到标注管理到人机协作设计' },
+    { title: 'Apple的差分隐私设计', author: 'Apple', why: '隐私保护下的人机协同设计，如何在收集反馈的同时保护用户隐私' },
+  ],
+  'content-compliance': [
+    { title: '《生成式AI管理办法》解读', author: '多位法律专家', why: '中国AI合规的核心法规，理解监管红线和合规要求' },
+    { title: 'Stanford HAI年度AI指数', author: 'Stanford HAI', why: '全球AI政策和发展趋势的年度报告，合规趋势的风向标' },
   ],
 };
 
@@ -702,6 +896,49 @@ export const EXTRA_INTERVIEWQS: Record<string, { question: string; hint: string 
     { question: '你为什么想做AI PM而不是传统PM？', hint: '展示对AI的热情和理解，但不贬低传统PM，强调AI PM的独特价值' },
     { question: '你如何保持AI知识的更新？', hint: '具体的学习习惯：关注的技术博客/论文/社区，每周的学习时间' },
   ],
+  'conversational-ai': [
+    { question: '对话机器人的转人工率多少合适？怎么优化？', hint: '行业基准20-30%，按意图分类看——简单意图<5%，复杂意图>60%，优化要分场景' },
+    { question: '多轮对话中用户突然换话题怎么处理？', hint: '话题检测+上下文保留+确认意图，不要直接丢弃之前对话的状态' },
+  ],
+  'learning-resources': [
+    { question: '你推荐一个AI PM的3个月学习计划？', hint: '第1月AI基础+Prompt，第2月RAG+评估，第3月项目实战，每周10小时' },
+  ],
+  'ai-requirement-spec': [
+    { question: 'AI需求的"模型规格书"应该包含哪些内容？', hint: '输入输出定义/能力边界/性能指标/安全约束/Bad Case容忍度，比传统PRD多了模型行为规范' },
+    { question: '如何定义AI功能的验收标准？', hint: '分级标准（必须达到/建议达到/可接受）+Bad Case容忍度+验收门禁（多少测试用例通过才可上线）' },
+  ],
+  'rag-architecture': [
+    { question: 'RAG检索质量不好怎么排查？', hint: '分步骤诊断：分块策略→Embedding质量→检索策略→重排序→生成质量，逐层定位' },
+    { question: '什么时候用RAG，什么时候用微调？', hint: '知识更新频繁用RAG，行为模式改变用微调，两者可以组合使用' },
+  ],
+  'ai-agent-design': [
+    { question: 'Agent陷入循环怎么办？', hint: '设置最大步数限制+重复检测+强制终止+人工介入，Agent必须有退出机制' },
+    { question: '多Agent系统如何避免冲突？', hint: '明确分工+中央协调+冲突检测+优先级排序，避免两个Agent做同一件事' },
+  ],
+  'cn-llm-ecosystem': [
+    { question: '国产模型和GPT-4的主要差距在哪？', hint: '复杂推理/长文本理解/代码生成/多语言能力有差距，但中文场景差距缩小，成本优势明显' },
+    { question: '私有化部署国产模型的核心考量？', hint: '硬件成本/推理性能/运维复杂度/效果损失/安全合规，不是所有场景都适合私有化' },
+  ],
+  'ai-vendor-evaluation': [
+    { question: '如何评估AI供应商的长期稳定性？', hint: '融资情况/客户案例/技术路线/团队稳定性/合规资质，不要只看当前效果' },
+    { question: '供应商锁定风险怎么规避？', hint: '抽象层设计/OpenAI兼容格式/多供应商备份/定期切换演练，降低迁移成本' },
+  ],
+  'data-quality-annotation': [
+    { question: '标注一致性Kappa值低于0.7怎么办？', hint: '标注规范不够清晰/边界Case定义模糊/标注员培训不足，从规范和培训入手而非换人' },
+    { question: '如何用AI辅助标注提升效率？', hint: '预标注+人工校验/主动学习选样本/半自动标注工具，效率提升3-5倍' },
+  ],
+  'badcase-analysis': [
+    { question: 'Bad Case数量太多，怎么优先处理？', hint: '频率×严重度×修复成本的ROI排序，先修高频+严重+低成本的Quick Win' },
+    { question: '如何区分模型问题和Prompt问题？', hint: '同一个Bad Case用不同Prompt测试，换模型交叉验证，隔离变量定位根因' },
+  ],
+  'hitl-design': [
+    { question: '人机协同的置信度阈值怎么定？', hint: '根据错误代价设定——高代价任务阈值高（如医疗90%+），低代价任务阈值低（如推荐60%）' },
+    { question: '如何设计渐进式自动化路线图？', hint: '从全人工开始→AI辅助→AI为主→全自动，每个阶段都有明确的升级指标和回退机制' },
+  ],
+  'content-compliance': [
+    { question: 'AI生成内容的版权归属怎么处理？', hint: '目前法律尚不明确，建议在用户协议中约定，声明AI生成内容的版权归属和使用限制' },
+    { question: '算法备案需要准备什么？', hint: '算法基本原理/数据来源/使用场景/安全评估/应急处置，建议提前3个月准备' },
+  ],
 };
 
 export const EXTRA_PITFALLS: Record<string, string[]> = {
@@ -719,6 +956,17 @@ export const EXTRA_PITFALLS: Record<string, string[]> = {
   'product-strategy': ['不要忽视AI的"民主化"趋势——技术壁垒在降低，护城河需要重新定义', '不要把战略想得太复杂——好的战略应该一句话能说清楚'],
   'ai-leadership': ['不要忽视一线工程师的声音——最好的洞察往往来自离代码最近的人', '不要用KPI管理AI团队——实验文化需要容错空间'],
   'job-preparation': ['不要海投简历——精准投递+内推的效果是海投的10倍', '不要在面试中贬低前公司——展示成长而非抱怨'],
+  'conversational-ai': ['不要把对话机器人设计成万能的——越聚焦的机器人体验越好', '不要忽视对话的"温度"——冷冰冰的回复会让用户立刻流失', '不要跳过异常对话的测试——用户说"我不明白"时的回复比正常回复更重要'],
+  'learning-resources': ['不要贪多求全——选一条学习路径坚持3个月比收藏100个课程有效', '不要只看视频不动手——AI学习必须动手实践，看10小时课程不如做1小时项目'],
+  'ai-requirement-spec': ['不要在PRD中只写"AI智能回答"——必须定义能力边界、降级方案和验收标准', '不要忽略模型需求的文档化——模型规格书和功能PRD同样重要'],
+  'rag-architecture': ['不要忽视检索质量——RAG的效果上限由检索质量决定，生成只是锦上添花', '不要用单一检索策略——混合检索（关键词+语义）比任何单一策略都好'],
+  'ai-agent-design': ['不要让Agent拥有不受限的行动能力——每一步都需要验证和约束', '不要低估Agent的调试难度——Agent的不可预测性比传统软件高一个数量级'],
+  'cn-llm-ecosystem': ['不要盲目追求国产替代——先评估场景适配度，有些场景国产模型确实还有差距', '不要忽视国产模型的API生态成熟度——SDK文档/社区/工单响应差异很大'],
+  'ai-vendor-evaluation': ['不要只看评测分数跑分——实际业务场景的POC验证比任何榜单都可靠', '不要忽视隐性成本——迁移成本/学习成本/运维成本可能占总成本40%'],
+  'data-quality-annotation': ['不要低估标注规范的重要性——模糊的规范会导致30%以上的标注返工', '不要用众包做专业领域标注——医疗/法律/金融需要领域专家标注'],
+  'badcase-analysis': ['不要只分析单个Bad Case——找到模式比修单个Case更重要', '不要忽视Good Case的监控——效果退化可能从Good Case变Borderline开始'],
+  'hitl-design': ['不要追求100%自动化——有些场景人工介入比AI更可靠更高效', '不要忽视审核员体验——审核界面效率提升10%等于整体吞吐量提升10%'],
+  'content-compliance': ['不要把合规当作上线后才做的事——合规要从产品设计阶段就嵌入', '不要忽视用户举报的信号——用户举报是内容合规的最后一道防线也是最重要的反馈源'],
 };
 
 export const EXTRA_KEYQUESTIONS: Record<string, string[]> = {
@@ -736,6 +984,17 @@ export const EXTRA_KEYQUESTIONS: Record<string, string[]> = {
   'product-strategy': ['你的AI产品3年后的护城河是什么？', '如果大厂明天做同样的产品，你怎么防守？'],
   'ai-leadership': ['你的AI团队有实验文化吗？还是只有执行文化？', '你最近一次在AI伦理问题上做决策是什么时候？'],
   'job-preparation': ['你的AI PM简历5秒内能让人理解你做什么吗？', '你有3个完整的AI项目故事可以讲吗？每个3分钟？'],
+  'conversational-ai': ['你的对话机器人转人工率是多少？哪个意图转人工率最高？', '你的对话系统上次更新知识库是什么时候？覆盖度评估过吗？'],
+  'learning-resources': ['你的AI学习路径是什么？执行到哪一步了？', '你最近从哪个学习资源中获得了可以直接用在项目里的知识？'],
+  'ai-requirement-spec': ['你的AI PRD有模型规格书吗？模型的行为边界定义清楚了吗？', '你的AI功能验收标准是什么？Bad Case容忍度是多少？'],
+  'rag-architecture': ['你的RAG系统检索准确率是多少？上次诊断检索质量是什么时候？', '你的RAG系统用了什么分块策略？试过其他策略对比吗？'],
+  'ai-agent-design': ['你的Agent最长执行过多少步？有步数限制和超时机制吗？', '你的Agent工具调用成功率是多少？哪个工具最容易失败？'],
+  'cn-llm-ecosystem': ['你用过哪些国产模型？和GPT-4的差距体感如何？', '你的产品用了国产模型后效果降了多少？成本降了多少？ROI划算吗？'],
+  'ai-vendor-evaluation': ['你的AI供应商切换过吗？迁移成本有多大？', '你有没有供应商锁定的风险？如果供应商明天涨价50%怎么办？'],
+  'data-quality-annotation': ['你的标注一致性Kappa值是多少？上次标注规范更新是什么时候？', '你的数据飞轮转起来了吗？用户反馈到标注改进的周期多长？'],
+  'badcase-analysis': ['你的Bad Case分类体系有几种类型？哪种最多？', '你最近修复的Top 3 Bad Case是什么？修复后回归测试过了吗？'],
+  'hitl-design': ['你的人机协同置信度阈值是多少？怎么定的？', '你的渐进式自动化走到哪一步了？下一步的升级指标是什么？'],
+  'content-compliance': ['你的产品做了算法备案吗？备案花了多长时间？', '你的内容审核拦截率和误拦率分别是多少？'],
 };
 
 export const EXTRA_LEARNINGTIPS: Record<string, string[]> = {
@@ -753,4 +1012,15 @@ export const EXTRA_LEARNINGTIPS: Record<string, string[]> = {
   'product-strategy': ['选一个AI赛道，做完整的市场分析（TAM+竞争+趋势）', '为你熟悉的产品画一个商业模式画布和竞争策略'],
   'ai-leadership': ['在团队内推行一个AI最佳实践，从一个小项目开始', '写一篇关于AI产品管理的深度文章，建立你的观点'],
   'job-preparation': ['整理一份AI PM常见面试题清单，每题写一个回答框架', '找3个朋友做模拟面试，录音复盘，每次迭代回答'],
+  'conversational-ai': ['画一个你熟悉的对话产品的对话状态机图，标注异常状态和恢复路径', '设计一个转人工策略：定义3个触发条件、转人工话术、坐席接手流程'],
+  'learning-resources': ['制定一个3个月AI学习计划，每周10小时，第1月基础/第2月进阶/第3月实战', '选一个AI课程，边学边做笔记，学完后用费曼技巧给朋友讲一遍'],
+  'ai-requirement-spec': ['用四维拆解法（功能/模型/数据/评测）拆解一个你熟悉的AI功能需求', '写一份模型规格书：定义输入输出/能力边界/性能指标/Bad Case容忍度'],
+  'rag-architecture': ['用LlamaIndex搭建一个最小RAG系统，用Ragas评测检索和生成质量', '对比3种分块策略（固定长度/语义分块/递归分块）在相同文档上的检索效果'],
+  'ai-agent-design': ['用LangGraph实现一个ReAct Agent，设置步数限制和超时机制', '设计一个多Agent协作方案：定义3个Agent的分工、通信协议和冲突解决规则'],
+  'cn-llm-ecosystem': ['注册3个国产模型API（DeepSeek/通义/智谱），用相同Prompt对比输出质量', '算一笔账：同样100万Token，国产模型和GPT-4的成本差多少？效果差多少？'],
+  'ai-vendor-evaluation': ['用五维评估框架（能力/成本/稳定性/生态/合规）评估2个AI供应商', '设计一个POC验证方案：定义评测集、通过标准、时间规划、成本预算'],
+  'data-quality-annotation': ['写一份标注规范：定义+示例+边界Case+常见错误，找2个人试标看一致性', '设计一个数据飞轮：用户反馈→自动标注→主动学习→效果提升的闭环流程'],
+  'badcase-analysis': ['收集30个Bad Case，按6类分类（幻觉/偏题/安全/格式/一致性/逻辑），找出Top 3模式', '对一个Bad Case做5-Why归因分析，区分是数据问题、模型问题还是Prompt问题'],
+  'hitl-design': ['画一个你熟悉的AI产品的人机分工矩阵：按任务类型和置信度划分人机职责', '设计一个渐进式自动化路线图：定义4个阶段、每阶段的升级指标和回退机制'],
+  'content-compliance': ['梳理你的产品需要遵守的AI相关法规清单，标注每条的合规状态', '设计一个多层审核策略：前置过滤+实时审核+后置复审+用户举报，定义每层的规则'],
 };

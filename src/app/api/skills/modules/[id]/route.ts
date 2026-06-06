@@ -101,6 +101,14 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       user_resources: userResourcesByTask.get(t.id) ?? [],
     }));
 
+    // 获取关联到该模块的外部资源
+    const { data: linkedResources } = await supabase
+      .from('external_resources')
+      .select('id, title, url, resource_type, subcategory, thumbnail_url, author, description, source, notes')
+      .eq('user_id', user.id)
+      .eq('related_module_id', id)
+      .order('created_at', { ascending: false });
+
     // 面试联动：该模块关联的面试题型和方法论
     const { data: mappings } = await supabase
       .from('type_skill_mappings')
@@ -146,6 +154,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       },
       tasks: tasksWithUserResources,
       custom_tasks: customTasksWithUserResources,
+      linked_resources: linkedResources ?? [],
       interview_insights: {
         mapped_types: mappedTypes,
         methodologies: methodologiesForModule,

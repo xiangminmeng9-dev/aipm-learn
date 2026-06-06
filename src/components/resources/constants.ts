@@ -1,6 +1,6 @@
 // 资源类型体系定义
 
-export type ResourceType = 'website' | 'paper' | 'blog' | 'lark_doc' | 'wechat' | 'video' | 'book';
+export type ResourceType = 'website' | 'paper' | 'blog' | 'lark_doc' | 'wechat' | 'video' | 'book' | 'workflow';
 
 export interface ResourceTypeDefinition {
   value: ResourceType;
@@ -13,7 +13,7 @@ export const CHART_COLORS = ['#6366F1', '#8B5CF6', '#06B6D4', '#10B981', '#F59E0
 
 export const TYPE_LABELS: Record<string, string> = {
   website: '网站', paper: '论文', blog: '博客', lark_doc: '飞书文档',
-  wechat: '公众号', video: '视频', book: '书籍',
+  wechat: '公众号', video: '视频', book: '书籍', workflow: '工作流程',
   link: '链接', doc: '文档', folder: '文件夹',
 };
 
@@ -43,6 +43,179 @@ export const AI_PM_DIRECTIONS = [
     topics: ['API 设计', '模型评估', '成本优化', '安全合规', 'MLOps'],
   },
 ];
+
+// AI PM 工作流程 — 13个阶段
+export const AI_PM_WORKFLOW = {
+  title: 'AI PM 工作流程',
+  description: '从行业洞察到持续运营的13个阶段，覆盖AI产品经理端到端全流程',
+  icon: '🔄',
+  stages: [
+    {
+      name: '01 行业与市场洞察',
+      subcategory: 'market_insight',
+      module_slug: 'ai-cognition',
+      description: '理解行业趋势、市场规模、用户痛点，判断AI落地可行性',
+      items: [
+        { name: '行业趋势研判', description: '技术成熟度曲线、市场增速、政策风向、AI落地时机判断' },
+        { name: '市场规模估算', description: 'TAM/SAM/SOM三层估算方法、自上而下vs自下而上' },
+        { name: '用户痛点扫描', description: '未被满足的需求、现有方案不足、AI能否比规则/人工做得更好' },
+        { name: 'AI落地可行性初判', description: '场景是否适合AI、技术成熟度是否足够、成本是否可承受' },
+        { name: '技术趋势跟踪', description: '新模型发布、新范式涌现、成本变化、竞品技术动态' },
+      ],
+    },
+    {
+      name: '02 竞品分析与定位',
+      subcategory: 'competitor_analysis',
+      module_slug: 'ai-commercialization',
+      description: '拆解竞品策略、对比AI能力、找到差异化空间',
+      items: [
+        { name: '竞品识别与选择', description: '直接竞品、间接竞品、潜在竞品的识别方法' },
+        { name: '功能拆解与策略推演', description: '不只是功能罗列，要推演"为什么这么做"、下一步可能做什么' },
+        { name: 'AI能力对比', description: '各家模型选型、效果差异、成本差异、技术路线差异' },
+        { name: '体验对比', description: '实际使用竞品、记录体验差异、首次使用/核心流程/错误处理' },
+        { name: '差异化定位', description: '蓝海策略、竞品没做好但用户需要的空间' },
+      ],
+    },
+    {
+      name: '03 用户研究与需求定义',
+      subcategory: 'user_research',
+      module_slug: 'user-research',
+      description: '挖掘真需求、验证需求真伪、识别伪需求',
+      items: [
+        { name: '用户画像与场景还原', description: '目标用户是谁、在什么场景下遇到什么问题' },
+        { name: '需求挖掘', description: '5Why追问、场景还原、问题vs方案分离' },
+        { name: '需求真伪验证', description: '假门测试、数据验证、用户访谈、行为数据验证' },
+        { name: '需求优先级', description: 'ROI排序、Kano模型（基本型/期望型/兴奋型）、频率×严重度×成本' },
+        { name: '伪需求识别', description: '用户说想要≠真需要、动机分析、行为数据验证' },
+      ],
+    },
+    {
+      name: '04 模型能力评估与选型',
+      subcategory: 'model_evaluation',
+      module_slug: 'evals',
+      description: '测试模型边界、对比选型、建立效果基线',
+      items: [
+        { name: '模型能力边界测试', description: '什么能做/不能做/做了不可靠、边界case测试方法' },
+        { name: '多模型对比选型', description: '效果、延迟、成本、合规维度对比、选型决策矩阵' },
+        { name: 'Prompt工程可行性验证', description: 'Prompt能否解决、还是需要微调/RAG、成本与效果权衡' },
+        { name: '模型效果基线建立', description: '评估集设计、Bad Case分类体系、基线指标记录' },
+        { name: '模型迭代节奏规划', description: '何时升级模型、何时迁移、多模型路由策略' },
+      ],
+    },
+    {
+      name: '05 AI产品设计',
+      subcategory: 'ai_product_design',
+      module_slug: 'ai-product-design',
+      description: '用户视角拆解、交互流程、行为规范、人机协作、AI PRD',
+      items: [
+        { name: '用户视角拆解', description: '用户看到什么、做什么、得到什么反馈、AI介入点在哪' },
+        { name: '交互流程设计', description: '对话FSM、意图体系、槽位填充、Agent工作流编排' },
+        { name: 'AI行为规范定义', description: '正常case、边界case、异常case的预期行为和处理规则' },
+        { name: '人机协作设计', description: '何时转人工、人工辅助模式、自动化程度选择' },
+        { name: 'AI PRD撰写', description: '模型行为规范、效果指标、降级方案、测试用例、上线Checklist' },
+      ],
+    },
+    {
+      name: '06 技术方案评估',
+      subcategory: 'tech_evaluation',
+      module_slug: 'ai-native-design',
+      description: '可行性评估、架构理解、与算法团队协作',
+      items: [
+        { name: '技术可行性评估', description: '能不能做、值不值得做、风险在哪、成熟度评估' },
+        { name: '架构方案理解', description: 'RAG/Agent/微调/混合方案的适用场景和代价' },
+        { name: '与算法团队沟通协作', description: '提出正确问题、理解回答、识别搪塞、效果/成本/风险问题怎么问' },
+        { name: '需求→技术规范转化', description: '把业务需求翻译成工程师能执行的规格' },
+      ],
+    },
+    {
+      name: '07 数据策略',
+      subcategory: 'data_strategy',
+      module_slug: 'data-quality-annotation',
+      description: '数据需求定义、标注策略、Human-in-the-loop、隐私合规',
+      items: [
+        { name: '数据需求定义', description: '训练数据、评估数据、运营数据分别需要什么' },
+        { name: '数据采集与标注策略', description: '标注规范制定、质量管控、成本预算、标注工具选型' },
+        { name: 'Human-in-the-loop设计', description: '人审环节、质检流程、数据飞轮入口、标注→训练→评估闭环' },
+        { name: '数据隐私与合规', description: '用户数据使用范围、脱敏策略、数据留存策略、GDPR/个人信息保护法' },
+      ],
+    },
+    {
+      name: '08 效果评估体系',
+      subcategory: 'evaluation_system',
+      module_slug: 'evals',
+      description: '评估集、指标体系、离线/在线评估、数据飞轮',
+      items: [
+        { name: '评估集构建', description: '覆盖度、难度分层、Bad Case分类、对抗测试用例' },
+        { name: '指标体系设计', description: '准确率/召回率/延迟/成本/用户满意度、业务指标vs技术指标' },
+        { name: '离线评估vs在线评估', description: 'A/B测试设计、长期价值评估、离线指标与在线效果的gap' },
+        { name: '数据飞轮设计', description: '用户反馈→数据→模型→体验的闭环、反馈收集机制' },
+        { name: '效果回归测试', description: 'Prompt/模型变更后的回归验证、回归测试套件设计' },
+      ],
+    },
+    {
+      name: '09 安全与合规审查',
+      subcategory: 'security_compliance',
+      module_slug: 'content-compliance',
+      description: 'AI安全测试、内容安全、隐私保护、合规审查、伦理审查',
+      items: [
+        { name: 'AI安全测试', description: '红蓝对抗、对抗测试、Prompt注入、越狱测试、安全评估框架' },
+        { name: '内容安全审核', description: '有害内容检测、版权风险、偏见检测、内容审核策略' },
+        { name: '隐私保护设计', description: '数据最小化、用户知情权、数据删除权、隐私计算' },
+        { name: '合规审查', description: '算法备案、生成内容标识、行业监管要求、跨境合规' },
+        { name: '伦理审查', description: '公平性、透明性、可解释性、责任归属、AI伦理框架' },
+      ],
+    },
+    {
+      name: '10 兜底与降级策略',
+      subcategory: 'fallback_degradation',
+      module_slug: 'ai-native-design',
+      description: '降级分层、幻觉兜底、错误预算、故障响应',
+      items: [
+        { name: '降级分层设计', description: '大模型→小模型→规则→人工的分层降级、降级触发条件' },
+        { name: '幻觉兜底', description: '幻觉检测、拦截、用户提示、自动修正策略' },
+        { name: '错误预算设计', description: 'SLO定义、可接受的错误率、错误预算消耗策略' },
+        { name: '故障响应流程', description: '监控告警、应急处理、自动降级、复盘改进' },
+      ],
+    },
+    {
+      name: '11 成本与ROI分析',
+      subcategory: 'cost_roi',
+      module_slug: 'ai-commercialization',
+      description: '成本拆解、ROI计算、优化策略、定价策略',
+      items: [
+        { name: '成本结构拆解', description: 'Token成本、推理成本、标注成本、人工成本、运维成本' },
+        { name: 'ROI计算', description: '降本增效量化、收入增长归因、ROI计算模板' },
+        { name: '成本优化策略', description: '量化/蒸馏/模型路由/缓存/批量推理的代价收益' },
+        { name: '定价策略', description: 'API定价、按效果定价、订阅制、免费+增值模式' },
+      ],
+    },
+    {
+      name: '12 上线与灰度发布',
+      subcategory: 'launch_release',
+      module_slug: 'ai-requirement-spec',
+      description: '上线Checklist、灰度策略、期望管理、发布沟通',
+      items: [
+        { name: '上线Checklist', description: '模型版本锁定、效果验证、降级测试、监控告警配置' },
+        { name: '灰度发布策略', description: '流量比例、效果对比、回滚条件、灰度节奏' },
+        { name: '用户教育与期望管理', description: 'AI能力边界沟通、避免过度承诺、用户引导设计' },
+        { name: '发布沟通计划', description: '对内对外的预期管理、发布文档、变更通知' },
+      ],
+    },
+    {
+      name: '13 持续运营与迭代',
+      subcategory: 'operation_iteration',
+      module_slug: 'badcase-analysis',
+      description: '监控体系、数据驱动优化、模型升级、复盘方法论',
+      items: [
+        { name: '监控体系', description: '效果监控、成本监控、用户行为监控、告警规则' },
+        { name: '数据驱动优化', description: 'Bad Case→改进→回归验证的闭环、优化节奏' },
+        { name: '模型升级策略', description: '新模型评估、迁移计划、A/B对比、版本管理' },
+        { name: '需求演进', description: '用户行为变化、新场景发现、产品路线图更新' },
+        { name: '复盘方法论', description: '效果复盘、成本复盘、用户满意度复盘、复盘模板' },
+      ],
+    },
+  ],
+};
 
 export const RESOURCE_TYPES: ResourceTypeDefinition[] = [
   {
@@ -127,6 +300,15 @@ export const RESOURCE_TYPES: ResourceTypeDefinition[] = [
       { value: 'career', label: '职业发展' },
       { value: 'thinking', label: '思维模型' },
     ],
+  },
+  {
+    value: 'workflow',
+    label: 'AI PM 工作流程',
+    icon: '🔄',
+    subcategories: AI_PM_WORKFLOW.stages.map(s => ({
+      value: s.subcategory,
+      label: s.name,
+    })),
   },
 ];
 
@@ -268,3 +450,35 @@ export function getFoldersForType(resources: ExternalResource[], resourceType: s
 export function getDirectChildrenCount(resources: ExternalResource[], folderId: string): number {
   return resources.filter(r => r.parent_id === folderId).length;
 }
+
+// 学习地图节点 slug ↔ 技能树模块 slug 映射
+export const LEARNING_MAP_TO_SKILL_MODULE: Record<string, string> = {
+  'pm-thinking': 'pm-basics',
+  'user-research': 'user-research',
+  'product-design': 'ai-product-design',
+  'ai-commercialization': 'ai-commercialization',
+  'pm-capability': 'pm-capability',
+  'ai-fundamentals': 'ai-cognition',
+  'prompt-engineering': 'prompt-eng',
+  'ai-architecture': 'ai-native-design',
+  'ai-workflow': 'ai-native-design',
+  'conversational-ai': 'conversational-ai',
+  'data-metrics': 'data-analysis',
+  'ai-evaluation': 'evals',
+  'product-strategy': 'product-strategy',
+  'ai-leadership': 'ai-leadership',
+  'job-preparation': 'job-preparation',
+  'rag-architecture': 'rag-architecture',
+  'ai-agent-design': 'ai-agent-design',
+  'data-quality-annotation': 'data-quality-annotation',
+  'ai-requirement-spec': 'ai-requirement-spec',
+  'hitl-design': 'hitl-design',
+  'content-compliance': 'content-compliance',
+  'cn-llm-ecosystem': 'cn-llm-ecosystem',
+  'badcase-analysis': 'badcase-analysis',
+  'ai-vendor-evaluation': 'ai-vendor-evaluation',
+};
+
+export const SKILL_MODULE_TO_LEARNING_MAP: Record<string, string> = Object.fromEntries(
+  Object.entries(LEARNING_MAP_TO_SKILL_MODULE).map(([k, v]) => [v, k])
+);

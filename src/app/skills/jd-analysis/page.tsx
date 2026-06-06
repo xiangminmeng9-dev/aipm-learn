@@ -729,7 +729,7 @@ export default function JdAnalysisPage() {
                             </span>
                           )}
                         </div>
-                        <p className="text-sm text-foreground mb-2">{displayResult.resume_match.apply_recommendation.reason}</p>
+                        <p className="text-sm text-foreground mb-2">{displayResult.resume_match.apply_recommendation.reason || ''}</p>
                         {displayResult.resume_match.apply_recommendation.key_actions?.length > 0 && (
                           <div className="space-y-1">
                             {displayResult.resume_match.apply_recommendation.key_actions.map((a, i) => (
@@ -742,7 +742,7 @@ export default function JdAnalysisPage() {
                         )}
                       </div>
                     )}
-                    {displayResult.resume_match.strengths.length > 0 && (
+                    {displayResult.resume_match.strengths?.length > 0 && (
                       <div className="mb-4">
                         <h4 className="mb-2 text-sm font-medium text-emerald-700 dark:text-emerald-400">匹配优势</h4>
                         <div className="space-y-1.5">
@@ -757,7 +757,7 @@ export default function JdAnalysisPage() {
                         </div>
                       </div>
                     )}
-                    {displayResult.resume_match.resume_gaps.length > 0 && (
+                    {displayResult.resume_match.resume_gaps?.length > 0 && (
                       <div className="mb-4">
                         <h4 className="mb-2 text-sm font-medium text-amber-700 dark:text-amber-400">简历差距</h4>
                         <div className="space-y-2">
@@ -773,7 +773,7 @@ export default function JdAnalysisPage() {
                         </div>
                       </div>
                     )}
-                    {displayResult.resume_match.improvement_suggestions.length > 0 && (
+                    {displayResult.resume_match.improvement_suggestions?.length > 0 && (
                       <div>
                         <h4 className="mb-2 text-sm font-medium text-indigo-700 dark:text-indigo-400">简历提升建议</h4>
                         <div className="space-y-1.5">
@@ -1054,7 +1054,7 @@ export default function JdAnalysisPage() {
                         </span>
                       )}
                     </div>
-                    <p className="text-sm text-foreground mb-2">{displayResult.resume_match.apply_recommendation.reason}</p>
+                    <p className="text-sm text-foreground mb-2">{displayResult.resume_match.apply_recommendation.reason || ''}</p>
                     {displayResult.resume_match.apply_recommendation.key_actions?.length > 0 && (
                       <div className="space-y-1">
                         {displayResult.resume_match.apply_recommendation.key_actions.map((a, i) => (
@@ -1067,7 +1067,7 @@ export default function JdAnalysisPage() {
                     )}
                   </div>
                 )}
-                {displayResult.resume_match.strengths.length > 0 && (
+                {displayResult.resume_match.strengths?.length > 0 && (
                   <div className="mb-4">
                     <h4 className="mb-2 text-sm font-medium text-emerald-700 dark:text-emerald-400">匹配优势</h4>
                     <div className="space-y-1.5">
@@ -1082,7 +1082,7 @@ export default function JdAnalysisPage() {
                     </div>
                   </div>
                 )}
-                {displayResult.resume_match.resume_gaps.length > 0 && (
+                {displayResult.resume_match.resume_gaps?.length > 0 && (
                   <div className="mb-4">
                     <h4 className="mb-2 text-sm font-medium text-amber-700 dark:text-amber-400">简历差距</h4>
                     <div className="space-y-2">
@@ -1098,7 +1098,7 @@ export default function JdAnalysisPage() {
                     </div>
                   </div>
                 )}
-                {displayResult.resume_match.improvement_suggestions.length > 0 && (
+                {displayResult.resume_match.improvement_suggestions?.length > 0 && (
                   <div>
                     <h4 className="mb-2 text-sm font-medium text-indigo-700 dark:text-indigo-400">简历提升建议</h4>
                     <div className="space-y-1.5">

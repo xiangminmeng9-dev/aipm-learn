@@ -2010,6 +2010,648 @@ const NODES: MapNode[] = [
     },
     connections: ['pm-capability', 'ai-fundamentals', 'job-preparation'],
   },
+  // ── 新增节点：技能树有但学习地图缺少 ──
+  {
+    id: 'ai-requirement-spec',
+    label: 'AI 需求拆解与规格定义',
+    shortLabel: '需求规格',
+    icon: '📐',
+    x: 400, y: 480,
+    region: 'product',
+    color: '#34c759',
+    content: {
+      summary: 'AI产品需求拆解、模型规格定义、验收标准设计、Bad Case驱动迭代。这是AI PM区别于传统PM的核心能力。',
+      topics: [
+        { name: 'AI需求拆解方法', points: [
+          'AI需求与传统需求差异：不确定性、效果导向、迭代驱动',
+          '拆解维度：功能需求/模型需求/数据需求/评测需求',
+          '需求优先级：ROI排序 × 效果不确定性评估',
+          '需求变更管理：AI项目需求变更频繁，变更流程与影响评估',
+        ] },
+        { name: '模型规格定义', points: [
+          '模型能力规格书：输入输出定义、能力边界、约束条件',
+          '性能指标要求：准确率/延迟/吞吐量/成本的目标值',
+          '安全规格：内容安全/隐私保护/合规要求的定义',
+          '版本管理：模型版本与需求版本的对应关系',
+        ] },
+        { name: 'AI验收标准设计', points: [
+          '验收维度：准确率/延迟/覆盖率/安全性',
+          '分级标准：必须达标/建议达标/可选优化的三级标准',
+          'Bad Case容忍度：可接受的错误率和错误类型定义',
+          '验收流程：从离线评测到灰度验证到全量上线的验收门禁',
+        ] },
+        { name: 'Bad Case驱动迭代', points: [
+          'Bad Case收集机制：用户反馈/自动检测/人工抽检',
+          'Case优先级排序：频率×严重度×修复成本',
+          '迭代验证：修复后的回归测试和效果追踪',
+          '效果闭环：从发现到修复到验证的数据驱动闭环',
+        ] },
+        { name: 'AI PRD实战', points: [
+          'AI PRD模板：标准结构 + AI特殊章节',
+          '模型行为规范：正常case/边界case/异常case的处理规则',
+          '降级方案设计：大模型→小模型→规则→人工的分层降级',
+          '上线Checklist：模型版本锁定/效果验证/降级测试/监控告警',
+        ] },
+      ],
+      keyQuestions: [
+        '你如何定义AI功能的"完成"标准？效果指标达标意味着什么？',
+        'AI需求和传统需求最大的区别是什么？你的PRD如何体现？',
+        'Bad Case出现后，你的完整处理流程是什么？',
+      ],
+      mustRead: [
+        { title: '《AI Product Management》', author: 'Sameer Dholakia', why: 'AI产品管理的系统化方法论，需求拆解和规格定义的实战指南' },
+      ],
+      tools: ['Notion(PRD模板)', 'Promptfoo(回归测试)', 'LangSmith(效果追踪)', 'Excalidraw(架构图)'],
+      pitfalls: [
+        '不要用传统PRD模板写AI需求——缺少模型行为规范和降级方案',
+        '不要忽略Bad Case——AI产品的质量由最差的case决定',
+        '不要把验收标准定得太死——AI效果有波动，需要容忍度设计',
+      ],
+      caseStudies: [
+        { title: '某AI客服的验收灾难', company: '某电商平台', lesson: '验收只看平均准确率，忽略了高频Bad Case，上线后用户投诉激增，紧急回滚' },
+        { title: 'AI写作助手的规格设计', company: '某内容平台', lesson: '明确定义了"不可接受输出"的白名单和黑名单，上线后Bad Case率降低60%' },
+      ],
+      interviewQs: [
+        { question: 'AI PRD和传统PRD最大的区别是什么？', hint: '模型行为规范/效果指标/降级方案/Bad Case处理，四个核心差异' },
+        { question: '如何设计AI功能的验收标准？', hint: '多维度指标+分级标准+Bad Case容忍度+验收门禁' },
+      ],
+      learningTips: [
+        '写一份AI PRD，对照传统PRD模板，找出缺失的AI特殊章节',
+        '收集10个Bad Case，按类型和严重度分类，设计修复优先级',
+      ],
+    },
+    connections: ['pm-thinking', 'ai-product-design', 'ai-evaluation'],
+  },
+  {
+    id: 'rag-architecture',
+    label: 'RAG 架构理解',
+    shortLabel: 'RAG架构',
+    icon: '🔍',
+    x: 560, y: 200,
+    region: 'ai',
+    color: '#ff9500',
+    content: {
+      summary: '检索增强生成的核心架构：从文档切分到向量检索到生成优化，掌握RAG系统的设计、评测和迭代方法论。',
+      topics: [
+        { name: 'RAG基本原理', points: [
+          'RAG为什么有效：知识外置+实时检索，解决幻觉和时效性问题',
+          'RAG vs 微调：适用场景对比，何时用RAG何时微调何时混合',
+          'RAG架构演进：Naive RAG → Advanced RAG → Modular RAG → Agentic RAG',
+          'RAG适用场景：知识库问答/智能客服/文档分析/代码搜索',
+        ] },
+        { name: '向量数据库与Embedding', points: [
+          '向量数据库对比：Milvus/Pinecone/Weaviate/Qdrant/Chroma选型',
+          'Embedding模型选择：OpenAI/BGE/E5/Cohere的维度与性能权衡',
+          '索引类型：HNSW/IVF/Flat的选择策略，召回率vs延迟',
+          '元数据过滤：结合向量检索和结构化过滤的混合查询',
+        ] },
+        { name: 'Chunk策略与文档处理', points: [
+          '切分策略：固定长度/语义切分/递归切分/Markdown结构切分',
+          'Chunk大小选择：256/512/1024 Token的效果对比',
+          '多格式处理：PDF/Word/HTML/Markdown/表格的解析策略',
+          '元数据标注：来源/页码/章节/时间等元数据的设计',
+        ] },
+        { name: '检索优化策略', points: [
+          '混合检索：BM25关键词+向量语义的融合检索',
+          '重排序：Cross-Encoder/Cohere Rerank/BGE-Reranker',
+          'Query改写：HyDE/多Query生成/Query扩展',
+          '多路召回：不同检索策略的召回结果融合',
+        ] },
+        { name: 'RAG评测体系', points: [
+          '检索评测：召回率/精确率/MRR/NDCG',
+          '生成评测：回答相关性/忠实度/完整性',
+          '端到端评测：RAGAS/TruLens自动化评测框架',
+          'Bad Case分析：检索失败/生成失败/幻觉的归因方法',
+        ] },
+      ],
+      keyQuestions: [
+        '你的RAG系统检索准确率是多少？怎么测的？',
+        'Chunk大小怎么选的？有没有做过对比实验？',
+        '检索不到相关文档时怎么处理？',
+      ],
+      mustRead: [
+        { title: 'Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks', author: 'Lewis et al.', why: 'RAG架构的原始论文，理解RAG的理论基础' },
+      ],
+      tools: ['LangChain', 'LlamaIndex', 'Milvus', 'RAGAS', 'Chroma'],
+      pitfalls: [
+        '不要忽视检索质量——RAG的瓶颈往往是检索而非生成',
+        '不要用固定Chunk大小——不同文档类型需要不同切分策略',
+        '不要只看离线评测——线上用户Query的分布往往和评测集不同',
+      ],
+      caseStudies: [
+        { title: '企业知识库RAG落地', company: '某金融机构', lesson: '从Naive RAG到Advanced RAG，检索准确率从65%提升到92%，关键在混合检索+重排序' },
+        { title: '法律文档RAG系统', company: '某法律科技公司', lesson: 'Chunk策略从512改为语义切分，配合元数据过滤，回答准确率提升40%' },
+      ],
+      interviewQs: [
+        { question: 'RAG和微调分别适合什么场景？', hint: 'RAG适合知识密集/实时更新，微调适合风格/格式定制，混合方案兼顾两者' },
+        { question: 'RAG系统检索不到相关文档怎么办？', hint: 'Query改写/多路召回/降级到通用回答/提示用户换关键词' },
+      ],
+      learningTips: [
+        '用LlamaIndex搭建一个简易RAG，体验从文档切分到检索到生成的全流程',
+        '对比不同Chunk大小（256/512/1024）在相同数据集上的检索效果',
+      ],
+    },
+    connections: ['ai-fundamentals', 'ai-architecture', 'ai-evaluation'],
+  },
+  {
+    id: 'ai-agent-design',
+    label: 'AI Agent 设计',
+    shortLabel: 'Agent设计',
+    icon: '🤖',
+    x: 760, y: 100,
+    region: 'ai',
+    color: '#ff9500',
+    content: {
+      summary: 'AI Agent的架构设计：从ReAct到多Agent协作，掌握工具调用、规划执行、记忆系统的产品设计方法论。',
+      topics: [
+        { name: 'Agent基本概念', points: [
+          '什么是Agent：自主感知环境、做出决策、执行行动的AI系统',
+          'Agent vs Chatbot vs Copilot：自主性等级和能力差异',
+          'Agent核心组件：感知→规划→行动→记忆→学习',
+          'Agent适用场景：工作流自动化/智能助手/自主决策系统',
+        ] },
+        { name: 'Agent架构模式', points: [
+          'ReAct：推理+行动的循环，最经典的Agent范式',
+          'Plan-and-Execute：先规划后执行，适合复杂多步任务',
+          'Reflexion：自我反思和改进，Agent从错误中学习',
+          'LATS：语言Agent树搜索，蒙特卡洛树搜索+LLM',
+        ] },
+        { name: '工具调用设计', points: [
+          'Function Calling：工具定义规范、参数设计、调用策略',
+          'MCP协议：Model Context Protocol标准化工具接口',
+          '工具选择策略：基于意图/上下文/能力的工具路由',
+          '错误处理：工具调用失败的降级和重试策略',
+        ] },
+        { name: '多Agent协作', points: [
+          '分工策略：基于能力/任务/区域的Agent分工',
+          '通信协议：Agent间消息传递和状态同步',
+          '冲突解决：多Agent意见不一致时的仲裁机制',
+          'AutoGen/CrewAI：主流多Agent框架对比和选型',
+        ] },
+        { name: 'Agent评测与安全', points: [
+          '评测指标：任务完成率/工具调用准确率/规划合理性',
+          '安全边界：权限控制/操作审批/异常检测',
+          '成本控制：Agent调用链的Token消耗估算和优化',
+          '可观测性：Agent行为链路的追踪和调试',
+        ] },
+      ],
+      keyQuestions: [
+        '你的Agent能处理什么任务？不能处理什么？边界在哪里？',
+        '多Agent协作时如何保证一致性和避免冲突？',
+        'Agent出错时如何快速定位和修复？',
+      ],
+      mustRead: [
+        { title: 'ReAct: Synergizing Reasoning and Acting', author: 'Yao et al.', why: 'Agent范式的奠基论文，理解ReAct循环的核心思想' },
+      ],
+      tools: ['LangGraph', 'AutoGen', 'CrewAI', 'Dify', 'Coze'],
+      pitfalls: [
+        '不要让Agent权限过大——每次操作都需要用户确认或自动审批',
+        '不要忽视Agent的成本——多步调用Token消耗是指数级的',
+        '不要追求完全自主——人机协作比全自动更可靠',
+      ],
+      caseStudies: [
+        { title: '客服Agent从规则到AI', company: '某电商平台', lesson: '规则引擎处理80%常见问题，AI Agent处理20%复杂问题，人机协作效果最佳' },
+        { title: '多Agent协作做研究', company: '某AI公司', lesson: '搜索Agent+分析Agent+写作Agent分工协作，研究报告质量提升3倍' },
+      ],
+      interviewQs: [
+        { question: '如何设计一个可靠的Agent系统？', hint: '工具边界定义/错误处理/人机协作/成本控制四维度' },
+        { question: 'Agent和RAG怎么结合？', hint: 'Agentic RAG——Agent自主决定何时检索、检索什么、如何整合' },
+      ],
+      learningTips: [
+        '用Dify/Coze搭建一个简单Agent，体验工具调用和规划循环',
+        '对比ReAct和Plan-and-Execute在相同任务上的表现差异',
+      ],
+    },
+    connections: ['ai-fundamentals', 'prompt-engineering', 'ai-workflow'],
+  },
+  {
+    id: 'cn-llm-ecosystem',
+    label: '国产大模型生态与选型',
+    shortLabel: '国产模型',
+    icon: '🇨🇳',
+    x: 1060, y: 200,
+    region: 'ai',
+    color: '#ff9500',
+    content: {
+      summary: '国产大模型全景：文心/通义/智谱/Kimi/DeepSeek的对比评估、API生态、私有化部署和选型决策方法论。',
+      topics: [
+        { name: '国产大模型全景', points: [
+          '文心一言（百度）：中文理解强、企业级服务成熟、生态完善',
+          '通义千问（阿里）：开源生态活跃、Qwen系列模型性能优秀',
+          '智谱GLM：学术背景强、ChatGLM系列、MaaS平台完善',
+          'Kimi/月之暗面：长上下文优势、用户体验好',
+          'DeepSeek：开源能力领先、推理能力强、成本优势明显',
+          '百川/MiniMax/零一万物：差异化定位、各有特色',
+        ] },
+        { name: '模型能力对比评估', points: [
+          '通用能力评测：MMLU/C-Eval/CMMLU中文基准',
+          '垂直能力评测：代码/数学/推理/写作专项评测',
+          '性价比分析：API定价/Token成本/效果比',
+          '场景适配度：不同业务场景的模型选型建议',
+        ] },
+        { name: 'API生态与集成', points: [
+          'API兼容性：OpenAI格式适配、迁移成本评估',
+          'SDK生态：Python/Java/Go SDK成熟度',
+          '定价对比：输入/输出Token价格、批量折扣',
+          '服务稳定性：SLA承诺、实际可用性、故障响应',
+        ] },
+        { name: '私有化部署方案', points: [
+          '开源模型选择：Qwen/ChatGLM/DeepSeek的开源版本',
+          '模型压缩：量化/蒸馏/剪枝的效果和成本权衡',
+          '硬件需求：GPU显存/推理速度/并发能力的评估',
+          '运维成本：部署/监控/升级的人力成本',
+        ] },
+        { name: '选型决策实战', points: [
+          '需求分析：业务场景/性能要求/成本预算/合规要求',
+          '候选模型筛选：3-5个候选模型的对比矩阵',
+          'POC验证：评测集设计/通过标准/时间规划',
+          '最终决策：综合评分/风险评估/迁移方案',
+        ] },
+      ],
+      keyQuestions: [
+        '你的产品用哪个国产模型？为什么选它？',
+        '国产模型和GPT-4的差距在哪里？怎么弥补？',
+        '模型迁移的成本有多大？需要多长时间？',
+      ],
+      mustRead: [
+        { title: 'SuperCLUE中文评测报告', author: 'CLUE团队', why: '中文大模型最权威的评测报告，持续更新的选型参考' },
+      ],
+      tools: ['OpenAI兼容API', 'ModelScope', 'HuggingFace中文区'],
+      pitfalls: [
+        '不要只看评测分数——实际业务场景的表现才是王道',
+        '不要忽视迁移成本——换模型的隐性成本往往被低估',
+        '不要只选最贵的——国产模型的性价比优势是真实的',
+      ],
+      caseStudies: [
+        { title: '某企业从GPT-4迁移到国产模型', company: '某SaaS公司', lesson: '3个月完成迁移，成本降低70%，效果损失5%可接受，关键是评测集覆盖全面' },
+        { title: '私有化部署的坑', company: '某金融机构', lesson: '开源模型部署容易运维难，需要专职团队和持续优化' },
+      ],
+      interviewQs: [
+        { question: '如何评估国产大模型是否适合你的产品？', hint: '场景适配度/性价比/合规/生态四维度评估' },
+        { question: '模型迁移的风险有哪些？如何降低？', hint: '评测集覆盖/灰度迁移/双跑验证/回滚方案' },
+      ],
+      learningTips: [
+        '对比3个国产模型的API，用相同Prompt测试效果差异',
+        '画一个模型选型决策矩阵，包含你的产品关键指标',
+      ],
+    },
+    connections: ['ai-fundamentals', 'ai-vendor-evaluation'],
+  },
+  {
+    id: 'ai-vendor-evaluation',
+    label: 'AI 技术选型与供应商评估',
+    shortLabel: '技术选型',
+    icon: '📊',
+    x: 1160, y: 300,
+    region: 'ai',
+    color: '#ff9500',
+    content: {
+      summary: 'AI技术选型的系统化方法论：评估框架、供应商对比、POC验证、成本效益分析、技术风险管理。',
+      topics: [
+        { name: '技术选型评估框架', points: [
+          '评估维度：能力/成本/稳定性/生态/合规五维评估',
+          '权重设计：不同业务场景的维度权重差异化',
+          '评分体系：量化评分+定性评估的混合方法',
+          '决策流程：从候选筛选到POC验证到最终决策',
+        ] },
+        { name: '供应商对比分析', points: [
+          '供应商能力矩阵：功能/性能/服务/生态的对比',
+          'SLA对比：可用性/响应时间/故障恢复的承诺对比',
+          '技术支持评估：文档质量/社区活跃度/工单响应',
+          '生态成熟度：SDK/插件/集成/社区的完善程度',
+        ] },
+        { name: 'POC验证方法', points: [
+          'POC范围界定：核心场景/关键指标/时间资源',
+          '评测集设计：覆盖度/难度分层/对抗样本',
+          '通过标准：量化指标+定性评估的通过门槛',
+          '时间与资源：1-2周POC的节奏和资源规划',
+        ] },
+        { name: '成本效益分析', points: [
+          'TCO计算：API成本+集成成本+运维成本+迁移成本',
+          'ROI预估：效率提升/收入增长/风险降低的量化',
+          '隐性成本识别：学习成本/锁定风险/升级成本',
+          '长期成本趋势：用量增长/模型迭代/价格变动',
+        ] },
+        { name: '技术风险评估', points: [
+          '供应商锁定风险：数据/模型/集成的迁移难度',
+          '技术路线风险：技术方向变化/替代方案出现',
+          '合规风险：数据出境/内容审核/算法备案',
+          '迁移风险：换供应商的时间成本和效果损失',
+        ] },
+      ],
+      keyQuestions: [
+        '你的AI技术选型标准是什么？最重要的3个维度？',
+        '如何评估供应商的真实能力而非营销话术？',
+        '技术选型失败后的Plan B是什么？',
+      ],
+      mustRead: [
+        { title: '《评估AI供应商的21个问题》', author: 'a16z', why: '最实用的AI供应商评估清单，每个问题都直击要害' },
+      ],
+      tools: ['评测集管理', '成本计算器', 'SLA监控'],
+      pitfalls: [
+        '不要只看Demo效果——真实场景和Demo差距巨大',
+        '不要忽视供应商锁定——迁移成本可能是你想象10倍',
+        '不要省略POC——没有POC的选型是赌博不是决策',
+      ],
+      caseStudies: [
+        { title: '某公司AI供应商选型', company: '某互联网公司', lesson: '3个候选/2周POC/50个评测用例，最终选了不是最便宜但最稳定的方案' },
+        { title: '供应商锁定的教训', company: '某AI创业公司', lesson: '深度绑定一家供应商后涨价50%，迁移需要6个月，损失巨大' },
+      ],
+      interviewQs: [
+        { question: '如何设计AI技术的POC验证方案？', hint: '核心场景/评测集/通过标准/时间规划四要素' },
+        { question: 'AI供应商的隐性成本有哪些？', hint: '学习成本/锁定风险/升级成本/迁移成本' },
+      ],
+      learningTips: [
+        '为你的产品设计一个AI技术选型评分矩阵',
+        '对比3个AI供应商的API文档和定价，做成本测算',
+      ],
+    },
+    connections: ['cn-llm-ecosystem', 'ai-commercialization'],
+  },
+  {
+    id: 'data-quality-annotation',
+    label: '数据质量与标注',
+    shortLabel: '数据标注',
+    icon: '🏷️',
+    x: 320, y: 650,
+    region: 'data',
+    color: '#5856d6',
+    content: {
+      summary: 'AI产品的数据基石：标注管理、质量管控、数据飞轮设计。理解数据如何驱动模型效果和产品迭代。',
+      topics: [
+        { name: '数据标注基础', points: [
+          '标注类型：分类/抽取/生成/排序/偏好',
+          '标注流程：需求→规范→培训→标注→抽检→交付',
+          '标注工具：Label Studio/Prodigy/Scale AI选型',
+          '标注成本：人力/工具/时间/质量的成本预算',
+        ] },
+        { name: '标注规范设计', points: [
+          '规范结构：定义/示例/边界Case/常见错误',
+          '边界Case定义：模糊场景的标注规则和决策树',
+          '一致性检验：IAA/Kappa系数的监控和提升',
+          '规范迭代：基于标注员反馈和Bad Case的持续更新',
+        ] },
+        { name: '质量抽检与管理', points: [
+          '抽检策略：全量/随机/重点/分层抽检',
+          '一致性指标：标注员间一致性/与金标准一致性',
+          '标注员培训：培训流程/考核标准/淘汰机制',
+          '质量闭环：抽检→反馈→重标→再检的质量循环',
+        ] },
+        { name: '数据飞轮设计', points: [
+          '用户反馈收集：显式/隐式反馈的设计和采集',
+          '自动标注：利用模型辅助标注，降低人力成本',
+          '主动学习：选择最有价值的样本优先标注',
+          '闭环设计：标注→训练→评估→部署→反馈→标注',
+        ] },
+        { name: 'Bad Case管理', points: [
+          'Bad Case分类：幻觉/偏题/安全/格式等类型',
+          '归因分析：数据/模型/Prompt/系统的根因定位',
+          '修复优先级：频率×严重度×修复成本排序',
+          '回归验证：修复后的自动化回归测试机制',
+        ] },
+      ],
+      keyQuestions: [
+        '你的标注规范多长时间更新一次？谁负责维护？',
+        '标注一致性Kappa系数是多少？低于0.7怎么办？',
+        '数据飞轮转一圈需要多长时间？',
+      ],
+      mustRead: [
+        { title: '《Data Quality for AI》', author: 'O\'Reilly', why: 'AI数据质量的系统化方法论，标注到评估的完整指南' },
+      ],
+      tools: ['Label Studio', 'Prodigy', 'Scale AI', 'Labelbox'],
+      pitfalls: [
+        '不要忽视标注规范——模糊规范导致的返工成本是规范设计的10倍',
+        '不要只看标注数量——1000条高质量标注胜过10000条低质量标注',
+        '不要跳过一致性检验——Kappa<0.7的标注数据不可信',
+      ],
+      caseStudies: [
+        { title: '标注规范的力量', company: '某AI公司', lesson: '花2周写标注规范vs直接标注：规范组3周完成且质量高，无规范组5周还在返工' },
+        { title: '数据飞轮实践', company: '某搜索引擎', lesson: '用户反馈→自动标注→模型优化→效果提升，4周一个完整飞轮周期' },
+      ],
+      interviewQs: [
+        { question: '如何设计标注规范？', hint: '定义/示例/边界Case/常见错误四部分，持续迭代' },
+        { question: '标注质量如何保证？', hint: '规范+培训+抽检+一致性检验的四层保障' },
+      ],
+      learningTips: [
+        '为一个小任务设计标注规范，找2个人标注，计算一致性',
+        '画一个数据飞轮图，标注每个环节的数据流和时间周期',
+      ],
+    },
+    connections: ['data-metrics', 'ai-evaluation'],
+  },
+  {
+    id: 'badcase-analysis',
+    label: 'Bad Case 分析与迭代',
+    shortLabel: 'Bad Case',
+    icon: '🐛',
+    x: 540, y: 620,
+    region: 'data',
+    color: '#5856d6',
+    content: {
+      summary: 'AI产品质量的守护体系：Bad Case的分类、归因、修复、回归验证闭环。这是AI PM日常最重要的工作之一。',
+      topics: [
+        { name: 'Bad Case分类体系', points: [
+          '类型分类：幻觉/偏题/安全/格式/一致性/逻辑错误',
+          '严重度分级：P0(必须修)/P1(应该修)/P2(可以修)/P3(观察)',
+          '频率分类：偶发/规律/系统性，不同频率不同处理策略',
+          '来源分类：用户反馈/自动检测/人工抽检/评测发现',
+        ] },
+        { name: 'Bad Case归因分析', points: [
+          '根因分析：数据/模型/Prompt/系统四维归因',
+          '归因树：5-Why深度追问找到根本原因',
+          '量化归因：各类原因的占比和趋势分析',
+          '系统性vs偶发：区分系统性问题和个别Case',
+        ] },
+        { name: 'Case驱动迭代流程', points: [
+          '收集机制：用户反馈/自动检测/评测发现的Case收集',
+          '优先级排序：频率×严重度×修复成本的ROI排序',
+          '修复验证：修复后必须通过回归测试',
+          '上线节奏：修复→回归→灰度→全量的发布流程',
+        ] },
+        { name: '回归测试与质量守护', points: [
+          '回归测试集：核心场景+历史Bad Case的测试集维护',
+          '自动化回归：每次变更自动跑回归测试',
+          '质量门禁：上线前必须通过的评测指标门槛',
+          '效果追踪：上线后的效果监控和异常告警',
+        ] },
+        { name: '效果追踪与数据看板', points: [
+          '核心指标看板：准确率/Bad Case率/用户满意度',
+          '趋势分析：按日/周/月的效果趋势和异常检测',
+          '异常告警：效果下降超过阈值的自动告警',
+          '效果归因：变化的原因分析和归因报告',
+        ] },
+      ],
+      keyQuestions: [
+        '你的产品Bad Case率是多少？P0级别的有多少？',
+        '从发现Bad Case到修复上线需要多长时间？',
+        '回归测试集有多少用例？覆盖率如何？',
+      ],
+      mustRead: [
+        { title: '《ML Test Score》', author: 'Google', why: 'Google提出的ML系统测试评分体系，量化质量守护能力' },
+      ],
+      tools: ['LangSmith', 'Promptfoo', '自定义回归框架'],
+      pitfalls: [
+        '不要只修不防——没有回归测试的修复等于没修',
+        '不要忽视偶发Case——今天偶发明天可能变系统性的',
+        '不要只看数量不看严重度——1个P0比100个P3重要',
+      ],
+      caseStudies: [
+        { title: 'Bad Case驱动迭代实践', company: '某AI公司', lesson: '建立Case→归因→修复→回归的48小时闭环，产品效果月均提升5%' },
+        { title: '回归测试救了产品', company: '某搜索公司', lesson: 'Prompt变更后自动回归测试发现3个效果退化，避免了一次线上事故' },
+      ],
+      interviewQs: [
+        { question: 'Bad Case的处理流程是什么？', hint: '收集→分类→归因→排序→修复→回归→上线，7步闭环' },
+        { question: '如何判断一个Bad Case是系统性问题还是偶发问题？', hint: '频率/复现性/根因分析，偶发观察/系统性必修' },
+      ],
+      learningTips: [
+        '收集10个Bad Case，按P0-P3分级，选最高优先级的做归因分析',
+        '为你的产品设计一个回归测试集，至少覆盖10个核心场景',
+      ],
+    },
+    connections: ['ai-evaluation', 'data-quality-annotation'],
+  },
+  {
+    id: 'hitl-design',
+    label: '人机协同设计',
+    shortLabel: '人机协同',
+    icon: '🤝',
+    x: 720, y: 640,
+    region: 'leadership',
+    color: '#af52de',
+    content: {
+      summary: 'Human-in-the-Loop设计方法论：人机分工策略、人工审核流程、渐进式自动化、效率与质量平衡。',
+      topics: [
+        { name: '人机协同基本概念', points: [
+          'HITL定义：人在AI决策链路中的介入方式和程度',
+          '自动化程度选择：全自动/半自动/人工为主的策略选择',
+          '人机分工原则：人擅长判断/创意/异常，机擅长速度/规模/一致',
+          '成本效益分析：人工成本vs错误成本vs自动化成本的三方权衡',
+        ] },
+        { name: '人机分工策略', points: [
+          '任务分类：人优/机优/协同三类任务的识别方法',
+          '置信度阈值：模型输出置信度低于阈值时转人工',
+          '动态调整：根据模型效果变化动态调整人机比例',
+          '分级处理：简单自动/复杂人工/关键审批的三级策略',
+        ] },
+        { name: '人工审核流程设计', points: [
+          '审核队列：优先级排序/批量处理/并行审核的队列设计',
+          '审核界面：信息密度/操作效率/疲劳管理',
+          '效率指标：审核速度/准确率/一致性的监控',
+          '审核员管理：培训/考核/轮换/激励的团队管理',
+        ] },
+        { name: '渐进式自动化', points: [
+          '阶段1：全人工，积累数据和规则',
+          '阶段2：AI辅助，人工审批，提升效率',
+          '阶段3：AI为主，人工抽检，降低成本',
+          '阶段4：全自动+异常转人工，规模化',
+        ] },
+        { name: '人机协同实战案例', points: [
+          '内容审核：AI预审+人工复审+用户举报三层体系',
+          '智能客服：AI处理80%+人工20%复杂问题',
+          'AI写作助手：AI生成+人工编辑+AI润色的协作模式',
+          '数据分析：AI分析+人工解读+AI报告的协作流程',
+        ] },
+      ],
+      keyQuestions: [
+        '你的产品人机比例是多少？为什么这样设计？',
+        'AI出错时人工接管的平均响应时间是多少？',
+        '如何决定一个任务从人工转为自动化？',
+      ],
+      mustRead: [
+        { title: '《Human-in-the-Loop Machine Learning》', author: 'Robert Monarch', why: 'HITL ML的实战指南，标注到部署的完整方法论' },
+      ],
+      tools: ['审核后台', '置信度监控', 'A/B测试平台'],
+      pitfalls: [
+        '不要追求100%自动化——有些场景人工比AI更高效更可靠',
+        '不要忽视审核员体验——疲劳和低效是质量下降的主因',
+        '不要固定人机比例——应该随模型效果提升动态调整',
+      ],
+      caseStudies: [
+        { title: '渐进式自动化实践', company: '某内容平台', lesson: '3个月从全人工到70%自动化，审核效率提升5倍，错误率不变' },
+        { title: '人机协同的平衡点', company: '某客服中心', lesson: 'AI处理80%+人工20%是最佳比例，再提升自动化率错误率急剧上升' },
+      ],
+      interviewQs: [
+        { question: '如何设计人机协同方案？', hint: '任务分类→置信度阈值→审核流程→渐进式自动化四步走' },
+        { question: '人工审核如何保证效率和质量？', hint: '审核界面优化/优先级排序/一致性检验/疲劳管理' },
+      ],
+      learningTips: [
+        '画一个你熟悉产品的人机分工图，标注每个环节的自动化程度',
+        '设计一个渐进式自动化方案：从全人工到70%自动化的3个月路线图',
+      ],
+    },
+    connections: ['ai-workflow', 'conversational-ai'],
+  },
+  {
+    id: 'content-compliance',
+    label: '内容合规与审核',
+    shortLabel: '合规审核',
+    icon: '⚖️',
+    x: 1060, y: 500,
+    region: 'leadership',
+    color: '#af52de',
+    content: {
+      summary: '中国AI内容合规体系：生成式AI管理办法、算法备案、内容审核策略、敏感词体系、合规评审流程。',
+      topics: [
+        { name: '中国AI合规框架', points: [
+          '生成式AI管理办法：备案/标注/审核/安全评估要求',
+          '算法推荐规定：算法备案/评估/透明度义务',
+          '数据安全法：数据分类分级/出境安全评估',
+          '个人信息保护法：用户知情权/删除权/数据最小化',
+        ] },
+        { name: '内容审核策略设计', points: [
+          '多层审核：前置过滤/实时审核/后置复审/用户举报',
+          '审核规则引擎：关键词/正则/语义匹配的多层规则',
+          '灰度策略：新模型/新功能的内容审核灰度方案',
+          '紧急响应：违规内容发现的应急处理流程',
+        ] },
+        { name: '敏感词体系构建', points: [
+          '敏感词分类：政治/色情/暴力/歧视/广告/隐私',
+          '词库管理：分级分类/动态更新/模糊匹配',
+          '对抗检测：绕过审核的对抗样本检测',
+          '多语言支持：不同语言的敏感词体系差异',
+        ] },
+        { name: '合规评审流程', points: [
+          '评审节点：需求评审/设计评审/上线评审的合规检查',
+          '评审清单：合规checklist的标准化和自动化',
+          '风险分级：高/中/低风险的不同评审深度',
+          '整改流程：合规问题的整改和复评机制',
+        ] },
+        { name: '合规实战案例', points: [
+          '大模型备案：备案流程/材料准备/评审要点',
+          '算法推荐合规：算法评估报告/透明度说明',
+          '内容安全体系：从0到1搭建内容安全团队和流程',
+          '跨境合规：数据出境/多国合规的实践经验',
+        ] },
+      ],
+      keyQuestions: [
+        '你的产品做过算法备案吗？流程是什么？',
+        '内容审核的误杀率和漏杀率分别是多少？',
+        '合规要求对产品功能有多大影响？如何平衡？',
+      ],
+      mustRead: [
+        { title: '《生成式人工智能服务管理暂行办法》', author: '国家网信办', why: '中国AI合规的核心法规，必须逐条理解' },
+      ],
+      tools: ['内容审核API', '敏感词库', '合规Checklist'],
+      pitfalls: [
+        '不要等上线后才做合规——合规应该从产品设计阶段就介入',
+        '不要只依赖AI审核——AI审核+人工复审的混合方案最可靠',
+        '不要忽视合规变化——法规在持续更新，需要定期审查',
+      ],
+      caseStudies: [
+        { title: '大模型备案全流程', company: '某AI公司', lesson: '从准备材料到通过备案用了4个月，关键是提前理解评审要点' },
+        { title: '内容审核体系搭建', company: '某内容平台', lesson: '3层审核(关键词+AI+人工)+2周灰度，违规内容减少90%' },
+      ],
+      interviewQs: [
+        { question: 'AI产品需要做哪些合规？', hint: '算法备案/内容审核/数据安全/个人信息保护四方面' },
+        { question: '如何平衡合规要求和产品体验？', hint: '合规是底线不是天花板，创新在合规框架内寻找空间' },
+      ],
+      learningTips: [
+        '阅读《生成式AI管理办法》原文，标注和你产品相关的条款',
+        '为你的产品设计一个合规Checklist，包含上线前的所有合规检查项',
+      ],
+    },
+    connections: ['ai-architecture', 'ai-leadership'],
+  },
 ];
 
 const LEARNING_PATHS = [
@@ -2017,19 +2659,19 @@ const LEARNING_PATHS = [
     id: 'product-first',
     name: '产品优先',
     color: '#34c759',
-    nodes: ['learning-resources', 'pm-capability', 'pm-thinking', 'user-research', 'product-design', 'ai-commercialization', 'data-metrics', 'ai-evaluation', 'product-strategy', 'ai-leadership', 'job-preparation'],
+    nodes: ['learning-resources', 'pm-capability', 'pm-thinking', 'user-research', 'product-design', 'ai-requirement-spec', 'ai-commercialization', 'data-metrics', 'ai-evaluation', 'badcase-analysis', 'product-strategy', 'hitl-design', 'content-compliance', 'ai-leadership', 'job-preparation'],
   },
   {
     id: 'ai-first',
     name: 'AI 技术优先',
     color: '#ff9500',
-    nodes: ['learning-resources', 'ai-fundamentals', 'prompt-engineering', 'ai-workflow', 'ai-evaluation', 'ai-architecture', 'product-design', 'ai-leadership', 'job-preparation'],
+    nodes: ['learning-resources', 'ai-fundamentals', 'ai-agent-design', 'prompt-engineering', 'rag-architecture', 'ai-workflow', 'ai-evaluation', 'ai-architecture', 'cn-llm-ecosystem', 'ai-vendor-evaluation', 'product-design', 'ai-leadership', 'job-preparation'],
   },
   {
     id: 'balanced',
     name: '均衡发展',
     color: '#af52de',
-    nodes: ['learning-resources', 'pm-capability', 'pm-thinking', 'ai-fundamentals', 'user-research', 'prompt-engineering', 'product-design', 'ai-commercialization', 'data-metrics', 'ai-workflow', 'ai-evaluation', 'ai-architecture', 'product-strategy', 'ai-leadership', 'job-preparation'],
+    nodes: ['learning-resources', 'pm-capability', 'pm-thinking', 'user-research', 'product-design', 'ai-requirement-spec', 'ai-fundamentals', 'ai-agent-design', 'prompt-engineering', 'rag-architecture', 'ai-commercialization', 'data-metrics', 'data-quality-annotation', 'ai-workflow', 'ai-evaluation', 'badcase-analysis', 'ai-architecture', 'cn-llm-ecosystem', 'ai-vendor-evaluation', 'product-strategy', 'hitl-design', 'content-compliance', 'ai-leadership', 'job-preparation'],
   },
 ];
 

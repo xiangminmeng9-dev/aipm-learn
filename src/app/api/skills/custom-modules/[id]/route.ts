@@ -83,6 +83,69 @@ export async function GET(
   }
 }
 
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: '未登录', code: 'UNAUTHORIZED' }, { status: 401 });
+    }
+
+    const { id } = await params;
+
+    // Verify ownership
+    const { data: module, error: moduleError } = await supabase
+      .from('user_skill_modules')
+      .select('id')
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .single();
+
+    if (moduleError || !module) {
+      return NextResponse.json({ error: '模块不存在', code: 'NOT_FOUND' }, { status: 404 });
+    }
+
+    // Get task IDs for cleaning up user_task_resources
+    const { data: tasks } = await supabase
+      .from('user_module_tasks')
+      .select('id')
+      .eq('module_id', id);
+
+    const taskIds = (tasks ?? []).map((t) => t.id);
+
+    // Delete user_task_resources for these tasks
+    if (taskIds.length > 0) {
+      await supabase
+        .from('user_task_resources')
+        .delete()
+        .eq('user_id', user.id)
+        .in('task_id', taskIds);
+    }
+
+    // Delete the module (cascades to user_module_tasks)
+    const { error: deleteError } = await supabase
+      .from('user_skill_modules')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id);
+
+    if (deleteError) {
+      return NextResponse.json({ error: '删除失败', code: 'INTERNAL_ERROR' }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Custom module delete API error:', error);
+    return NextResponse.json({ error: '服务器内部错误', code: 'INTERNAL_ERROR' }, { status: 500 });
+  }
+}
+
 interface LearningResource {
   type: 'article' | 'video' | 'book';
   title: string;

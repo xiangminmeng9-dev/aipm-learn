@@ -265,8 +265,8 @@ export interface ResourcesStatsResponse {
 }
 
 // --- External Resource ---
-export type ResourceCategoryType = 'website' | 'paper' | 'blog' | 'lark_doc' | 'wechat' | 'video' | 'book';
-export type ExternalResourceType = ResourceCategoryType | 'link' | 'video' | 'doc' | 'folder';
+export type ResourceCategoryType = 'website' | 'paper' | 'blog' | 'lark_doc' | 'wechat' | 'video' | 'book' | 'workflow';
+export type ExternalResourceType = 'link' | 'video' | 'doc' | 'folder' | 'blog' | 'paper' | 'book' | 'wechat' | 'lark_doc';
 
 export interface ExternalResource {
   id: string;
@@ -284,9 +284,10 @@ export interface ExternalResource {
   duration: string | null;
   source: string;
   notes: string | null;
+  related_module_id: string | null;
   related_module_name: string | null;
   sort_order: number;
-  description?: string;
+  description: string | null;
   created_at: string;
 }
 
@@ -296,6 +297,7 @@ export type UserTaskType = string;
 
 export interface SkillModule {
   id: string;
+  slug?: string;
   name: string;
   description: string;
   level: number;
@@ -336,6 +338,7 @@ export interface SkillModuleWithProgress extends SkillModule {
   completed_tasks?: number;
   task_count: number;
   completed_count: number;
+  resource_count?: number;
   interview_weak_types?: string[];
   interview_methodology_count?: number;
   is_unlocked: boolean;
@@ -387,26 +390,20 @@ export interface SkillGap {
 export interface DailyAiNewsArticle {
   id: string;
   title: string;
-  description: string;
   url: string;
   source: string;
-  published_at: string;
-  category: string;
-  summary?: string;
+  published_at: string | null;
+  summary?: string | null;
+  news_date: string;
   fetched_at: string;
 }
 
 export interface DailyAiNewsDigest {
   id: string;
-  date: string;
-  headline: string;
-  summary: string;
-  highlights: string[];
-  trend: string;
+  news_date: string;
   digest: string;
   article_count: number;
-  articles: DailyAiNewsArticle[];
-  created_at: string;
+  generated_at: string | null;
 }
 
 // --- Coding Methodology ---

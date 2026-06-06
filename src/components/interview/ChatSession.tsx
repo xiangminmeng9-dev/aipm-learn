@@ -86,16 +86,6 @@ export default function ChatSession({
     });
   };
 
-  // Expose methods via ref pattern
-  useEffect(() => {
-    // Store methods on window for parent component access
-    const w = window as unknown as Record<string, unknown>;
-    w[`chatSession_${sessionId}`] = {
-      addAssistantMessage,
-      updateLastAssistantMessage,
-    };
-  }, [sessionId]);
-
   return (
     <div className="flex h-full flex-col">
       {/* Messages */}

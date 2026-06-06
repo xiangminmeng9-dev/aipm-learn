@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
       supabase.from('question_analyses').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
       supabase.from('mock_interviews').select('id, total_score, created_at').eq('user_id', user.id).gte('created_at', cutoffDate),
       supabase.from('competitive_analyses').select('id, total_score, created_at').eq('user_id', user.id).gte('created_at', cutoffDate),
-      supabase.from('interview_sessions').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+      supabase.from('chat_sessions').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
       supabase.from('interview_methodologies').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
       supabase.from('interview_methodologies').select('type_id, source_count, framework, key_steps').eq('user_id', user.id),
       supabase.from('question_analyses').select('question_id').eq('user_id', user.id),

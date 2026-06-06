@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     if (!user) return NextResponse.json({ error: '请先登录' }, { status: 401 });
 
     const body = await request.json();
-    const { title, url, type, resource_type, subcategory, thumbnail_url, local_path, author, year, platform, duration, source, notes, related_module_name, description, parent_id } = body;
+    const { title, url, type, resource_type, subcategory, thumbnail_url, local_path, author, year, platform, duration, source, notes, related_module_id, related_module_name, description, parent_id } = body;
 
     if (!title || !title.trim()) {
       return NextResponse.json({ error: '请输入资源名称' }, { status: 400 });
@@ -71,6 +71,7 @@ export async function POST(request: NextRequest) {
       duration: duration || null,
       source: source || 'manual',
       notes: notes || null,
+      related_module_id: related_module_id || null,
       related_module_name: related_module_name || null,
       description: description || null,
       parent_id: parent_id || null,
@@ -107,11 +108,11 @@ export async function POST(request: NextRequest) {
 
     // Log activity
     try {
-      await supabase.from('user_activities').insert({
+      await supabase.from('user_activity_logs').insert({
         user_id: user.id,
-        activity_type: 'resource_added',
-        title: `添加资源: ${title.trim()}`,
-        metadata: { resource_type: resource_type || 'website', subcategory, resource_id: data?.id },
+        module: 'external_resources',
+        action: 'resource_added',
+        metadata: { title: title.trim(), resource_type: resource_type || 'website', subcategory, resource_id: data?.id },
       });
     } catch {
       // Activity logging is non-critical

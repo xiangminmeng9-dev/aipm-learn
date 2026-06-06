@@ -8,6 +8,7 @@ import { RESOURCE_TYPES, getResourceTypeIcon, getResourceTypeLabel } from '@/com
 interface SkillsStats {
   system_modules: number;
   pending_tasks: number;
+  total_resources: number;
   jd_analysis_count: number;
   jd_gaps_count: number;
   learning_plan_count: number;
@@ -24,7 +25,7 @@ interface SkillsStats {
   funnel_stages: { stage: string; count: number }[];
   coverage_rate: number;
   covered_skills: { skill: string; count: number; covered: boolean }[];
-  level_stats: { level: number; name: string; total: number; completed: number; color: string }[];
+  level_stats: { level: number; name: string; total: number; completed: number; resources: number; color: string }[];
 }
 
 const statCards = [
@@ -46,7 +47,6 @@ export default function SkillsDashboardPage() {
   const [preferenceLoading, setPreferenceLoading] = useState(false);
   const [commonSkillsData, setCommonSkillsData] = useState<{ skill: string; count: number; category?: string; companies?: string[] }[]>([]);
   const [resourceStats, setResourceStats] = useState<{ type_distribution: { type: string; count: number }[]; total: number } | null>(null);
-  const [reextracting, setReextracting] = useState(false);
 
   // 加载数据
   const loadData = useCallback(async (r: string) => {
@@ -375,7 +375,7 @@ export default function SkillsDashboardPage() {
                           <span className="text-foreground font-medium">{level.name}</span>
                         </div>
                         <span className="text-muted-foreground">
-                          {level.completed}/{level.total} ({pct}%)
+                          {level.completed}/{level.total} ({pct}%){level.resources > 0 && <span className="ml-1 text-xs">· {level.resources}资源</span>}
                         </span>
                       </div>
                       <div className="h-2.5 overflow-hidden rounded-full bg-muted">
@@ -397,6 +397,7 @@ export default function SkillsDashboardPage() {
                     <span className="text-indigo-600 font-semibold">
                       {stats.level_stats.reduce((sum, l) => sum + l.completed, 0)}/
                       {stats.level_stats.reduce((sum, l) => sum + l.total, 0)}
+                      {stats.total_resources > 0 && <span className="ml-1 text-xs font-normal">· {stats.total_resources}资源</span>}
                     </span>
                   </div>
                 </div>

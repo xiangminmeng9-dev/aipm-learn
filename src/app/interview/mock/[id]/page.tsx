@@ -107,23 +107,25 @@ export default function MockDetailPage({ params }: MockDetailPageProps) {
   }, [params]);
 
   const handleComplete = async (result: MockInterviewResult) => {
-    // Try to get server summary first
-    try {
-      const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      const authHeaders: Record<string, string> = {};
-      if (session) authHeaders['Authorization'] = `Bearer ${session.access_token}`;
+    // Try to get server summary first (only if we have a mockId)
+    const mockId = pageState.phase === 'interview' ? (pageState as { mockId: string }).mockId : '';
+    if (mockId) {
+      try {
+        const supabase = createClient();
+        const { data: { session } } = await supabase.auth.getSession();
+        const authHeaders: Record<string, string> = {};
+        if (session) authHeaders['Authorization'] = `Bearer ${session.access_token}`;
 
-      const res = await fetch(`/api/interview/mock/${pageState.phase === 'interview' ? (pageState as { mockId: string }).mockId : ''}/summary`, { headers: authHeaders });
-      if (res.ok) {
-        const data = await res.json();
-        setPageState({ phase: 'summary', summary: data });
-        return;
-      }
-    } catch {}
+        const res = await fetch(`/api/interview/mock/${mockId}/summary`, { headers: authHeaders });
+        if (res.ok) {
+          const data = await res.json();
+          setPageState({ phase: 'summary', summary: data });
+          return;
+        }
+      } catch {}
+    }
 
     // Fallback: build summary from local result
-    const mockId = pageState.phase === 'interview' ? (pageState as { mockId: string }).mockId : '';
     const answered = result.answers.filter((a) => a.answer && !a.is_skipped);
     const skipped = result.answers.filter((a) => a.is_skipped);
     setPageState({

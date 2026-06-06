@@ -39,6 +39,7 @@ export async function GET(request: NextRequest) {
       systemTasksRes,
       userTasksRes,
       customTasksRes,
+      linkedResourcesRes,
       systemProgressRes,
       userProgressRes,
       jdAnalysesRes,
@@ -52,6 +53,7 @@ export async function GET(request: NextRequest) {
       supabase.from('learning_tasks').select('id, module_id'),
       supabase.from('user_module_tasks').select('id, module_id'),
       supabase.from('user_custom_tasks').select('id, module_id, status').eq('user_id', user.id),
+      supabase.from('external_resources').select('related_module_id').eq('user_id', user.id).not('related_module_id', 'is', null),
       supabase.from('learning_progress').select('id, status, task_id, completed_at, created_at').eq('user_id', user.id),
       supabase.from('user_task_progress').select('id, status, task_id, completed_at, created_at').eq('user_id', user.id),
       supabase.from('jd_analyses').select('id, gaps, extracted_skills, created_at, company_name, position_name').eq('user_id', user.id).order('created_at', { ascending: false }),
@@ -67,6 +69,7 @@ export async function GET(request: NextRequest) {
     const systemTasks = systemTasksRes.data || [];
     const userTasks = userTasksRes.data || [];
     const customTasks = customTasksRes.data || [];
+    const linkedResources = linkedResourcesRes.data || [];
     const allTasks = [...systemTasks, ...userTasks];
     const learningProgress = [...(systemProgressRes.data || []), ...(userProgressRes.data || [])];
     const jdAnalyses = jdAnalysesRes.data || [];
@@ -104,20 +107,30 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // 关联到模块的外部资源（单独统计，不计入任务进度）
+    const resourcesByModule = new Map<string, number>();
+    for (const r of linkedResources) {
+      const mid = r.related_module_id as string;
+      if (!mid) continue;
+      resourcesByModule.set(mid, (resourcesByModule.get(mid) || 0) + 1);
+    }
+
     // 按板块统计
     const levelStats = [
-      { level: 1, name: '基础入门', total: 0, completed: 0, color: '#34c759' },
-      { level: 2, name: '核心能力', total: 0, completed: 0, color: '#ff9500' },
-      { level: 3, name: '进阶专项', total: 0, completed: 0, color: '#af52de' },
-      { level: 4, name: '实战综合', total: 0, completed: 0, color: '#ff3b30' },
+      { level: 1, name: '基础入门', total: 0, completed: 0, resources: 0, color: '#34c759' },
+      { level: 2, name: '核心能力', total: 0, completed: 0, resources: 0, color: '#ff9500' },
+      { level: 3, name: '进阶专项', total: 0, completed: 0, resources: 0, color: '#af52de' },
+      { level: 4, name: '实战综合', total: 0, completed: 0, resources: 0, color: '#ff3b30' },
     ];
 
     for (const mod of allModules) {
       const level = mod.level || 1;
       const stats = moduleTaskMap.get(mod.id) || { total: 0, completed: 0 };
+      const resCount = resourcesByModule.get(mod.id) || 0;
       if (level >= 1 && level <= 4) {
         levelStats[level - 1].total += stats.total;
         levelStats[level - 1].completed += stats.completed;
+        levelStats[level - 1].resources += resCount;
       }
     }
 
@@ -125,18 +138,16 @@ export async function GET(request: NextRequest) {
     levelStats[1].total += jdGapStats.total;
     levelStats[1].completed += jdGapStats.completed;
 
-    const completedProgressCount = learningProgress.filter(p => p.status === 'completed').length;
-    const notStartedCount = learningProgress.filter(p => p.status === 'not_started').length;
-    const inProgressCount = learningProgress.filter(p => p.status === 'in_progress').length;
-
     // 计算总任务数（系统任务 + 用户模块任务 + JD差距任务）
-    const totalSystemTasks = systemTasks.length;
-    const totalUserTasks = userTasks.length;
-    const totalCustomTasks = customTasks.length;
-    const totalTasksCount = totalSystemTasks + totalUserTasks + totalCustomTasks;
+    const totalTasksCount = systemTasks.length + userTasks.length + customTasks.length;
 
-    // 待学习任务 = 总任务数 - 已完成进度数 - 进行中进度数
-    const totalPendingTasks = totalTasksCount - completedProgressCount - inProgressCount;
+    // 已完成 = level_stats各模块已完成之和（与任务进度一致）
+    const totalCompletedTasks = levelStats.reduce((sum, l) => sum + l.completed, 0);
+
+    // 学习中 = 有in_progress进度记录的任务数
+    const inProgressCount = learningProgress.filter(p => p.status === 'in_progress').length;
+    let totalPendingTasks = totalTasksCount - totalCompletedTasks - inProgressCount;
+    if (totalPendingTasks < 0) totalPendingTasks = 0;
 
     // 技能完成趋势
     const days = range === '7d' ? 7 : range === '30d' ? 30 : 90;
@@ -295,6 +306,7 @@ export async function GET(request: NextRequest) {
         system_modules: systemModules.length,
         pending_tasks: totalPendingTasks,
         total_tasks: totalTasksCount,
+        total_resources: linkedResources.length,
         jd_analysis_count: jdTotalCountRes.count || 0,
         jd_gaps_count: jdAnalyses.filter(j => j.gaps && j.gaps.length > 0).length,
         learning_plan_count: learningPlanCountRes.count || 0,
@@ -311,7 +323,7 @@ export async function GET(request: NextRequest) {
         funnel_stages: [
           { stage: '待学习', count: totalPendingTasks },
           { stage: '学习中', count: inProgressCount },
-          { stage: '已完成', count: completedProgressCount },
+          { stage: '已完成', count: totalCompletedTasks },
         ],
         coverage_rate: coverageRate,
         covered_skills: [

@@ -6,6 +6,7 @@ import type { GraphData } from './SkillTreeLayout';
 interface SkillTreeChartProps {
   data: GraphData;
   onNodeClick?: (moduleId: string, isCustom: boolean) => void;
+  onNodeDelete?: (moduleId: string) => void;
 }
 
 interface ModuleData {
@@ -20,7 +21,7 @@ interface ModuleData {
   is_custom: boolean;
 }
 
-export default function SkillTreeChart({ data, onNodeClick }: SkillTreeChartProps) {
+export default function SkillTreeChart({ data, onNodeClick, onNodeDelete }: SkillTreeChartProps) {
   const { nodes, links, levels } = data;
 
   // Build prerequisite/dependent lookup for tooltip
@@ -61,7 +62,7 @@ export default function SkillTreeChart({ data, onNodeClick }: SkillTreeChartProp
             </div>
             <div style="font-size:11px;color:#6B7280">${v.completed_count}/${v.task_count} 任务完成 · ${v.progress_percentage}%</div>
             ${prereqHtml}${depHtml}
-            <div style="font-size:10px;color:#9CA3AF;margin-top:4px">点击查看详情</div>
+            <div style="font-size:10px;color:#9CA3AF;margin-top:4px">${v.is_custom ? '左键查看详情 · 右键删除' : '点击查看详情'}</div>
           </div>
         `;
       },
@@ -135,6 +136,11 @@ export default function SkillTreeChart({ data, onNodeClick }: SkillTreeChartProp
           click: (params: { dataType?: string; data?: { id?: string; moduleData?: ModuleData } }) => {
             if (params.dataType === 'node' && params.data?.id && onNodeClick) {
               onNodeClick(params.data.id, params.data.moduleData?.is_custom ?? false);
+            }
+          },
+          contextmenu: (params: { dataType?: string; data?: { id?: string; moduleData?: ModuleData } }) => {
+            if (params.dataType === 'node' && params.data?.id && params.data.moduleData?.is_custom && onNodeDelete) {
+              onNodeDelete(params.data.id);
             }
           },
         }}

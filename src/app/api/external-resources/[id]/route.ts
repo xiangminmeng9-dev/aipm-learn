@@ -31,11 +31,11 @@ export async function DELETE(
     // Log activity
     if (resource) {
       try {
-        await supabase.from('user_activities').insert({
+        await supabase.from('user_activity_logs').insert({
           user_id: user.id,
-          activity_type: 'resource_deleted',
-          title: `删除资源: ${resource.title}`,
-          metadata: { resource_type: resource.resource_type, subcategory: resource.subcategory },
+          module: 'external_resources',
+          action: 'resource_deleted',
+          metadata: { title: resource.title, resource_type: resource.resource_type, subcategory: resource.subcategory },
         });
       } catch {
         // Non-critical
@@ -76,6 +76,8 @@ export async function PATCH(
     if (body.source) updateData.source = body.source;
     if (body.notes) updateData.notes = body.notes;
     if (body.description) updateData.description = body.description;
+    if (body.related_module_id !== undefined) updateData.related_module_id = body.related_module_id || null;
+    if (body.related_module_name !== undefined) updateData.related_module_name = body.related_module_name || null;
     if (body.parent_id !== undefined) updateData.parent_id = body.parent_id || null;
     if (body.sort_order !== undefined) updateData.sort_order = body.sort_order;
 

@@ -112,9 +112,23 @@ export async function GET() {
       }
     }
 
+    // 关联到模块的外部资源
+    const { data: linkedResources } = await supabase
+      .from('external_resources')
+      .select('related_module_id')
+      .eq('user_id', user.id)
+      .not('related_module_id', 'is', null);
+
+    const resourcesByModule = new Map<string, number>();
+    for (const r of linkedResources ?? []) {
+      const mid = r.related_module_id as string;
+      resourcesByModule.set(mid, (resourcesByModule.get(mid) ?? 0) + 1);
+    }
+
     const modulesWithProgress = (modules ?? []).map((m) => {
       const counts = tasksByModule.get(m.id) ?? { total: 0, completed: 0 };
       const customCounts = customTasksByModule.get(m.id) ?? { total: 0, completed: 0 };
+      const resourceCount = resourcesByModule.get(m.id) ?? 0;
       const totalCount = counts.total + customCounts.total;
       const totalCompleted = counts.completed + customCounts.completed;
       const prereqs = (m.prerequisites as string[]) ?? [];
@@ -142,6 +156,7 @@ export async function GET() {
         prerequisites: prereqs,
         task_count: totalCount,
         completed_count: totalCompleted,
+        resource_count: resourceCount,
         progress_percentage: totalCount
           ? Math.round((totalCompleted / totalCount) * 100)
           : 0,

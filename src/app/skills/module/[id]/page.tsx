@@ -22,6 +22,7 @@ export default function ModuleDetailPage({ params }: ModuleDetailPageProps) {
   const [module, setModule] = useState<(SkillModule & { level_name?: string }) | null>(null);
   const [tasks, setTasks] = useState<LearningTaskWithProgress[]>([]);
   const [customTasks, setCustomTasks] = useState<{ id: string; title: string; objective: string; status: string; is_custom: boolean; user_resources?: UserTaskResource[] }[]>([]);
+  const [linkedResources, setLinkedResources] = useState<{ id: string; title: string; url: string; resource_type: string | null; subcategory: string | null; thumbnail_url: string | null; author: string | null; description: string | null; source: string; notes: string | null }[]>([]);
   const [interviewInsights, setInterviewInsights] = useState<{
     mapped_types: { id: string; name: string }[];
     methodologies: { id: string; type: { id: string; name: string }; framework: string; key_steps: string[]; source_count: number }[];
@@ -34,13 +35,11 @@ export default function ModuleDetailPage({ params }: ModuleDetailPageProps) {
   const [newTaskObjective, setNewTaskObjective] = useState('');
   const [isAddingTask, setIsAddingTask] = useState(false);
 
-  const moduleIdRef = useState<string>('')[0];
-
   useEffect(() => {
     params.then(({ id }) => {
       fetch(`/api/skills/modules/${id}`)
         .then((r) => r.json())
-        .then((data) => { setModule(data.module ?? null); setTasks(data.tasks ?? []); setCustomTasks(data.custom_tasks ?? []); setInterviewInsights(data.interview_insights ?? null); })
+        .then((data) => { setModule(data.module ?? null); setTasks(data.tasks ?? []); setCustomTasks(data.custom_tasks ?? []); setLinkedResources(data.linked_resources ?? []); setInterviewInsights(data.interview_insights ?? null); })
         .catch(() => {})
         .finally(() => setIsLoading(false));
     });
@@ -198,6 +197,43 @@ export default function ModuleDetailPage({ params }: ModuleDetailPageProps) {
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* 关联资源区 */}
+          {linkedResources.length > 0 && (
+            <div className="mb-8 rounded-2xl border-border bg-card p-6">
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-foreground">关联资源</h2>
+                <Link href={`/resources/manage?module=${module?.id}`} className="text-base text-indigo-600 hover:underline">
+                  管理资源 →
+                </Link>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {linkedResources.map((r) => (
+                  <div key={r.id} className="flex items-start gap-3 rounded-xl border border-border p-3 hover:bg-muted/50 transition">
+                    {r.thumbnail_url ? (
+                      <img src={r.thumbnail_url} alt="" className="h-10 w-10 shrink-0 rounded-lg object-cover" />
+                    ) : (
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-lg">
+                        {r.resource_type === 'video' ? '🎬' : r.resource_type === 'book' ? '📚' : r.resource_type === 'paper' ? '📄' : '🔗'}
+                      </span>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      {r.url ? (
+                        <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-foreground hover:text-indigo-600 hover:underline line-clamp-1">{r.title}</a>
+                      ) : (
+                        <span className="text-sm font-medium text-foreground line-clamp-1">{r.title}</span>
+                      )}
+                      {r.description && <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">{r.description}</p>}
+                      <div className="mt-1 flex items-center gap-2">
+                        {r.resource_type && <span className="text-xs text-muted-foreground">{r.resource_type}</span>}
+                        {r.author && <span className="text-xs text-muted-foreground">· {r.author}</span>}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 

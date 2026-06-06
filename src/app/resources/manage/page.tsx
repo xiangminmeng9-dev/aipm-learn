@@ -3,11 +3,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { ExternalResource } from '@/types';
-import { RESOURCE_TYPES, PRESET_RESOURCES, AI_PM_DIRECTIONS, getResourceTypeIcon, getSubcategoriesForType, getResourceTypeLabel, getSubcategoryLabel, getFoldersForType, getDirectChildrenCount, getFolderPath } from '@/components/resources/constants';
+import { RESOURCE_TYPES, PRESET_RESOURCES, AI_PM_DIRECTIONS, AI_PM_WORKFLOW, getResourceTypeIcon, getSubcategoriesForType, getResourceTypeLabel, getSubcategoryLabel, getFoldersForType, getDirectChildrenCount, getFolderPath, LEARNING_MAP_TO_SKILL_MODULE, SKILL_MODULE_TO_LEARNING_MAP } from '@/components/resources/constants';
 import { ResourceCard, FolderCard } from '@/components/resources/ResourceCard';
 import GradientBackground from '@/components/ui/gradient-background';
 
-type ResourceType = 'website' | 'paper' | 'blog' | 'lark_doc' | 'wechat' | 'video' | 'book';
+type ResourceType = 'website' | 'paper' | 'blog' | 'lark_doc' | 'wechat' | 'video' | 'book' | 'workflow';
 
 const TYPE_HEADER_STYLES: Record<ResourceType, string> = {
   website:  'bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-600/40 dark:to-purple-600/40',
@@ -17,6 +17,7 @@ const TYPE_HEADER_STYLES: Record<ResourceType, string> = {
   wechat:   'bg-gradient-to-br from-green-50 to-lime-50 dark:from-green-600/40 dark:to-lime-600/40',
   video:    'bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-600/40 dark:to-orange-600/40',
   book:     'bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-600/40 dark:to-yellow-600/40',
+  workflow: 'bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:from-indigo-600/40 dark:via-purple-600/40 dark:to-pink-600/40',
 };
 
 const TYPE_BORDERS: Record<ResourceType, string> = {
@@ -27,6 +28,7 @@ const TYPE_BORDERS: Record<ResourceType, string> = {
   wechat: 'hover:border-green-200',
   video: 'hover:border-red-200',
   book: 'hover:border-amber-200',
+  workflow: 'hover:border-indigo-200',
 };
 
 export default function ResourcesManagePage() {
@@ -47,7 +49,9 @@ export default function ResourcesManagePage() {
     subcategory: '', thumbnail_url: '', local_path: '',
     author: '', year: '', platform: '', duration: '',
     source: '', description: '', notes: '', parent_id: '' as string,
+    related_module_id: '' as string, related_module_name: '' as string,
   });
+  const [skillModules, setSkillModules] = useState<{ id: string; name: string; level: number; level_name: string }[]>([]);
   const [folderForm, setFolderForm] = useState({ title: '', notes: '' });
   const [adding, setAdding] = useState(false);
   const [showPresets, setShowPresets] = useState(false);
@@ -61,6 +65,26 @@ export default function ResourcesManagePage() {
   }, []);
 
   useEffect(() => { fetchResources(); }, [fetchResources]);
+
+  // 从技能模块跳转时，自动筛选关联该模块的资源
+  useEffect(() => {
+    if (resources.length === 0 || typeof window === 'undefined') return;
+    const moduleFilter = new URLSearchParams(window.location.search).get('module');
+    if (!moduleFilter) return;
+    const linked = resources.filter(r => r.related_module_id === moduleFilter);
+    if (linked.length > 0) {
+      const firstType = linked[0].resource_type || 'website';
+      setActiveTab(firstType);
+      setActiveSubcategory(linked[0].subcategory || '');
+    }
+  }, [resources]);
+
+  useEffect(() => {
+    fetch('/api/skills/modules').then(r => r.json()).then(data => {
+      const modules = (data.modules ?? []).filter((m: { is_custom?: boolean }) => !m.is_custom);
+      setSkillModules(modules.map((m: { id: string; name: string; level: number; level_name: string }) => ({ id: m.id, name: m.name, level: m.level, level_name: m.level_name })));
+    }).catch(() => {});
+  }, []);
 
   // Auto-migrate on first load
   useEffect(() => {
@@ -96,9 +120,8 @@ export default function ResourcesManagePage() {
     ? resources.filter(r => {
     const rType = r.resource_type || inferType(r);
     if (rType !== activeTab) return false;
-    if (activeSubcategory === '_unclassified') {
-      if (r.subcategory) return false;
-    } else if (activeSubcategory && r.subcategory !== activeSubcategory) {
+    // 子分类筛选：文件夹和非文件夹资源都受影响
+    if (activeSubcategory && r.subcategory !== activeSubcategory) {
       return false;
     }
     if (r.parent_id !== currentFolderId) return false;
@@ -117,7 +140,14 @@ export default function ResourcesManagePage() {
   const displayFolders = filteredResources.filter(r => r.type === 'folder');
   const displayResources = filteredResources.filter(r => r.type !== 'folder');
 
-  const currentSubcategories = activeTab !== 'overview' ? getSubcategoriesForType(activeTab as ResourceType) : [];
+  // 点击类型卡片时，自动选中第一个子分类
+  const handleTabChange = (tab: ResourceType) => {
+    const subs = getSubcategoriesForType(tab);
+    setActiveTab(tab);
+    setCurrentFolderId(null);
+    // workflow默认选第一个子分类
+    setActiveSubcategory(subs.length > 0 ? subs[0].value : '');
+  };
 
   // 文件夹路径（面包屑）
   const folderPath = currentFolderId ? getFolderPath(resources, currentFolderId) : [];
@@ -133,7 +163,7 @@ export default function ResourcesManagePage() {
         url: addForm.url || addForm.local_path || '',
         type: mapNewTypeToLegacy(addForm.resource_type),
         resource_type: addForm.resource_type,
-        subcategory: addForm.subcategory === '_unclassified' || !addForm.subcategory ? null : addForm.subcategory,
+        subcategory: !addForm.subcategory ? null : addForm.subcategory,
         thumbnail_url: addForm.thumbnail_url || null,
         local_path: addForm.local_path || null,
         author: addForm.author || null,
@@ -144,6 +174,8 @@ export default function ResourcesManagePage() {
         notes: addForm.notes || null,
         description: addForm.description || null,
         parent_id: addForm.parent_id || null,
+        related_module_id: addForm.related_module_id || null,
+        related_module_name: addForm.related_module_name || null,
       };
       const res = await fetch('/api/external-resources', {
         method: 'POST',
@@ -162,7 +194,7 @@ export default function ResourcesManagePage() {
   };
 
   const resetAddForm = (defaultType: ResourceType = 'website') => {
-    setAddForm({ title: '', url: '', resource_type: defaultType, subcategory: '', thumbnail_url: '', local_path: '', author: '', year: '', platform: '', duration: '', source: '', description: '', notes: '', parent_id: currentFolderId || '' });
+    setAddForm({ title: '', url: '', resource_type: defaultType, subcategory: '', thumbnail_url: '', local_path: '', author: '', year: '', platform: '', duration: '', source: '', description: '', notes: '', parent_id: currentFolderId || '', related_module_id: '', related_module_name: '' });
   };
 
   const doAddFolder = async () => {
@@ -205,7 +237,7 @@ export default function ResourcesManagePage() {
           url: addForm.url,
           type: mapNewTypeToLegacy(addForm.resource_type),
           resource_type: addForm.resource_type,
-          subcategory: addForm.subcategory === '_unclassified' || !addForm.subcategory ? null : addForm.subcategory,
+          subcategory: !addForm.subcategory ? null : addForm.subcategory,
           thumbnail_url: addForm.thumbnail_url || null,
           local_path: addForm.local_path || null,
           author: addForm.author || null,
@@ -216,6 +248,8 @@ export default function ResourcesManagePage() {
           notes: addForm.notes || null,
           description: addForm.description || null,
           parent_id: addForm.parent_id || null,
+          related_module_id: addForm.related_module_id || null,
+          related_module_name: addForm.related_module_name || null,
         }),
       });
       if (res.ok) {
@@ -281,13 +315,114 @@ export default function ResourcesManagePage() {
     } finally { setAdding(false); }
   };
 
+  // 导入AI PM工作流程（创建文件夹+每个阶段的知识点资源）
+  // 检查workflow阶段文件夹是否为空（需要补充内容）
+  const workflowNeedsPopulate = activeTab === 'workflow' && (() => {
+    const stageFolders = resources.filter(r => r.resource_type === 'workflow' && r.type === 'folder' && !r.parent_id);
+    if (stageFolders.length === 0) return false;
+    const emptyStages = stageFolders.filter(f => !resources.some(r => r.parent_id === f.id && r.type !== 'folder'));
+    return emptyStages.length > 0;
+  })();
+
+  const populateWorkflow = async () => {
+    setAdding(true);
+    try {
+      // 找到已有的阶段文件夹（顶层的workflow文件夹），按subcategory或title匹配
+      const stageFolders = resources.filter(r => r.resource_type === 'workflow' && r.type === 'folder' && !r.parent_id);
+      for (const stage of AI_PM_WORKFLOW.stages) {
+        const existingFolder = stageFolders.find(f => f.subcategory === stage.subcategory)
+          || stageFolders.find(f => f.title === stage.name);
+        if (!existingFolder) continue;
+        // 检查该文件夹下是否已有内容
+        const hasItems = resources.some(r => r.parent_id === existingFolder.id && r.type !== 'folder');
+        if (hasItems) continue;
+        // 补充知识点资源
+        for (const item of stage.items) {
+          await fetch('/api/external-resources', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              title: item.name, url: '', type: 'link',
+              resource_type: 'workflow', subcategory: stage.subcategory,
+              parent_id: existingFolder.id, description: item.description,
+              source: 'workflow',
+            }),
+          });
+        }
+        // 如果文件夹缺少subcategory，顺便补上
+        if (!existingFolder.subcategory) {
+          await fetch(`/api/external-resources/${existingFolder.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ subcategory: stage.subcategory }),
+          });
+        }
+      }
+      await fetchResources();
+    } finally { setAdding(false); }
+  };
+
+  const resetAndAddWorkflow = async () => {
+    setAdding(true);
+    try {
+      // 先删除所有 workflow 资源
+      const workflowResources = resources.filter(r => r.resource_type === 'workflow');
+      for (const r of workflowResources) {
+        await fetch(`/api/external-resources/${r.id}`, { method: 'DELETE' });
+      }
+      await fetchResources();
+      // 重新导入
+      await doAddWorkflow();
+    } finally { setAdding(false); }
+  };
+
+  // 创建工作流：13个阶段文件夹（顶层，无根文件夹）+ 每个阶段下的知识点
+  const doAddWorkflow = async () => {
+    // 创建13个阶段文件夹（直接在顶层，不需要根文件夹）
+    for (const stage of AI_PM_WORKFLOW.stages) {
+      const stageRes = await fetch('/api/external-resources', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: stage.name, url: '', type: 'folder', resource_type: 'workflow',
+          subcategory: stage.subcategory,
+          description: stage.description, notes: null,
+        }),
+      });
+      const stageData = await stageRes.json();
+      const stageId = stageData.id;
+
+      // 在每个阶段文件夹下创建知识点资源
+      for (const item of stage.items) {
+        await fetch('/api/external-resources', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: item.name, url: '', type: 'blog',
+            resource_type: 'workflow', subcategory: stage.subcategory,
+            parent_id: stageId, description: item.description,
+            source: 'workflow',
+          }),
+        });
+      }
+    }
+    await fetchResources();
+  };
+
+  const addWorkflow = async () => {
+    setAdding(true);
+    try {
+      await doAddWorkflow();
+    } finally { setAdding(false); }
+  };
+
   const openEditDialog = (resource: ExternalResource) => {
     setEditingResource(resource);
     setAddForm({
       title: resource.title,
       url: resource.url || '',
       resource_type: (resource.resource_type || inferType(resource)) as ResourceType,
-      subcategory: resource.subcategory || (getSubcategoriesForType((resource.resource_type || inferType(resource)) as ResourceType).length > 0 ? '_unclassified' : ''),
+      subcategory: resource.subcategory || '',
       thumbnail_url: resource.thumbnail_url || '',
       local_path: resource.local_path || '',
       author: resource.author || '',
@@ -298,6 +433,8 @@ export default function ResourcesManagePage() {
       description: resource.description || '',
       notes: resource.notes || '',
       parent_id: resource.parent_id || '',
+      related_module_id: resource.related_module_id || '',
+      related_module_name: resource.related_module_name || '',
     });
     setShowEditDialog(true);
   };
@@ -335,6 +472,11 @@ export default function ResourcesManagePage() {
               <button onClick={() => setShowFolderDialog(true)} className="rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition hover:bg-muted">
                 📁 新建文件夹
               </button>
+              {workflowNeedsPopulate && (
+                <button onClick={resetAndAddWorkflow} disabled={adding} className="rounded-xl bg-amber-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-amber-600 disabled:opacity-50">
+                  {adding ? '重置中...' : '🔄 重置并重新导入工作流'}
+                </button>
+              )}
               <button onClick={() => {
                 resetAddForm(activeTab);
                 setShowAddDialog(true);
@@ -438,7 +580,7 @@ export default function ResourcesManagePage() {
         </div>
       )}
 
-      {/* === 概览视图：展示7个大类概览卡片 === */}
+      {/* === 概览视图 === */}
       {activeTab === 'overview' && (
         <div className="relative z-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {RESOURCE_TYPES.map(type => {
@@ -447,36 +589,73 @@ export default function ResourcesManagePage() {
             const headerStyle = TYPE_HEADER_STYLES[type.value];
             const borderHover = TYPE_BORDERS[type.value];
             const folderCount = getFoldersForType(resources, type.value).length;
+            const isWorkflow = type.value === 'workflow';
+            const workflowImported = isWorkflow && resources.some(r => r.resource_type === 'workflow' && r.type === 'folder');
+
             return (
               <div
                 key={type.value}
-                onClick={() => { setActiveTab(type.value); setActiveSubcategory(''); setCurrentFolderId(null); }}
+                onClick={() => handleTabChange(type.value)}
                 className={`cursor-pointer rounded-2xl border border-border bg-card overflow-hidden transition hover:shadow-md ${borderHover}`}
               >
                 <div className={`${headerStyle} px-5 py-6 flex items-center gap-3`}>
                   <span className="text-3xl">{type.icon}</span>
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <div className="text-lg font-semibold text-foreground">{type.label}</div>
-                    <div className="text-sm text-muted-foreground">{count} 个资源{folderCount > 0 ? ` · ${folderCount} 个文件夹` : ''}</div>
-                  </div>
-                </div>
-                <div className="px-4 py-3 space-y-1.5">
-                  {type.subcategories.map(sub => {
-                    const subCount = subCounts[sub.value] || 0;
-                    return (
-                      <div key={sub.value} className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">{sub.label}</span>
-                        <span className={`text-xs font-medium ${subCount > 0 ? 'text-foreground' : 'text-muted-foreground/50'}`}>{subCount}</span>
-                      </div>
-                    );
-                  })}
-                  {(subCounts['_none'] || 0) > 0 && (
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">未分类</span>
-                      <span className="text-xs font-medium text-foreground">{subCounts['_none']}</span>
+                    <div className="text-sm text-muted-foreground">
+                      {isWorkflow
+                        ? (workflowImported ? `${count} 个资源 · 13个阶段` : '一键导入13个阶段')
+                        : `${count} 个资源${folderCount > 0 ? ` · ${folderCount} 个文件夹` : ''}`
+                      }
                     </div>
+                  </div>
+                  {isWorkflow && !workflowImported && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); addWorkflow(); }}
+                      disabled={adding}
+                      className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-indigo-700 disabled:opacity-50 shrink-0"
+                    >
+                      {adding ? '导入中' : '导入'}
+                    </button>
+                  )}
+                  {isWorkflow && workflowImported && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); resetAndAddWorkflow(); }}
+                      disabled={adding}
+                      className="rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-amber-600 disabled:opacity-50 shrink-0"
+                    >
+                      {adding ? '重置中' : '重置'}
+                    </button>
                   )}
                 </div>
+                {!isWorkflow && (
+                  <div className="px-4 py-3 space-y-1.5">
+                    {type.subcategories.map(sub => {
+                      const subCount = subCounts[sub.value] || 0;
+                      return (
+                        <div key={sub.value} className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">{sub.label}</span>
+                          <span className={`text-xs font-medium ${subCount > 0 ? 'text-foreground' : 'text-muted-foreground/50'}`}>{subCount}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                {isWorkflow && workflowImported && (
+                  <div className="px-4 py-3">
+                    {workflowNeedsPopulate ? (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); resetAndAddWorkflow(); }}
+                        disabled={adding}
+                        className="w-full rounded-lg bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700 transition hover:bg-amber-100 disabled:opacity-50"
+                      >
+                        {adding ? '重置中...' : '重置并重新导入'}
+                      </button>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">点击进入查看13个阶段，在每个阶段中添加资源</p>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -487,29 +666,43 @@ export default function ResourcesManagePage() {
       {activeTab !== 'overview' && (
         <>
           {/* Subcategory Filter */}
-          {currentSubcategories.length > 0 && (
+          {getSubcategoriesForType(activeTab as ResourceType).length > 0 && (
             <div className="relative z-10 flex gap-1.5 flex-wrap">
-              {currentSubcategories.map(sub => (
+              {getSubcategoriesForType(activeTab as ResourceType).map(sub => (
                 <button
                   key={sub.value}
-                  onClick={() => setActiveSubcategory(activeSubcategory === sub.value ? '' : sub.value)}
+                  onClick={() => { setActiveSubcategory(activeSubcategory === sub.value ? '' : sub.value); setCurrentFolderId(null); }}
                   className={`rounded-full px-3 py-1 text-xs font-medium transition ${activeSubcategory === sub.value ? 'bg-indigo-600 text-white' : 'bg-muted text-muted-foreground hover:text-foreground'}`}
                 >
                   {sub.label}
                 </button>
               ))}
-              <button
-                onClick={() => setActiveSubcategory(activeSubcategory === '_unclassified' ? '' : '_unclassified')}
-                className={`rounded-full px-3 py-1 text-xs font-medium transition ${activeSubcategory === '_unclassified' ? 'bg-indigo-600 text-white' : 'bg-muted text-muted-foreground hover:text-foreground'}`}
-              >
-                未分类
-              </button>
             </div>
           )}
 
           {/* Folders + Resources Grid */}
-          {(displayFolders.length > 0 || displayResources.length > 0) ? (
+          {(displayFolders.length > 0 || displayResources.length > 0 || currentFolderId) ? (
             <div className="relative z-10 space-y-4">
+              {/* 返回上一级（仅在子文件夹内显示） */}
+              {currentFolderId && (() => {
+                const currentFolder = resources.find(r => r.id === currentFolderId);
+                const parentFolderId = currentFolder?.parent_id || null;
+                const parentLabel = parentFolderId
+                  ? (resources.find(r => r.id === parentFolderId)?.title || '上一级文件夹')
+                  : getResourceTypeLabel(activeTab as ResourceType);
+                return (
+                  <button
+                    onClick={() => setCurrentFolderId(parentFolderId)}
+                    className="flex items-center gap-2 rounded-xl border border-dashed border-border bg-card px-4 py-3 transition hover:border-indigo-300 hover:bg-secondary w-full"
+                  >
+                    <svg className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+                    </svg>
+                    <span className="text-sm text-muted-foreground">返回</span>
+                    <span className="text-sm font-medium text-foreground">{parentLabel}</span>
+                  </button>
+                );
+              })()}
               {/* Folders row */}
               {displayFolders.length > 0 && (
                 <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
@@ -518,35 +711,69 @@ export default function ResourcesManagePage() {
                       key={f.id}
                       folder={f}
                       itemCount={getDirectChildrenCount(resources, f.id)}
-                      onNavigate={() => setCurrentFolderId(f.id)}
+                      onNavigate={() => { setCurrentFolderId(f.id); if (f.subcategory) setActiveSubcategory(f.subcategory); }}
                       onDelete={doDelete}
+                      moduleTag={(() => {
+                        const stage = AI_PM_WORKFLOW.stages.find(s => s.subcategory === f.subcategory);
+                        if (stage?.module_slug) {
+                          const mapNode = SKILL_MODULE_TO_LEARNING_MAP[stage.module_slug];
+                          return mapNode ? `${stage.module_slug} → ${mapNode}` : stage.module_slug;
+                        }
+                        return undefined;
+                      })()}
                     />
                   ))}
                 </div>
               )}
               {/* Resources grid */}
               {displayResources.length > 0 && (
-                <div>
-                  {activeTab === 'book' ? (
-                    <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-                      {displayResources.map(r => <ResourceCard key={r.id} resource={r} onDelete={doDelete} onEdit={openEditDialog} onMove={openMoveDialog} />)}
-                    </div>
-                  ) : activeTab === 'paper' ? (
-                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                      {displayResources.map(r => <ResourceCard key={r.id} resource={r} onDelete={doDelete} onEdit={openEditDialog} onMove={openMoveDialog} />)}
-                    </div>
-                  ) : (
-                    <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-                      {displayResources.map(r => <ResourceCard key={r.id} resource={r} onDelete={doDelete} onEdit={openEditDialog} onMove={openMoveDialog} />)}
-                    </div>
-                  )}
+                <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                  {displayResources.map(r => <ResourceCard key={r.id} resource={r} onDelete={doDelete} onEdit={openEditDialog} onMove={openMoveDialog} />)}
                 </div>
               )}
             </div>
           ) : (
-            <div className="relative z-10 rounded-2xl border border-border bg-card py-16 text-center">
-              <p className="text-lg text-muted-foreground">{currentFolderId ? '该文件夹下暂无内容' : '该分类下暂无资源'}</p>
-              <p className="mt-1 text-sm text-muted-foreground">点击「添加资源」或「新建文件夹」开始</p>
+            <div className="relative z-10 space-y-4">
+              {/* 空文件夹也要能返回上一级 */}
+              {currentFolderId && (() => {
+                const currentFolder = resources.find(r => r.id === currentFolderId);
+                const parentFolderId = currentFolder?.parent_id || null;
+                const parentLabel = parentFolderId
+                  ? (resources.find(r => r.id === parentFolderId)?.title || '上一级文件夹')
+                  : getResourceTypeLabel(activeTab as ResourceType);
+                return (
+                  <button
+                    onClick={() => setCurrentFolderId(parentFolderId)}
+                    className="flex items-center gap-2 rounded-xl border border-dashed border-border bg-card px-4 py-3 transition hover:border-indigo-300 hover:bg-secondary w-full"
+                  >
+                    <svg className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+                    </svg>
+                    <span className="text-sm text-muted-foreground">返回</span>
+                    <span className="text-sm font-medium text-foreground">{parentLabel}</span>
+                  </button>
+                );
+              })()}
+              <div className="rounded-2xl border border-border bg-card py-16 text-center">
+                {activeTab === 'workflow' ? (
+                  <>
+                    <p className="text-lg text-muted-foreground">尚未导入工作流程</p>
+                    <p className="mt-1 text-sm text-muted-foreground mb-4">一键导入13个阶段文件夹，在每个阶段中添加你的学习资源</p>
+                    <button
+                      onClick={addWorkflow}
+                      disabled={adding}
+                      className="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-indigo-700 disabled:opacity-50"
+                    >
+                      {adding ? '导入中...' : '🔄 一键导入 AI PM 工作流程'}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-lg text-muted-foreground">{currentFolderId ? '该文件夹下暂无内容' : '该分类下暂无资源'}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">点击「添加资源」或「新建文件夹」开始</p>
+                  </>
+                )}
+              </div>
             </div>
           )}
         </>
@@ -588,12 +815,6 @@ export default function ResourcesManagePage() {
                         {sub.label}
                       </button>
                     ))}
-                    <button
-                      onClick={() => setAddForm(f => ({ ...f, subcategory: f.subcategory === '_unclassified' ? '' : '_unclassified' }))}
-                      className={`rounded-full px-2.5 py-1 text-xs font-medium transition ${addForm.subcategory === '_unclassified' ? 'bg-indigo-600 text-white' : 'bg-muted text-muted-foreground hover:text-foreground'}`}
-                    >
-                      未分类
-                    </button>
                   </div>
                 </div>
               )}
@@ -612,6 +833,35 @@ export default function ResourcesManagePage() {
                       <option key={f.id} value={f.id}>{f.title}</option>
                     ))}
                   </select>
+                </div>
+              )}
+
+              {/* 关联技能模块 */}
+              {skillModules.length > 0 && (
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-foreground">关联技能模块（可选）</label>
+                  <select
+                    value={addForm.related_module_id}
+                    onChange={e => {
+                      const mod = skillModules.find(m => m.id === e.target.value);
+                      setAddForm(f => ({ ...f, related_module_id: e.target.value, related_module_name: mod?.name || '' }));
+                    }}
+                    className="w-full rounded-xl border border-border px-3 py-2 text-sm text-foreground outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                  >
+                    <option value="">不关联技能模块</option>
+                    {[1, 2, 3, 4].map(level => {
+                      const mods = skillModules.filter(m => m.level === level);
+                      if (mods.length === 0) return null;
+                      return (
+                        <optgroup key={level} label={mods[0].level_name || `Level ${level}`}>
+                          {mods.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                        </optgroup>
+                      );
+                    })}
+                  </select>
+                  {addForm.related_module_id && (
+                    <p className="mt-1 text-xs text-indigo-600">将同步到技能树「{addForm.related_module_name}」模块</p>
+                  )}
                 </div>
               )}
 
@@ -798,12 +1048,6 @@ export default function ResourcesManagePage() {
                         {sub.label}
                       </button>
                     ))}
-                    <button
-                      onClick={() => setAddForm(f => ({ ...f, subcategory: f.subcategory === '_unclassified' ? '' : '_unclassified' }))}
-                      className={`rounded-full px-2.5 py-1 text-xs font-medium transition ${addForm.subcategory === '_unclassified' ? 'bg-indigo-600 text-white' : 'bg-muted text-muted-foreground hover:text-foreground'}`}
-                    >
-                      未分类
-                    </button>
                   </div>
                 </div>
               )}
@@ -827,6 +1071,35 @@ export default function ResourcesManagePage() {
                 </div>
                 );
               })()}
+
+              {/* 关联技能模块 */}
+              {skillModules.length > 0 && (
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-foreground">关联技能模块</label>
+                  <select
+                    value={addForm.related_module_id}
+                    onChange={e => {
+                      const mod = skillModules.find(m => m.id === e.target.value);
+                      setAddForm(f => ({ ...f, related_module_id: e.target.value, related_module_name: mod?.name || '' }));
+                    }}
+                    className="w-full rounded-xl border border-border px-3 py-2 text-sm text-foreground outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                  >
+                    <option value="">不关联技能模块</option>
+                    {[1, 2, 3, 4].map(level => {
+                      const mods = skillModules.filter(m => m.level === level);
+                      if (mods.length === 0) return null;
+                      return (
+                        <optgroup key={level} label={mods[0].level_name || `Level ${level}`}>
+                          {mods.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                        </optgroup>
+                      );
+                    })}
+                  </select>
+                  {addForm.related_module_id && (
+                    <p className="mt-1 text-xs text-indigo-600">将同步到技能树「{addForm.related_module_name}」模块</p>
+                  )}
+                </div>
+              )}
 
               {/* 名称 + 链接 并排 */}
               <div className="grid grid-cols-2 gap-3">
