@@ -611,6 +611,76 @@ export const EXTRA_TOPICS: Record<string, { name: string; points: string[] }[]> 
       '合规评审：评审节点/评审清单/风险分级/整改流程',
     ] },
   ],
+  'ai-growth': [
+    { name: 'AI 产品增长黑客', points: [
+      '病毒循环设计：用户创造内容→其他用户看到→注册使用→创造更多内容',
+      '增长实验模板：假设→最小实验→数据验证→规模化推广的四步法',
+      'AI产品特有增长手段：能力更新通告/模型效果提升推送/新功能预告',
+      '社区驱动增长：用户分享Prompt/模板/工作流，UGC成为增长引擎',
+    ] },
+    { name: '企业级 AI 产品增长', points: [
+      'PLG vs SLG：产品驱动增长vs销售驱动增长在AI产品中的选择',
+      'Enterprise特征：长决策链/多角色/POC驱动/年度预算周期',
+      '从0到1的企业客户获取：标杆客户/行业案例/生态合作',
+      '从1到N的规模化：标准化交付/自助化onboarding/合作伙伴体系',
+    ] },
+  ],
+  'ai-safety': [
+    { name: 'AI 安全评估体系', points: [
+      '安全评估框架：OWASP LLM Top 10的风险清单和评估方法',
+      '红队测试流程：自动化+人工红队测试的组合策略',
+      '安全指标：拒绝率/误拒率/越狱成功率/信息泄露率的监控',
+      '安全审计：定期安全审计的流程和标准',
+    ] },
+    { name: '负责任AI实践', points: [
+      'AI伦理框架：公平性/透明性/可解释性/隐私保护/问责制',
+      '影响评估：AI系统上线前的影响评估(AI Impact Assessment)',
+      '可解释性：LIME/SHAP等模型解释方法在产品中的应用',
+      'AI治理：组织内部的AI治理结构和决策流程',
+    ] },
+  ],
+  'data-flywheel': [
+    { name: '数据飞轮加速策略', points: [
+      '飞轮启动器：免费增值/社区贡献/爬取公开数据/合成数据',
+      '飞轮加速器：主动学习/自动标注/弱监督学习/数据增强',
+      '飞轮维护：数据质量监控/标注规范更新/模型效果回归测试',
+      '飞轮度量：标注效率/模型提升幅度/用户满意度变化/数据覆盖度',
+    ] },
+    { name: '合成数据与数据增强', points: [
+      'LLM生成合成数据：用GPT-4生成训练数据/测试数据/评估数据',
+      '数据增强策略：同义改写/回译/扰动/风格迁移',
+      '合成数据的局限：分布偏差/多样性不足/隐私风险',
+      '合成+真实混合：合成数据预训练+真实数据微调的分层策略',
+    ] },
+  ],
+  'ai-frontier': [
+    { name: 'AI Agent 生态前沿', points: [
+      'Computer Use：Claude/OpenAI的计算机操作能力，AI直接操控浏览器和桌面应用',
+      'MCP生态发展：MCP Server市场/企业级MCP部署/MCP安全认证',
+      'Agent基础设施：记忆系统/工具市场/评估框架/监控平台',
+      '多模态Agent：视觉+语音+文本的多模态Agent设计模式',
+    ] },
+    { name: 'AI 产品形态演进', points: [
+      '从Chatbot到Agent：对话式→工具调用→自主规划→多Agent协作',
+      '从Copilot到Autopilot：人机协作→人机协同→AI自主→人机共生',
+      '从SaaS到AIaaS：软件即服务→AI能力即服务的商业模式变革',
+      '从工具到伙伴：AI产品从工具定位向智能助手/数字员工演进',
+    ] },
+  ],
+  'job-practice': [
+    { name: 'AI PM 面试项目框架', points: [
+      'AI产品分析模板：产品定位→技术架构→用户价值→商业模式→竞争壁垒',
+      'AI产品改进提案：发现痛点→提出方案→技术可行性→预期效果→实施路径',
+      'AI产品从0到1设计：场景选择→用户定义→核心交互→技术选型→指标设计',
+      '现场白板框架：5分钟理解→10分钟框架→10分钟细化→5分钟总结',
+    ] },
+    { name: 'AI PM 求职材料', points: [
+      'AI PM简历模板：项目经历用AI Context(技术栈+模型+效果)量化',
+      'AI PM求职信：展示对AI产品的理解和思考深度',
+      'AI PM作品集网站：用Next.js/Framer搭建个人作品集',
+      '技术博客选题：AI产品分析/技术解读/行业观察/实战经验',
+    ] },
+  ],
 };
 
 export const EXTRA_CASES: Record<string, { title: string; company: string; lesson: string }[]> = {
@@ -734,6 +804,26 @@ export const EXTRA_CASES: Record<string, { title: string; company: string; lesso
     { title: '某AIGC平台的合规整改', company: '某AIGC平台', lesson: '算法备案+内容审核+数据合规三座大山，合规不是成本而是准入门槛' },
     { title: 'TikTok的内容审核体系', company: '字节跳动', lesson: '全球化的内容合规挑战：不同国家不同法规，本地化审核团队+AI审核的组合方案' },
   ],
+  'ai-growth': [
+    { title: 'Perplexity的病毒式增长', company: 'Perplexity', lesson: '产品即增长引擎——AI搜索体验远超传统搜索，用户自发传播' },
+    { title: 'Cursor的社区驱动增长', company: 'Cursor', lesson: '开发者社区+KOL推荐+产品效果自证，零广告费的AI工具增长范式' },
+  ],
+  'ai-safety': [
+    { title: 'ChatGPT的越狱攻防战', company: 'OpenAI', lesson: '攻防持续升级——每个防御策略都会被新攻击绕过，安全是持续过程不是一次性工程' },
+    { title: 'Google Gemini的偏见事件', company: 'Google', lesson: '过度对齐导致种族/性别偏见矫枉过正，安全与有用性的平衡非常微妙' },
+  ],
+  'data-flywheel': [
+    { title: 'Duolingo的数据飞轮', company: 'Duolingo', lesson: '5亿用户的练习数据→个性化学习模型→更好的学习效果→更多用户，教育AI的飞轮样本' },
+    { title: 'Copilot的代码补全飞轮', company: 'GitHub', lesson: '开发者接受/拒绝补全→模型学习代码模式→补全更准确→开发者更依赖' },
+  ],
+  'ai-frontier': [
+    { title: 'MCP生态爆发', company: 'Anthropic', lesson: '开放协议+开发者社区=生态爆发，MCP Server数量3个月增长10倍' },
+    { title: 'Claude Computer Use', company: 'Anthropic', lesson: 'AI从对话到操作的跨越——Computer Use让AI能操控任何桌面应用' },
+  ],
+  'job-practice': [
+    { title: '从零作品集到AI PM Offer', company: '某AI创业公司', lesson: '3周搭建2个AI Demo+1篇产品分析→面试时直接演示→3个Offer' },
+    { title: '传统PM的AI转型', company: '某大厂', lesson: '6个月系统学习AI+输出技术博客+内部转岗，成功从电商PM转型AI PM' },
+  ],
 };
 
 export const EXTRA_MUSTREAD: Record<string, { title: string; author: string; why: string }[]> = {
@@ -837,6 +927,26 @@ export const EXTRA_MUSTREAD: Record<string, { title: string; author: string; why
     { title: '《生成式AI管理办法》解读', author: '多位法律专家', why: '中国AI合规的核心法规，理解监管红线和合规要求' },
     { title: 'Stanford HAI年度AI指数', author: 'Stanford HAI', why: '全球AI政策和发展趋势的年度报告，合规趋势的风向标' },
   ],
+  'ai-growth': [
+    { title: '《Lean Analytics》', author: 'Alistair Croll', why: '数据驱动增长的方法论，选择正确的指标比增长速度更重要' },
+    { title: 'a16z: The New Business of AI', author: 'a16z', why: 'AI商业模式和增长策略的深度分析' },
+  ],
+  'ai-safety': [
+    { title: 'Anthropic: Core Views on AI Safety', author: 'Anthropic', why: 'AI安全公司的一手安全理念，理解前沿安全思考' },
+    { title: 'OWASP Top 10 for LLM', author: 'OWASP', why: 'AI应用安全风险的权威清单' },
+  ],
+  'data-flywheel': [
+    { title: 'Data Flywheel: The Secret Behind Great AI Products', author: 'a16z', why: '理解AI产品数据飞轮的核心文章' },
+    { title: '《Building ML Powered Applications》', author: 'Emmanuel Ameisen', why: '从数据到产品的完整闭环实践' },
+  ],
+  'ai-frontier': [
+    { title: 'State of AI Report', author: 'Nathan Benaich', why: '年度AI行业全景报告，技术趋势和投资方向' },
+    { title: 'The Architecture of Open Source Applications(AI篇)', author: '开源社区', why: '理解主流AI开源项目的架构设计' },
+  ],
+  'job-practice': [
+    { title: 'Cracking the PM Interview', author: 'Gayle McDowell', why: 'PM面试方法论经典，AI PM同样适用' },
+    { title: 'The Product Book', author: 'Product School', why: '产品经理的完整知识体系，面试基础' },
+  ],
 };
 
 export const EXTRA_INTERVIEWQS: Record<string, { question: string; hint: string }[]> = {
@@ -939,6 +1049,26 @@ export const EXTRA_INTERVIEWQS: Record<string, { question: string; hint: string 
     { question: 'AI生成内容的版权归属怎么处理？', hint: '目前法律尚不明确，建议在用户协议中约定，声明AI生成内容的版权归属和使用限制' },
     { question: '算法备案需要准备什么？', hint: '算法基本原理/数据来源/使用场景/安全评估/应急处置，建议提前3个月准备' },
   ],
+  'ai-growth': [
+    { question: 'AI产品的免费额度应该怎么设计？', hint: '够用但不够爽——让用户充分体验价值，但高级功能需要付费解锁' },
+    { question: '如何衡量AI产品的增长质量？', hint: '不只看DAU，看使用深度(功能覆盖度/Prompt复杂度/模型调用量)' },
+  ],
+  'ai-safety': [
+    { question: '如何设计AI产品的安全测试方案？', hint: '分层测试：单元测试(输入验证)+集成测试(端到端安全)+红队测试(对抗攻击)' },
+    { question: '模型对齐过度会有什么问题？', hint: '过度拒绝合法请求(over-refusal)、创造力下降、用户体验变差——安全与有用性的平衡' },
+  ],
+  'data-flywheel': [
+    { question: '如何判断数据飞轮是否在正常运转？', hint: '看三个指标：用户反馈量是否增长、模型效果是否持续提升、用户留存是否改善' },
+    { question: '合成数据能替代真实用户数据吗？', hint: '不能完全替代——合成数据适合预训练和测试，真实数据对微调和效果验证不可替代' },
+  ],
+  'ai-frontier': [
+    { question: 'AutoGen和CrewAI的核心区别是什么？', hint: 'AutoGen侧重多Agent对话协作(适合研究)，CrewAI侧重角色驱动的任务编排(适合生产)' },
+    { question: 'MCP对AI产品生态意味着什么？', hint: '类似USB-C统一接口——让AI应用能即插即用任何工具，降低集成成本，加速生态发展' },
+  ],
+  'job-practice': [
+    { question: '你如何证明自己适合AI PM而非传统PM？', hint: '展示AI技术理解+AI产品思维+数据驱动决策能力，用具体项目案例说话' },
+    { question: 'AI PM面试中最常见的坑是什么？', hint: '只谈技术不谈产品——面试官想看的是你如何用AI解决用户问题，而非你对模型的理解深度' },
+  ],
 };
 
 export const EXTRA_PITFALLS: Record<string, string[]> = {
@@ -967,6 +1097,11 @@ export const EXTRA_PITFALLS: Record<string, string[]> = {
   'badcase-analysis': ['不要只分析单个Bad Case——找到模式比修单个Case更重要', '不要忽视Good Case的监控——效果退化可能从Good Case变Borderline开始'],
   'hitl-design': ['不要追求100%自动化——有些场景人工介入比AI更可靠更高效', '不要忽视审核员体验——审核界面效率提升10%等于整体吞吐量提升10%'],
   'content-compliance': ['不要把合规当作上线后才做的事——合规要从产品设计阶段就嵌入', '不要忽视用户举报的信号——用户举报是内容合规的最后一道防线也是最重要的反馈源'],
+  'ai-growth': ['不要用烧钱补贴换增长——AI产品的增长核心靠效果和口碑', '不要只看拉新不看留存——AI产品的LTV来自长期使用深度，不是一次性体验'],
+  'ai-safety': ['不要以为部署了内容审核就安全了——Prompt注入可以绕过任何内容审核', '不要把安全当作阻碍——好的安全设计可以成为产品卖点(隐私保护/安全承诺)'],
+  'data-flywheel': ['不要忽视反馈噪声——10条高质量反馈比1000条点赞更有价值', '不要只采集不行动——用户反馈如果不转化为产品改进，用户会停止反馈'],
+  'ai-frontier': ['不要追每个热点——80%的AI热点会在6个月内降温，关注有落地场景的技术', '不要只看论文不看工程——从论文到产品的距离比你想象的大得多'],
+  'job-practice': ['不要只刷面试题——作品集和项目经验比题海更有效', '不要海投简历——AI PM岗位少而精，精准投递+内推比海投成功率高5倍'],
 };
 
 export const EXTRA_KEYQUESTIONS: Record<string, string[]> = {
@@ -995,6 +1130,11 @@ export const EXTRA_KEYQUESTIONS: Record<string, string[]> = {
   'badcase-analysis': ['你的Bad Case分类体系有几种类型？哪种最多？', '你最近修复的Top 3 Bad Case是什么？修复后回归测试过了吗？'],
   'hitl-design': ['你的人机协同置信度阈值是多少？怎么定的？', '你的渐进式自动化走到哪一步了？下一步的升级指标是什么？'],
   'content-compliance': ['你的产品做了算法备案吗？备案花了多长时间？', '你的内容审核拦截率和误拦率分别是多少？'],
+  'ai-growth': ['你的AI产品增长飞轮转起来了吗？哪个环节最薄弱？', '免费用户和付费用户的核心行为差异是什么？'],
+  'ai-safety': ['你的AI产品最可能被如何攻击？防御措施是什么？', '你的安全测试覆盖率是多少？上次红队测试是什么时候？'],
+  'data-flywheel': ['用户反馈到产品改进的周期多长？能缩短吗？', '你的标注数据质量如何衡量？上次标注规范更新是什么时候？'],
+  'ai-frontier': ['你每天花多少时间跟踪AI前沿？信息源有哪些？', '你最近关注的一个AI技术趋势是什么？它离产品化还有多远？'],
+  'job-practice': ['你的AI PM作品集里有几个可交互的Demo？', '你最近一次AI产品分析的输出是什么？在哪里可以看到？'],
 };
 
 export const EXTRA_LEARNINGTIPS: Record<string, string[]> = {
@@ -1023,4 +1163,9 @@ export const EXTRA_LEARNINGTIPS: Record<string, string[]> = {
   'badcase-analysis': ['收集30个Bad Case，按6类分类（幻觉/偏题/安全/格式/一致性/逻辑），找出Top 3模式', '对一个Bad Case做5-Why归因分析，区分是数据问题、模型问题还是Prompt问题'],
   'hitl-design': ['画一个你熟悉的AI产品的人机分工矩阵：按任务类型和置信度划分人机职责', '设计一个渐进式自动化路线图：定义4个阶段、每阶段的升级指标和回退机制'],
   'content-compliance': ['梳理你的产品需要遵守的AI相关法规清单，标注每条的合规状态', '设计一个多层审核策略：前置过滤+实时审核+后置复审+用户举报，定义每层的规则'],
+  'ai-growth': ['画一个你熟悉的AI产品的增长飞轮图，标注每个环节的转化率', '设计一个AI产品的免费额度方案：定义免费/付费边界和转化策略'],
+  'ai-safety': ['用OWASP LLM Top 10为你的AI产品做一次安全评估', '设计一个Prompt注入防御方案：输入过滤+权限隔离+输出校验的三层防御'],
+  'data-flywheel': ['画一个你熟悉的AI产品的数据飞轮图，标注数据流向和反馈闭环', '设计一个用户反馈采集方案：显式+隐式反馈各3种，评估采集成本和质量'],
+  'ai-frontier': ['订阅3个AI技术Newsletter，坚持每天花15分钟快速扫描', '用CrewAI或AutoGen搭建一个简单的多Agent协作demo，体验框架差异'],
+  'job-practice': ['花一周时间搭建一个AI产品Demo，作为作品集的第一个项目', '写一篇AI产品分析文章发布到知乎或Medium，练习结构化表达'],
 };
