@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import GradientBackground from '@/components/ui/gradient-background';
-import ReactECharts from 'echarts-for-react';
+import ReactECharts from '@/components/ui/EChartsWrapper';
 
 const ChevronIcon = () => (
   <svg className="absolute right-0 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">

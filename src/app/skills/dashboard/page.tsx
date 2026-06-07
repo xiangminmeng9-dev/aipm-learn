@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import GradientBackground from '@/components/ui/gradient-background';
-import ReactECharts from 'echarts-for-react';
+import ReactECharts from '@/components/ui/EChartsWrapper';
 import { RESOURCE_TYPES, getResourceTypeIcon, getResourceTypeLabel } from '@/components/resources/constants';
 
 interface SkillsStats {

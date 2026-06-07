@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import GradientBackground from '@/components/ui/gradient-background';
-import ReactECharts from 'echarts-for-react';
+import ReactECharts from '@/components/ui/EChartsWrapper';
 
 interface ResourcesStats {
   total_resources: number;

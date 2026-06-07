@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import GradientBackground from '@/components/ui/gradient-background';
-import ReactECharts from 'echarts-for-react';
+import ReactECharts from '@/components/ui/EChartsWrapper';
 
 interface DailyChallengeStats {
   total_submissions: number;

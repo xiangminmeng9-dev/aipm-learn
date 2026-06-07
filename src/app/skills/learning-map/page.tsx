@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   EXTRA_TOPICS,
@@ -3065,8 +3065,8 @@ const LEARNING_PATHS = [
 // ─── Component ──────────────────────────────────────────────────────
 
 export default function LearningMapPage() {
-  // Merge extra data into nodes
-  const ENRICHED_NODES = NODES.map((n) => ({
+  // Merge extra data into nodes (memoized - only computed once)
+  const ENRICHED_NODES = useMemo(() => NODES.map((n) => ({
     ...n,
     content: {
       ...n.content,
@@ -3078,7 +3078,7 @@ export default function LearningMapPage() {
       keyQuestions: [...n.content.keyQuestions, ...(EXTRA_KEYQUESTIONS[n.id] || [])],
       learningTips: [...n.content.learningTips, ...(EXTRA_LEARNINGTIPS[n.id] || [])],
     },
-  }));
+  })), []);
 
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);

@@ -2,21 +2,46 @@
 
 import dynamic from 'next/dynamic';
 
-const ReactECharts = dynamic(() => import('echarts-for-react'), {
-  ssr: false,
-  loading: () => (
-    <div className="flex h-64 items-center justify-center">
-      <div className="h-6 w-6 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
-    </div>
-  ),
-});
+const ReactECharts = dynamic(
+  () => import('echarts/core').then(async (echarts) => {
+    const [
+      { BarChart, LineChart, PieChart, RadarChart, ScatterChart, GraphChart },
+      { GridSimpleComponent, GridComponent, TooltipComponent, LegendComponent,
+        DataZoomComponent, ToolboxComponent, MarkLineComponent, MarkPointComponent,
+        TitleComponent, VisualMapComponent },
+      { CanvasRenderer },
+      echartsForReactCore,
+    ] = await Promise.all([
+      import('echarts/charts'),
+      import('echarts/components'),
+      import('echarts/renderers'),
+      import('echarts-for-react/lib/core'),
+    ]);
 
-// 高清图表默认配置
+    echarts.use([
+      BarChart, LineChart, PieChart, RadarChart, ScatterChart, GraphChart,
+      GridSimpleComponent, GridComponent, TooltipComponent, LegendComponent,
+      DataZoomComponent, ToolboxComponent, MarkLineComponent, MarkPointComponent,
+      TitleComponent, VisualMapComponent,
+      CanvasRenderer,
+    ]);
+
+    return echartsForReactCore;
+  }),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-64 items-center justify-center">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+      </div>
+    ),
+  },
+);
+
 export const highDPIChartOption = {
   animation: true,
   animationDuration: 300,
   animationEasing: 'cubicOut',
-  // 清晰的线条
   line: {
     smooth: false,
     symbol: 'circle',
@@ -25,16 +50,13 @@ export const highDPIChartOption = {
       width: 3,
     },
   },
-  // 清晰的文字
   textStyle: {
     fontFamily: '"Inter", "SF Pro Display", -apple-system, sans-serif',
     fontWeight: 600,
   },
-  // 柱状图清晰
   bar: {
     barBorderWidth: 1,
   },
-  // 饼图清晰
   pie: {
     label: {
       fontWeight: 600,
@@ -42,11 +64,9 @@ export const highDPIChartOption = {
   },
 };
 
-// 获取设备像素比 - 强制使用更高比例
 export function getDevicePixelRatio() {
   if (typeof window !== 'undefined') {
     const dpr = window.devicePixelRatio || 2;
-    // 强制至少2倍像素密度，确保2K清晰度
     return Math.max(dpr, 2.5);
   }
   return 3;
