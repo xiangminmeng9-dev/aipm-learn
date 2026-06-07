@@ -477,6 +477,11 @@ export const LEARNING_MAP_TO_SKILL_MODULE: Record<string, string> = {
   'cn-llm-ecosystem': 'cn-llm-ecosystem',
   'badcase-analysis': 'badcase-analysis',
   'ai-vendor-evaluation': 'ai-vendor-evaluation',
+  'ai-growth': 'ai-growth',
+  'ai-safety': 'ai-safety',
+  'data-flywheel': 'data-flywheel',
+  'ai-frontier': 'ai-frontier',
+  'job-practice': 'job-practice',
 };
 
 export const SKILL_MODULE_TO_LEARNING_MAP: Record<string, string> = Object.fromEntries(

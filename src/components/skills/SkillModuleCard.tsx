@@ -19,6 +19,8 @@ const MAP_NODE_NAMES: Record<string, string> = {
   'rag-architecture': 'RAG架构', 'ai-agent-design': 'Agent设计', 'data-quality-annotation': '数据标注',
   'ai-requirement-spec': '需求规格', 'hitl-design': '人机协同', 'content-compliance': '合规审核',
   'cn-llm-ecosystem': '国产模型', 'badcase-analysis': 'Bad Case', 'ai-vendor-evaluation': '技术选型',
+  'ai-growth': '运营增长', 'ai-safety': '安全对齐', 'data-flywheel': '数据飞轮',
+  'ai-frontier': '前沿技术', 'job-practice': '求职实战',
   'learning-resources': '学习资源',
 };
 
