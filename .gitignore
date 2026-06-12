@@ -49,3 +49,4 @@ next-env.d.ts
 # knowledge-graph sub-project
 knowledge-graph/
 10
+.env*.local

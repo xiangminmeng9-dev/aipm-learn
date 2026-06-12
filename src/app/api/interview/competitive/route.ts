@@ -64,8 +64,9 @@ export async function POST(request: NextRequest) {
           const dimensionScores = scoring?.dimensionScores || [];
           const totalScore = scoring?.totalScore ?? 0;
 
-          // Save to database
+          // Save to database — try service client first, fallback to user client
           let savedRecordId: string | null = null;
+          let saveErrorDetail: string | null = null;
           try {
             const serviceClient = createServiceClient();
             const { data, error } = await serviceClient
@@ -84,11 +85,35 @@ export async function POST(request: NextRequest) {
               .single();
 
             if (error) {
+              saveErrorDetail = `service_client: ${error.message} (${error.code})`;
               console.error('Competitive analysis save error:', JSON.stringify(error));
+              // Fallback: try with regular user client
+              const { data: fallbackData, error: fallbackError } = await supabase
+                .from('competitive_analyses')
+                .insert({
+                  user_id: user.id,
+                  product_name: productName.trim(),
+                  market_position: marketPosition || fallbackContent,
+                  feature_comparison: featureComparison,
+                  strengths_weaknesses: strengthsWeaknesses,
+                  differentiation_strategy: differentiationStrategy,
+                  total_score: totalScore,
+                  dimension_scores: dimensionScores,
+                })
+                .select()
+                .single();
+              if (fallbackError) {
+                saveErrorDetail += ` | user_client: ${fallbackError.message} (${fallbackError.code})`;
+                console.error('Competitive analysis fallback save error:', JSON.stringify(fallbackError));
+              } else {
+                savedRecordId = fallbackData?.id || null;
+                saveErrorDetail = null;
+              }
             } else {
               savedRecordId = data?.id || null;
             }
           } catch (saveErr) {
+            saveErrorDetail = `exception: ${saveErr instanceof Error ? saveErr.message : String(saveErr)}`;
             console.error('Competitive analysis save exception:', saveErr);
           }
 
@@ -106,6 +131,7 @@ export async function POST(request: NextRequest) {
             scoring: { totalScore, dimensionScores },
             recordId: savedRecordId,
             saved: !!savedRecordId,
+            saveError: saveErrorDetail,
           })}\n\n`));
         } catch (err) {
           console.error('Competitive analysis stream error:', err);
