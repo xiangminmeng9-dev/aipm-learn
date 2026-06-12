@@ -26,7 +26,10 @@ export async function createClient() {
 }
 
 export function createServiceClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !serviceRoleKey) {
+    throw new Error('SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_URL is not set. Check your environment variables.');
+  }
   return createSupabaseJsClient(supabaseUrl, serviceRoleKey);
 }

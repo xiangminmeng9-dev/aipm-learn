@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient, createServiceClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,13 +11,12 @@ export async function GET(request: NextRequest) {
     const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
     const page_size = Math.min(100, Math.max(1, parseInt(searchParams.get('page_size') || '20')));
 
-    const serviceClient = createServiceClient();
-    const { count } = await serviceClient
+    const { count } = await supabase
       .from('competitive_analyses')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', user.id);
 
-    const { data, error } = await serviceClient
+    const { data, error } = await supabase
       .from('competitive_analyses')
       .select('*')
       .eq('user_id', user.id)
@@ -56,8 +55,7 @@ export async function DELETE(request: NextRequest) {
     const { id } = await request.json();
     if (!id) return NextResponse.json({ error: '缺少记录ID' }, { status: 400 });
 
-    const serviceClient = createServiceClient();
-    const { error } = await serviceClient
+    const { error } = await supabase
       .from('competitive_analyses')
       .delete()
       .eq('id', id)

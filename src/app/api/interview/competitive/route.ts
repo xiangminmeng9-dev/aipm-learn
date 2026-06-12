@@ -64,12 +64,11 @@ export async function POST(request: NextRequest) {
           const dimensionScores = scoring?.dimensionScores || [];
           const totalScore = scoring?.totalScore ?? 0;
 
-          // Save to database — try service client first, fallback to user client
+          // Save to database — use user client (respects RLS), fallback to service client if available
           let savedRecordId: string | null = null;
           let saveErrorDetail: string | null = null;
           try {
-            const serviceClient = createServiceClient();
-            const { data, error } = await serviceClient
+            const { data, error } = await supabase
               .from('competitive_analyses')
               .insert({
                 user_id: user.id,
@@ -85,29 +84,34 @@ export async function POST(request: NextRequest) {
               .single();
 
             if (error) {
-              saveErrorDetail = `service_client: ${error.message} (${error.code})`;
-              console.error('Competitive analysis save error:', JSON.stringify(error));
-              // Fallback: try with regular user client
-              const { data: fallbackData, error: fallbackError } = await supabase
-                .from('competitive_analyses')
-                .insert({
-                  user_id: user.id,
-                  product_name: productName.trim(),
-                  market_position: marketPosition || fallbackContent,
-                  feature_comparison: featureComparison,
-                  strengths_weaknesses: strengthsWeaknesses,
-                  differentiation_strategy: differentiationStrategy,
-                  total_score: totalScore,
-                  dimension_scores: dimensionScores,
-                })
-                .select()
-                .single();
-              if (fallbackError) {
-                saveErrorDetail += ` | user_client: ${fallbackError.message} (${fallbackError.code})`;
-                console.error('Competitive analysis fallback save error:', JSON.stringify(fallbackError));
-              } else {
-                savedRecordId = fallbackData?.id || null;
-                saveErrorDetail = null;
+              saveErrorDetail = `user_client: ${error.message} (${error.code})`;
+              console.error('Competitive analysis user client save error:', JSON.stringify(error));
+              // Fallback: try service client (bypasses RLS)
+              try {
+                const serviceClient = createServiceClient();
+                const { data: svcData, error: svcError } = await serviceClient
+                  .from('competitive_analyses')
+                  .insert({
+                    user_id: user.id,
+                    product_name: productName.trim(),
+                    market_position: marketPosition || fallbackContent,
+                    feature_comparison: featureComparison,
+                    strengths_weaknesses: strengthsWeaknesses,
+                    differentiation_strategy: differentiationStrategy,
+                    total_score: totalScore,
+                    dimension_scores: dimensionScores,
+                  })
+                  .select()
+                  .single();
+                if (svcError) {
+                  saveErrorDetail += ` | service_client: ${svcError.message} (${svcError.code})`;
+                  console.error('Competitive analysis service client save error:', JSON.stringify(svcError));
+                } else {
+                  savedRecordId = svcData?.id || null;
+                  saveErrorDetail = null;
+                }
+              } catch (svcErr) {
+                saveErrorDetail += ` | service_client_unavailable: ${svcErr instanceof Error ? svcErr.message : String(svcErr)}`;
               }
             } else {
               savedRecordId = data?.id || null;
