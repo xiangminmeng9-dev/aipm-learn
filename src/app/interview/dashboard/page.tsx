@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import GradientBackground from '@/components/ui/gradient-background';
-import ReactECharts from '@/components/ui/EChartsWrapper';
+import ReactECharts from '@/components/ui/LazyECharts';
+import { apiFetch } from '@/lib/api/fetch';
 
 const ChevronIcon = () => (
   <svg className="absolute right-0 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -64,7 +65,7 @@ export default function InterviewDashboardPage() {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/interview/dashboard?range=${range}`)
+    apiFetch(`/api/interview/dashboard?range=${range}`)
       .then(r => r.json())
       .then(d => {
         if (d.stats) setStats(d.stats);
@@ -248,7 +249,7 @@ export default function InterviewDashboardPage() {
                     <div key={t.type} className="flex items-center gap-2">
                       <span className="shrink-0 w-3 h-3 rounded-sm" style={{ backgroundColor: TYPE_COLORS[i % TYPE_COLORS.length] }} />
                       <span className="text-xs text-muted-foreground truncate">{t.type}</span>
-                      <span className="text-[10px] text-muted-foreground ml-auto">{t.count}</span>
+                      <span className="text-xs text-muted-foreground ml-auto">{t.count}</span>
                     </div>
                   ))}
                 </div>
@@ -352,8 +353,9 @@ export default function InterviewDashboardPage() {
                     }}
                     style={{ height: 200 }}
                     onEvents={{
-                      click: (params: { name: string }) => {
-                        if (params.name) setMethodologyFilter(params.name);
+                      click: (params?: unknown) => {
+                        const p = params as { name?: string } | undefined;
+                        if (p?.name) setMethodologyFilter(p.name);
                       },
                     }}
                   />
@@ -363,7 +365,7 @@ export default function InterviewDashboardPage() {
                     <div key={t.type} className="flex items-center gap-2">
                       <span className="shrink-0 w-3 h-3 rounded-sm" style={{ backgroundColor: METHODOLOGY_COLORS[i % METHODOLOGY_COLORS.length] }} />
                       <span className="text-xs text-muted-foreground truncate">{t.type}</span>
-                      <span className="text-[10px] text-muted-foreground ml-auto">{t.count}</span>
+                      <span className="text-xs text-muted-foreground ml-auto">{t.count}</span>
                     </div>
                   ))}
                 </div>
@@ -520,7 +522,7 @@ export default function InterviewDashboardPage() {
                     <div key={t.type} className="flex items-center gap-2">
                       <span className="shrink-0 w-3 h-3 rounded-sm" style={{ backgroundColor: QA_COLORS[i % QA_COLORS.length] }} />
                       <span className="text-xs text-muted-foreground truncate">{t.type}</span>
-                      <span className="text-[10px] text-muted-foreground ml-auto">{t.count}</span>
+                      <span className="text-xs text-muted-foreground ml-auto">{t.count}</span>
                     </div>
                   ))}
                 </div>
@@ -572,7 +574,7 @@ export default function InterviewDashboardPage() {
                   <div key={s.stage} className="flex items-center gap-2">
                     <span className="shrink-0 w-3 h-3 rounded-sm" style={{ backgroundColor: FUNNEL_COLORS[i] }} />
                     <span className="text-xs text-muted-foreground truncate">{FUNNEL_LABELS[s.stage] || s.stage}</span>
-                    <span className="text-[10px] text-muted-foreground ml-auto">{s.count}</span>
+                    <span className="text-xs text-muted-foreground ml-auto">{s.count}</span>
                   </div>
                 ))}
               </div>

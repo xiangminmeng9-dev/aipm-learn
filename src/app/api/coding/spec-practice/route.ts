@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
         try {
           for await (const chunk of streamChatResponse(
             [{ role: 'user', content: prompt }],
-            { model: 'sonnet', system: SPEC_EVALUATION_SYSTEM_PROMPT, maxTokens: 2048 },
+            { model: 'haiku', system: SPEC_EVALUATION_SYSTEM_PROMPT, maxTokens: 2048 },
           )) {
             fullText += chunk;
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: chunk })}\n\n`));

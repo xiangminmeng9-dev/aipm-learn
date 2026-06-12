@@ -114,7 +114,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const stream = streamChatResponse(
       [{ role: 'user', content: scoringPrompt }],
-      { model: 'sonnet', system: MOCK_SCORING_SYSTEM_PROMPT, maxTokens: 2048 }
+      { model: 'haiku', system: MOCK_SCORING_SYSTEM_PROMPT, maxTokens: 2048 }
     );
 
     const encoder = new TextEncoder();
@@ -243,7 +243,7 @@ async function generateNextQuestion(
   });
 
   const nextQuestionText = await generateText(questionPrompt, {
-    model: 'sonnet',
+    model: 'haiku',
     system: MOCK_QUESTION_SYSTEM_PROMPT,
     maxTokens: 512,
   });

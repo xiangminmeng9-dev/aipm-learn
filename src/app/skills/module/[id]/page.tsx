@@ -5,6 +5,7 @@ import Link from 'next/link';
 import type { LearningTaskWithProgress, SkillModule, LearningResource, UserTaskResource } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import AddResourceDialog from '@/components/skills/AddResourceDialog';
+import { apiFetch } from '@/lib/api/fetch';
 
 const RESOURCE_ICONS: Record<string, string> = { article: '📄', video: '🎬', book: '📚', note: '📝' };
 const RESOURCE_COLORS: Record<string, string> = {
@@ -37,7 +38,7 @@ export default function ModuleDetailPage({ params }: ModuleDetailPageProps) {
 
   useEffect(() => {
     params.then(({ id }) => {
-      fetch(`/api/skills/modules/${id}`)
+      apiFetch(`/api/skills/modules/${id}`)
         .then((r) => r.json())
         .then((data) => { setModule(data.module ?? null); setTasks(data.tasks ?? []); setCustomTasks(data.custom_tasks ?? []); setLinkedResources(data.linked_resources ?? []); setInterviewInsights(data.interview_insights ?? null); })
         .catch(() => {})
@@ -48,7 +49,7 @@ export default function ModuleDetailPage({ params }: ModuleDetailPageProps) {
   const handleToggle = useCallback(async (taskId: string, currentStatus: string) => {
     const newStatus = currentStatus === 'completed' ? 'not_started' : 'completed';
     setTasks((prev) => prev.map((t) => t.id === taskId ? { ...t, status: newStatus as 'not_started' | 'completed', completed_at: newStatus === 'completed' ? new Date().toISOString() : null } : t));
-    await fetch('/api/skills/progress', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ task_id: taskId, status: newStatus }) });
+    await apiFetch('/api/skills/progress', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ task_id: taskId, status: newStatus }) });
   }, []);
 
   const handleResourceAdded = useCallback((taskId: string, resource: UserTaskResource) => {
@@ -57,7 +58,7 @@ export default function ModuleDetailPage({ params }: ModuleDetailPageProps) {
   }, []);
 
   const handleResourceDeleted = useCallback(async (taskId: string, resourceId: string) => {
-    const res = await fetch(`/api/skills/resources/${resourceId}`, { method: 'DELETE' });
+    const res = await apiFetch(`/api/skills/resources/${resourceId}`, { method: 'DELETE' });
     if (res.ok) {
       setTasks((prev) => prev.map((t) => t.id === taskId ? { ...t, user_resources: (t.user_resources ?? []).filter((r) => r.id !== resourceId) } : t));
       setCustomTasks((prev) => prev.map((t) => t.id === taskId ? { ...t, user_resources: (t.user_resources ?? []).filter((r) => r.id !== resourceId) } : t));
@@ -68,7 +69,7 @@ export default function ModuleDetailPage({ params }: ModuleDetailPageProps) {
     if (!newTaskTitle.trim() || !module) return;
     setIsAddingTask(true);
     try {
-      const res = await fetch('/api/skills/tasks', {
+      const res = await apiFetch('/api/skills/tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ module_id: module.id, title: newTaskTitle.trim(), objective: newTaskObjective.trim() || newTaskTitle.trim() }),
@@ -157,7 +158,7 @@ export default function ModuleDetailPage({ params }: ModuleDetailPageProps) {
                   <span className="text-muted-foreground">{completedCount}/{tasks.length} 完成</span>
                   <span className="font-semibold text-indigo-600">{progressPct}%</span>
                 </div>
-                <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#E5E7EB]">
+                <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
                   <div className="h-full rounded-full progress-gradient transition-all" style={{ width: `${progressPct}%` }} />
                 </div>
               </div>
@@ -248,7 +249,7 @@ export default function ModuleDetailPage({ params }: ModuleDetailPageProps) {
                   <div className="flex items-start justify-between">
                     <button className="flex-1 text-left" onClick={() => setExpandedTask(isExpanded ? null : task.id)}>
                       <div className="flex items-center gap-3">
-                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#E5E7EB] text-sm font-medium text-muted-foreground">{idx + 1}</span>
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium text-muted-foreground">{idx + 1}</span>
                         <div>
                           <h3 className="text-base font-semibold text-foreground">{task.title}</h3>
                           <p className="mt-0.5 text-sm text-muted-foreground">{task.objective}</p>
@@ -256,11 +257,11 @@ export default function ModuleDetailPage({ params }: ModuleDetailPageProps) {
                       </div>
                     </button>
                     <div className="flex items-center gap-2 shrink-0 ml-4">
-                      <span className="rounded-full bg-[#E5E7EB] px-2 py-0.5 text-sm text-muted-foreground">{task.estimated_days}天</span>
-                      {totalResources > 0 && <span className="rounded-full bg-[#E5E7EB] px-2 py-0.5 text-sm text-muted-foreground">{totalResources}资源</span>}
+                      <span className="rounded-full bg-muted px-2 py-0.5 text-sm text-muted-foreground">{task.estimated_days}天</span>
+                      {totalResources > 0 && <span className="rounded-full bg-muted px-2 py-0.5 text-sm text-muted-foreground">{totalResources}资源</span>}
                       <button
                         onClick={() => handleToggle(task.id, task.status)}
-                        className={`rounded-full px-3 py-1 text-sm font-medium transition-colors ${task.status === 'completed' ? 'bg-[#34c759] text-white' : 'bg-[#E5E7EB] text-muted-foreground hover:bg-secondary'}`}
+                        className={`rounded-full px-3 py-1 text-sm font-medium transition-colors ${task.status === 'completed' ? 'bg-[#34c759] text-white' : 'bg-muted text-muted-foreground hover:bg-secondary'}`}
                       >
                         {task.status === 'completed' ? '✓ 已完成' : '标记完成'}
                       </button>
@@ -330,9 +331,9 @@ export default function ModuleDetailPage({ params }: ModuleDetailPageProps) {
                         onClick={async () => {
                           const newStatus = ct.status === 'completed' ? 'not_started' : 'completed';
                           setCustomTasks((prev) => prev.map((t) => t.id === ct.id ? { ...t, status: newStatus } : t));
-                          await fetch(`/api/skills/tasks/${ct.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: newStatus }) });
+                          await apiFetch(`/api/skills/tasks/${ct.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: newStatus }) });
                         }}
-                        className={`shrink-0 rounded-full px-3 py-1 text-sm font-medium transition-colors ${ct.status === 'completed' ? 'bg-[#34c759] text-white' : 'bg-[#E5E7EB] text-muted-foreground hover:bg-secondary'}`}
+                        className={`shrink-0 rounded-full px-3 py-1 text-sm font-medium transition-colors ${ct.status === 'completed' ? 'bg-[#34c759] text-white' : 'bg-muted text-muted-foreground hover:bg-secondary'}`}
                       >
                         {ct.status === 'completed' ? '✓ 已完成' : '标记完成'}
                       </button>
@@ -360,13 +361,13 @@ export default function ModuleDetailPage({ params }: ModuleDetailPageProps) {
                     value={newTaskTitle}
                     onChange={(e) => setNewTaskTitle(e.target.value)}
                     placeholder="技能/任务名称，如：学习 Kubernetes 基础"
-                    className="w-full rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-foreground placeholder-[#9CA3AF] focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    className="w-full rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                   />
                   <input
                     value={newTaskObjective}
                     onChange={(e) => setNewTaskObjective(e.target.value)}
                     placeholder="学习目标（可选），如：掌握 K8s 核心概念和部署流程"
-                    className="w-full rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-foreground placeholder-[#9CA3AF] focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    className="w-full rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                   />
                   <div className="flex gap-2">
                     <button

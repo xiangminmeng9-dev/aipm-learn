@@ -2,8 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
-import Markdown from '@/components/ui/markdown';
+import { MotionDiv, AnimatePresence } from '@/components/ui/lazy-motion';
+import dynamic from 'next/dynamic';
+const Markdown = dynamic(() => import('@/components/ui/markdown'), { ssr: false });
+import { apiFetch } from '@/lib/api/fetch';
 
 interface ResumeVersion {
   id: string;
@@ -45,7 +47,7 @@ export default function ResumeVersionsPage() {
     setIsLoading(true);
     setError('');
     try {
-      const res = await fetch('/api/resume/versions');
+      const res = await apiFetch('/api/resume/versions');
       if (!res.ok) throw new Error('获取版本失败');
       const data = await res.json();
       setVersions(data.versions || []);
@@ -64,7 +66,7 @@ export default function ResumeVersionsPage() {
     if (!confirm('确定删除此版本？')) return;
     setDeletingId(id);
     try {
-      const res = await fetch(`/api/resume/versions?id=${id}`, { method: 'DELETE' });
+      const res = await apiFetch(`/api/resume/versions?id=${id}`, { method: 'DELETE' });
       if (res.ok) {
         setVersions((prev) => prev.filter((v) => v.id !== id));
       }
@@ -149,7 +151,7 @@ export default function ResumeVersionsPage() {
             const isDeleting = deletingId === version.id;
 
             return (
-              <motion.div
+              <MotionDiv
                 key={version.id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -207,7 +209,7 @@ export default function ResumeVersionsPage() {
                 {/* Content - collapsible */}
                 <AnimatePresence>
                   {expandedIds.has(version.id) && (
-                    <motion.div
+                    <MotionDiv
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: 'auto', opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
@@ -229,10 +231,10 @@ export default function ResumeVersionsPage() {
                           : <p className="text-sm text-muted-foreground">（简历内容为空，可能是生成时 AI 返回格式异常）</p>
                         }
                       </div>
-                    </motion.div>
+                    </MotionDiv>
                   )}
                 </AnimatePresence>
-              </motion.div>
+              </MotionDiv>
             );
           })}
         </AnimatePresence>

@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import GradientBackground from '@/components/ui/gradient-background';
-import ReactECharts from '@/components/ui/EChartsWrapper';
+import ReactECharts from '@/components/ui/LazyECharts';
+import { apiFetch } from '@/lib/api/fetch';
 
 interface NotebookStats {
   total_notes: number;
@@ -47,7 +48,7 @@ export default function NotebookDashboardPage() {
 
   const loadData = useCallback(async (r: string) => {
     try {
-      const res = await fetch(`/api/notebook/dashboard?range=${r}`);
+      const res = await apiFetch(`/api/notebook/dashboard?range=${r}`);
       const d = await res.json();
       if (d.stats) setStats(d.stats);
     } catch (e) {
@@ -211,7 +212,7 @@ export default function NotebookDashboardPage() {
                     <div key={c.category} className="flex items-center gap-2">
                       <span className="shrink-0 w-3 h-3 rounded-sm" style={{ backgroundColor: CATEGORY_COLORS[i % CATEGORY_COLORS.length] }} />
                       <span className="text-xs text-muted-foreground truncate">{categoryLabels[c.category] || c.category}</span>
-                      <span className="text-[10px] text-muted-foreground ml-auto">{c.count}</span>
+                      <span className="text-xs text-muted-foreground ml-auto">{c.count}</span>
                     </div>
                   ))}
                 </div>
@@ -261,7 +262,7 @@ export default function NotebookDashboardPage() {
                     <div key={s.status} className="flex items-center gap-2">
                       <span className="shrink-0 w-3 h-3 rounded-sm" style={{ backgroundColor: s.color }} />
                       <span className="text-xs text-muted-foreground">{s.status}</span>
-                      <span className="text-[10px] text-muted-foreground ml-auto">{s.count}</span>
+                      <span className="text-xs text-muted-foreground ml-auto">{s.count}</span>
                     </div>
                   ))}
                 </div>
@@ -300,7 +301,7 @@ export default function NotebookDashboardPage() {
                     <div key={p.priority} className="flex items-center gap-2">
                       <span className="shrink-0 w-3 h-3 rounded-sm" style={{ backgroundColor: p.color }} />
                       <span className="text-xs text-muted-foreground">{p.priority}</span>
-                      <span className="text-[10px] text-muted-foreground ml-auto">{p.count}</span>
+                      <span className="text-xs text-muted-foreground ml-auto">{p.count}</span>
                     </div>
                   ))}
                 </div>
@@ -320,7 +321,7 @@ export default function NotebookDashboardPage() {
                 {stats.recent_notes.map((n) => (
                   <div key={n.id} className="flex items-center justify-between rounded-xl border border-border px-3 py-2">
                     <div className="flex items-center gap-2">
-                      <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${
+                      <span className={`rounded px-1.5 py-0.5 text-xs font-medium ${
                         n.category === 'problem' ? 'bg-rose-100 text-rose-700' :
                         n.category === 'insight' ? 'bg-amber-100 text-amber-700' :
                         n.category === 'meeting' ? 'bg-sky-100 text-sky-700' :

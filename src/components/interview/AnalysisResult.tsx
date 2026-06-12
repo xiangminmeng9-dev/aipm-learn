@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import Markdown from '@/components/ui/markdown';
+import dynamic from 'next/dynamic';
+const Markdown = dynamic(() => import('@/components/ui/markdown'), { ssr: false });
 import type { AnalysisResult } from '@/types';
+import { apiFetch } from '@/lib/api/fetch';
 
 interface AnalysisResultProps {
   result: AnalysisResult;
@@ -33,7 +35,7 @@ export default function AnalysisResult({ result, questionText }: AnalysisResultP
 
   useEffect(() => {
     if (!result.question_id) return;
-    fetch(`/api/interview/bookmarks?question_id=${result.question_id}`)
+    apiFetch(`/api/interview/bookmarks?question_id=${result.question_id}`)
       .then(r => r.json())
       .then(data => {
         if (data.bookmark) {
@@ -64,13 +66,13 @@ export default function AnalysisResult({ result, questionText }: AnalysisResultP
     setBookmarkLoading(true);
     try {
       if (isBookmarked && bookmarkId) {
-        const res = await fetch(`/api/interview/bookmarks?id=${bookmarkId}`, { method: 'DELETE' });
+        const res = await apiFetch(`/api/interview/bookmarks?id=${bookmarkId}`, { method: 'DELETE' });
         if (res.ok) {
           setIsBookmarked(false);
           setBookmarkId(null);
         }
       } else {
-        const res = await fetch('/api/interview/bookmarks', {
+        const res = await apiFetch('/api/interview/bookmarks', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ question_id: result.question_id, mastery_level: 'learning' }),

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import CodingMethodologyCard from '@/components/coding/CodingMethodologyCard';
 import GradientBackground from '@/components/ui/gradient-background';
 import type { CodingMethodology } from '@/types';
+import { apiFetch } from '@/lib/api/fetch';
 
 export default function CodingMethodologyPage() {
   const [methodology, setMethodology] = useState<CodingMethodology | null>(null);
@@ -11,7 +12,7 @@ export default function CodingMethodologyPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/coding/methodology')
+    apiFetch('/api/coding/methodology')
       .then((r) => r.json())
       .then((data) => {
         setMethodology(data.methodology ?? null);

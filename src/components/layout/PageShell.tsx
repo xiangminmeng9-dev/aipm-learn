@@ -41,7 +41,7 @@ export default function PageShell({
               <div className="text-2xl font-bold text-foreground">{s.value}</div>
               <div className="mt-0.5 text-xs text-muted-foreground">{s.label}</div>
               {s.trend && (
-                <div className={`mt-1 text-[11px] font-medium ${s.trend.startsWith('+') ? 'text-emerald-600' : 'text-rose-500'}`}>
+                <div className={`mt-1 text-xs font-medium ${s.trend.startsWith('+') ? 'text-emerald-600' : 'text-rose-500'}`}>
                   {s.trend}
                 </div>
               )}

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import GradientBackground from '@/components/ui/gradient-background';
 import LearningPathCard from '@/components/skills/LearningPathCard';
 import type { RecommendedModule } from '@/types';
+import { apiFetch } from '@/lib/api/fetch';
 
 interface HistoryRecord {
   id: string;
@@ -19,19 +20,23 @@ export default function PathHistoryPage() {
   const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchHistory = useCallback(async (p: number) => {
     setIsLoading(true);
+    setError(null);
     try {
-      const res = await fetch(`/api/skills/ai-learning-path/history?page=${p}&page_size=20`);
+      const res = await apiFetch(`/api/skills/ai-learning-path/history?page=${p}&page_size=20`);
       if (res.ok) {
         const data = await res.json();
         setRecords(data.records ?? []);
         setTotal(data.total ?? 0);
         setPage(p);
+      } else {
+        setError('加载路径历史失败');
       }
     } catch {
-      // silent
+      setError('加载路径历史失败');
     } finally {
       setIsLoading(false);
     }
@@ -40,7 +45,7 @@ export default function PathHistoryPage() {
   const handleDelete = useCallback(async (id: string) => {
     if (!confirm('确定删除这条记录吗？')) return;
     try {
-      const res = await fetch('/api/skills/ai-learning-path/history', {
+      const res = await apiFetch('/api/skills/ai-learning-path/history', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id }),
@@ -70,6 +75,13 @@ export default function PathHistoryPage() {
         <div className="relative z-10 flex justify-center py-12">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
         </div>
+      ) : error ? (
+        <div className="relative z-10">
+          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/30 dark:text-red-300">
+            <p>{error}</p>
+            <button onClick={() => fetchHistory(page)} className="mt-1 text-xs font-medium text-red-600 hover:text-red-800 dark:text-red-400">重试</button>
+          </div>
+        </div>
       ) : records.length === 0 ? (
         <div className="relative z-10 py-16 text-center">
           <p className="text-muted-foreground">还没有学习路径记录</p>
@@ -84,8 +96,11 @@ export default function PathHistoryPage() {
               key={record.id}
               className="overflow-hidden rounded-xl border bg-card transition-colors hover:border-indigo-200 dark:hover:border-indigo-800"
             >
-              <button
+              <div
                 onClick={() => setExpandedId(expandedId === record.id ? null : record.id)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpandedId(expandedId === record.id ? null : record.id); } }}
+                role="button"
+                tabIndex={0}
                 className="flex w-full items-center justify-between p-4 text-left"
               >
                 <div className="min-w-0 flex-1">
@@ -115,7 +130,7 @@ export default function PathHistoryPage() {
                     {expandedId === record.id ? '▲' : '▼'}
                   </span>
                 </div>
-              </button>
+              </div>
 
               {expandedId === record.id && (
                 <div className="border-t p-4 space-y-4">

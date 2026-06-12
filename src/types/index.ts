@@ -638,6 +638,15 @@ export interface StatusHistoryEntry {
 
 export type CompanyType = 'big_company' | 'foreign' | 'state_owned' | 'startup' | 'traditional' | 'other';
 
+export interface CompanyPreference {
+  persona: string;
+  core_skills: Array<{ name: string; count: number }>;
+  soft_skills: string[];
+  not_care: string;
+  suggestion: string;
+  strengthen: string;
+}
+
 export interface ResumeApplication {
   id: string;
   user_id: string;

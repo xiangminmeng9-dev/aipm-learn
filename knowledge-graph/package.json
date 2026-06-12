@@ -1,0 +1,23 @@
+{
+  "name": "knowledge-graph",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "vue": "^3.5.13",
+    "three": "^0.172.0",
+    "3d-force-graph": "^1.73.0",
+    "three-spritetext": "^1.9.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.3",
+    "typescript": "^5.7.3",
+    "vite": "^6.3.0",
+    "vue-tsc": "^2.2.0"
+  }
+}

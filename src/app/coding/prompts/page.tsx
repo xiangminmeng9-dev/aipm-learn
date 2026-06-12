@@ -44,13 +44,13 @@ export default function CodingPromptsPage() {
             placeholder="搜索提示词、标签..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-xs text-foreground placeholder-[#9CA3AF] focus:border-[#4F46E5] focus:outline-none focus:ring-1 focus:ring-[#4F46E5]/20"
+            className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/20"
           />
         </div>
         <div className="mt-3 flex flex-wrap gap-1.5">
           <button
             onClick={() => setSelectedCategory(null)}
-            className={`rounded-md px-2.5 py-1 text-[11px] font-medium transition ${!selectedCategory ? 'bg-[#4F46E5] text-white' : 'bg-secondary text-muted-foreground hover:bg-indigo-50 hover:text-indigo-600'}`}
+            className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${!selectedCategory ? 'bg-primary text-white' : 'bg-secondary text-muted-foreground hover:bg-indigo-50 hover:text-indigo-600'}`}
           >
             全部
           </button>
@@ -58,7 +58,7 @@ export default function CodingPromptsPage() {
             <button
               key={cat.id}
               onClick={() => setSelectedCategory(selectedCategory === cat.id ? null : cat.id)}
-              className={`rounded-md px-2.5 py-1 text-[11px] font-medium transition ${selectedCategory === cat.id ? 'bg-[#4F46E5] text-white' : 'bg-secondary text-muted-foreground hover:bg-indigo-50 hover:text-indigo-600'}`}
+              className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${selectedCategory === cat.id ? 'bg-primary text-white' : 'bg-secondary text-muted-foreground hover:bg-indigo-50 hover:text-indigo-600'}`}
             >
               {cat.icon} {cat.label}
             </button>
@@ -66,7 +66,7 @@ export default function CodingPromptsPage() {
           <span className="mx-1 border-l border-border" />
           <button
             onClick={() => setSelectedDifficulty(null)}
-            className={`rounded-md px-2.5 py-1 text-[11px] font-medium transition ${!selectedDifficulty ? 'bg-[#1F2937] text-white' : 'bg-secondary text-muted-foreground hover:bg-muted'}`}
+            className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${!selectedDifficulty ? 'bg-gray-800 text-white' : 'bg-secondary text-muted-foreground hover:bg-muted'}`}
           >
             所有难度
           </button>
@@ -74,7 +74,7 @@ export default function CodingPromptsPage() {
             <button
               key={key}
               onClick={() => setSelectedDifficulty(selectedDifficulty === key ? null : key)}
-              className={`rounded-md px-2.5 py-1 text-[11px] font-medium transition ${selectedDifficulty === key ? `${cfg.bg} ${cfg.color} font-semibold` : 'bg-secondary text-muted-foreground hover:bg-muted'}`}
+              className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${selectedDifficulty === key ? `${cfg.bg} ${cfg.color} font-semibold` : 'bg-secondary text-muted-foreground hover:bg-muted'}`}
             >
               {cfg.label}
             </button>
@@ -84,7 +84,7 @@ export default function CodingPromptsPage() {
 
       {/* Grid */}
       <div className="relative z-10 flex-1 overflow-y-auto p-6">
-        <div className="mb-3 text-[11px] text-muted-foreground">共 {filtered.length} 个提示词</div>
+        <div className="mb-3 text-xs text-muted-foreground">共 {filtered.length} 个提示词</div>
         {filtered.length === 0 ? (
           <div className="flex items-center justify-center py-20 text-sm text-muted-foreground">没有找到匹配的提示词</div>
         ) : (
@@ -132,35 +132,35 @@ function PromptCard({
               <span className="text-xs">{cat?.icon}</span>
               <h3 className="text-sm font-semibold text-foreground group-hover:text-indigo-600 transition line-clamp-2">{prompt.title}</h3>
             </div>
-            <p className="mt-1 text-[11px] text-muted-foreground line-clamp-2">{prompt.description}</p>
+            <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{prompt.description}</p>
           </div>
-          <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium ${diff.bg} ${diff.color}`}>{diff.label}</span>
+          <span className={`shrink-0 rounded px-1.5 py-0.5 text-xs font-medium ${diff.bg} ${diff.color}`}>{diff.label}</span>
         </div>
 
         {/* Tags */}
         <div className="mt-2 flex flex-wrap gap-1">
           {prompt.tags.slice(0, 4).map((tag) => (
-            <span key={tag} className="rounded bg-secondary px-1.5 py-0.5 text-[10px] text-muted-foreground">{tag}</span>
+            <span key={tag} className="rounded bg-secondary px-1.5 py-0.5 text-xs text-muted-foreground">{tag}</span>
           ))}
           {prompt.source && (
-            <span className="rounded bg-[#4F46E5]/5 px-1.5 py-0.5 text-[10px] text-primary">{prompt.source}</span>
+            <span className="rounded bg-primary/5 px-1.5 py-0.5 text-xs text-primary">{prompt.source}</span>
           )}
         </div>
 
         {/* Expand toggle */}
-        <button onClick={onToggle} className="mt-2 text-[11px] font-medium text-primary hover:text-[#4338CA] transition self-start">
+        <button onClick={onToggle} className="mt-2 text-xs font-medium text-primary hover:text-primary/80 transition self-start">
           {expanded ? '收起 ▲' : '展开提示词 ▼'}
         </button>
 
         {/* Prompt content */}
         {expanded && (
           <div className="mt-3 relative">
-            <pre className="whitespace-pre-wrap rounded-lg bg-[#1F2937] p-3 text-[11px] leading-relaxed text-[#E5E7EB] max-h-[400px] overflow-y-auto">
+            <pre className="whitespace-pre-wrap rounded-lg bg-gray-800 p-3 text-xs leading-relaxed text-gray-200 max-h-[400px] overflow-y-auto">
               {prompt.prompt}
             </pre>
             <button
               onClick={onCopy}
-              className="absolute right-2 top-2 rounded bg-white/10 px-2 py-1 text-[10px] font-medium text-white backdrop-blur-sm transition hover:bg-white/20"
+              className="absolute right-2 top-2 rounded bg-white/10 px-2 py-1 text-xs font-medium text-white backdrop-blur-sm transition hover:bg-white/20"
             >
               {copied ? '已复制 ✓' : '复制'}
             </button>
@@ -169,7 +169,7 @@ function PromptCard({
 
         {/* Source link */}
         {prompt.sourceUrl && (
-          <a href={prompt.sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-2 text-[10px] text-muted-foreground hover:text-primary self-start">
+          <a href={prompt.sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-2 text-xs text-muted-foreground hover:text-primary self-start">
             来源 ↗
           </a>
         )}

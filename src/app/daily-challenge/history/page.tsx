@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import GradientBackground from '@/components/ui/gradient-background';
+import { apiFetch } from '@/lib/api/fetch';
 
 interface HistoryRecord {
   submission_id: string;
@@ -60,7 +61,7 @@ export default function HistoryPage() {
 
   useEffect(() => {
     setIsLoading(true);
-    fetch(`/api/daily-challenge/history?page=${page}&limit=20`)
+    apiFetch(`/api/daily-challenge/history?page=${page}&limit=20`)
       .then((r) => r.ok ? r.json() : null)
       .then((data) => {
         if (data) {
@@ -145,9 +146,9 @@ export default function HistoryPage() {
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex-1">
                             <div className="mb-1 flex items-center gap-2">
-                              <span className="rounded-lg bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">{r.category}</span>
-                              <span className={`text-[10px] font-medium ${diff.color}`}>{diff.label}</span>
-                              <span className="text-[10px] text-muted-foreground">{formatTime(r.time_spent)}</span>
+                              <span className="rounded-lg bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">{r.category}</span>
+                              <span className={`text-xs font-medium ${diff.color}`}>{diff.label}</span>
+                              <span className="text-xs text-muted-foreground">{formatTime(r.time_spent)}</span>
                             </div>
                             <p className="text-sm font-medium text-foreground line-clamp-2">{r.question}</p>
                           </div>

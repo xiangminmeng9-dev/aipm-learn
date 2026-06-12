@@ -1,6 +1,6 @@
 'use client';
 
-import ReactECharts from '@/components/ui/EChartsWrapper';
+import ReactECharts from '@/components/ui/LazyECharts';
 
 interface Props {
   applicationTrend: { date: string; count: number; interviews: number; offers: number; accepted: number }[];

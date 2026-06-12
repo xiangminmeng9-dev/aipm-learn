@@ -1,6 +1,6 @@
 'use client';
 
-import ReactECharts from '@/components/ui/EChartsWrapper';
+import ReactECharts from '@/components/ui/LazyECharts';
 import { ChevronDown } from 'lucide-react';
 import { useState, useMemo } from 'react';
 

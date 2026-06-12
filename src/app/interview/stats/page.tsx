@@ -4,24 +4,30 @@ import { useState, useEffect } from 'react';
 import StatsPanel from '@/components/interview/StatsPanel';
 import type { UserStats } from '@/types';
 import GradientBackground from '@/components/ui/gradient-background';
+import { apiFetch } from '@/lib/api/fetch';
 
 export default function StatsPage() {
   const [stats, setStats] = useState<UserStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchStats();
   }, []);
 
   const fetchStats = async () => {
+    setIsLoading(true);
+    setError(null);
     try {
-      const res = await fetch('/api/interview/stats');
+      const res = await apiFetch('/api/interview/stats');
       if (res.ok) {
         const data = await res.json();
         setStats(data);
+      } else {
+        setError('加载练习统计失败');
       }
     } catch {
-      // 静默失败
+      setError('加载练习统计失败');
     } finally {
       setIsLoading(false);
     }
@@ -39,6 +45,11 @@ export default function StatsPage() {
       {isLoading ? (
         <div className="flex justify-center py-12">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+        </div>
+      ) : error ? (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/30 dark:text-red-300">
+          <p>{error}</p>
+          <button onClick={fetchStats} className="mt-1 text-xs font-medium text-red-600 hover:text-red-800 dark:text-red-400">重试</button>
         </div>
       ) : stats && (stats.total_questions > 0 || stats.mock_interviews.total > 0) ? (
         <StatsPanel stats={stats} />

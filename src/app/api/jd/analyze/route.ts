@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { generateText } from '@/lib/ai/claude';
 import { buildCombinedJdAnalysisPrompt, COMBINED_JD_ANALYSIS_SYSTEM_PROMPT } from '@/lib/ai/prompts';
+import { computeResumeMatch, type AiResumeJudgment } from '@/lib/ai/jd-scoring';
+import { withTimeout, AI_TIMEOUT_MS } from '@/lib/ai/with-timeout';
+
+export const maxDuration = 60;
 
 export async function GET() {
   try {
@@ -103,7 +107,7 @@ export async function POST(request: NextRequest) {
 
     let aiResponse: string;
     try {
-      aiResponse = await generateText(prompt, { system: COMBINED_JD_ANALYSIS_SYSTEM_PROMPT, maxTokens: 8192 });
+      aiResponse = await withTimeout(generateText(prompt, { system: COMBINED_JD_ANALYSIS_SYSTEM_PROMPT, maxTokens: 8192 }), AI_TIMEOUT_MS);
     } catch (aiError) {
       console.error('JD analyze AI call error:', aiError);
       return NextResponse.json(
@@ -126,11 +130,16 @@ export async function POST(request: NextRequest) {
       const closeBraces = (jsonStr.match(/\}/g) || []).length;
 
       if (openBrackets > closeBrackets || openBraces > closeBraces) {
-        // Try to preserve resume_match if it was partially written
+        // Try to preserve resume_judgment if it was partially written
+        const resumeJudgmentStart = jsonStr.lastIndexOf('"resume_judgment"');
         const resumeMatchStart = jsonStr.lastIndexOf('"resume_match"');
-        if (resumeMatchStart !== -1 && resumeMatchStart > jsonStr.lastIndexOf('}')) {
-          // resume_match field exists but object is incomplete — remove it entirely so null is used
-          jsonStr = jsonStr.slice(0, resumeMatchStart).replace(/,\s*$/, '');
+        const lastResumeField = Math.max(
+          resumeJudgmentStart !== -1 ? resumeJudgmentStart : -1,
+          resumeMatchStart !== -1 ? resumeMatchStart : -1,
+        );
+        if (lastResumeField !== -1 && lastResumeField > jsonStr.lastIndexOf('}')) {
+          // resume field exists but object is incomplete — remove it entirely so null is used
+          jsonStr = jsonStr.slice(0, lastResumeField).replace(/,\s*$/, '');
         } else {
           jsonStr = jsonStr.replace(/,\s*"[^"]*":\s*[^,}\]]*$/g, '');
           jsonStr = jsonStr.replace(/,\s*$/g, '');
@@ -182,27 +191,39 @@ export async function POST(request: NextRequest) {
       };
     });
 
-    // 简历匹配结果
-    const resumeMatch = parsed.resume_match ? {
-      match_score: typeof parsed.resume_match.match_score === 'number' ? parsed.resume_match.match_score : 0,
-      strengths: Array.isArray(parsed.resume_match.strengths) ? parsed.resume_match.strengths.map(String) : [],
-      resume_gaps: Array.isArray(parsed.resume_match.resume_gaps) ? parsed.resume_match.resume_gaps.map((g: unknown) => {
-        if (typeof g === 'string') return { skill_name: g, detail: '', suggestion: '' };
-        const obj = g as Record<string, unknown>;
-        return {
-          skill_name: String(obj.skill_name || ''),
-          detail: String(obj.detail || ''),
-          suggestion: String(obj.suggestion || ''),
+    // 简历匹配结果 — AI 返回 resume_judgment，本地计算评分
+    let resumeMatch = null;
+    if (parsed.resume_judgment) {
+      try {
+        const j = parsed.resume_judgment;
+        const judgment: AiResumeJudgment = {
+          covered_skills: Array.isArray(j.covered_skills) ? j.covered_skills.map(String) : [],
+          quantified_skills: Array.isArray(j.quantified_skills) ? j.quantified_skills.map(String) : [],
+          jd_responsibilities: Array.isArray(j.jd_responsibilities) ? j.jd_responsibilities.map(String) : [],
+          covered_responsibilities: Array.isArray(j.covered_responsibilities) ? j.covered_responsibilities.map(String) : [],
+          demonstrated_soft_skills: Array.isArray(j.demonstrated_soft_skills) ? j.demonstrated_soft_skills.map(String) : [],
+          required_years: typeof j.required_years === 'number' ? j.required_years : null,
+          candidate_years: typeof j.candidate_years === 'number' ? j.candidate_years : null,
+          industry_match_level: ['exact', 'related', 'unrelated', 'unknown'].includes(j.industry_match_level) ? j.industry_match_level : 'unknown',
+          strengths: Array.isArray(j.strengths) ? j.strengths.map(String) : [],
+          resume_gaps: Array.isArray(j.resume_gaps) ? j.resume_gaps.map((g: unknown) => {
+            if (typeof g === 'string') return { skill_name: g, detail: '', suggestion: '' };
+            const obj = g as Record<string, unknown>;
+            return {
+              skill_name: String(obj.skill_name || ''),
+              detail: String(obj.detail || ''),
+              suggestion: String(obj.suggestion || ''),
+            };
+          }) : [],
+          improvement_suggestions: Array.isArray(j.improvement_suggestions) ? j.improvement_suggestions.map(String) : [],
         };
-      }) : [],
-      improvement_suggestions: Array.isArray(parsed.resume_match.improvement_suggestions) ? parsed.resume_match.improvement_suggestions.map(String) : [],
-      apply_recommendation: parsed.resume_match.apply_recommendation ? {
-        should_apply: !!parsed.resume_match.apply_recommendation.should_apply,
-        confidence: ['high', 'medium', 'low'].includes(parsed.resume_match.apply_recommendation.confidence) ? parsed.resume_match.apply_recommendation.confidence : 'medium',
-        reason: String(parsed.resume_match.apply_recommendation.reason || ''),
-        key_actions: Array.isArray(parsed.resume_match.apply_recommendation.key_actions) ? parsed.resume_match.apply_recommendation.key_actions.map(String) : [],
-      } : null,
-    } : null;
+        resumeMatch = computeResumeMatch(judgment, skills);
+      } catch (scoringError) {
+        console.error('JD resume scoring error:', scoringError);
+        // 评分计算失败时 fallback：返回 null，前端显示无匹配
+        resumeMatch = null;
+      }
+    }
 
     const result = {
       company_name: (() => {
@@ -217,25 +238,28 @@ export async function POST(request: NextRequest) {
       resume_match: resumeMatch,
     };
 
-    // 并行保存分析结果和更新技能频率
+    // Batch skill upserts — group updates and inserts for bulk operations
     const now = new Date().toISOString();
-    const skillUpserts = skills.map(skill => {
+    const skillUpdates: { id: string; frequency: number; last_seen_at: string }[] = [];
+    const skillInserts: { user_id: string; skill_name: string; category: string; frequency: number; first_seen_at: string; last_seen_at: string }[] = [];
+
+    for (const skill of skills) {
       const existing = existingSkillsMap.get(skill.skill_name);
       if (existing) {
-        return supabase.from('jd_skills').update({
-          frequency: (existing.frequency || 0) + 1,
-          last_seen_at: now,
-        }).eq('id', existing.id);
+        skillUpdates.push({ id: existing.id, frequency: (existing.frequency || 0) + 1, last_seen_at: now });
+      } else {
+        skillInserts.push({ user_id: user.id, skill_name: skill.skill_name, category: skill.category, frequency: 1, first_seen_at: now, last_seen_at: now });
       }
-      return supabase.from('jd_skills').insert({
-        user_id: user.id,
-        skill_name: skill.skill_name,
-        category: skill.category,
-        frequency: 1,
-        first_seen_at: now,
-        last_seen_at: now,
-      });
-    });
+    }
+
+    // Execute bulk operations instead of N individual queries
+    const skillBulkOps: Promise<unknown>[] = [];
+    if (skillInserts.length > 0) {
+      skillBulkOps.push(Promise.resolve(supabase.from('jd_skills').insert(skillInserts)));
+    }
+    for (const upd of skillUpdates) {
+      skillBulkOps.push(Promise.resolve(supabase.from('jd_skills').update({ frequency: upd.frequency, last_seen_at: upd.last_seen_at }).eq('id', upd.id)));
+    }
 
     // Update existing record or insert new one
     if (existingId) {
@@ -256,7 +280,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Also update skill frequencies
-      await Promise.all(skillUpserts);
+      await Promise.all(skillBulkOps);
 
       return NextResponse.json({
         ...result,
@@ -277,7 +301,7 @@ export async function POST(request: NextRequest) {
         resume_text: resumeText || null,
         resume_match: resumeMatch || null,
       }).select('id, created_at').single(),
-      ...skillUpserts,
+      ...skillBulkOps,
     ]);
 
     return NextResponse.json({ ...result, id: insertResult.data?.id, jd_text: jdText, created_at: insertResult.data?.created_at });

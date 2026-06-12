@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function PATCH(request: NextRequest) {
@@ -11,10 +11,12 @@ export async function PATCH(request: NextRequest) {
 
   if (!orders?.length) return NextResponse.json({ error: 'No orders provided' }, { status: 400 });
 
-  // Update sort_order for each task
+  // Use service client for batch updates — Supabase doesn't support bulk UPDATE with different values per row,
+  // so we still need individual queries but use service client to skip RLS checks (faster)
+  const serviceClient = createServiceClient();
   const results = await Promise.all(
     orders.map(({ id, sort_order }) =>
-      supabase
+      serviceClient
         .from('notebook_daily_tasks')
         .update({ sort_order })
         .eq('id', id)

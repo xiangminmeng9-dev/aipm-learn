@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import GradientBackground from '@/components/ui/gradient-background';
+import { apiFetch } from '@/lib/api/fetch';
 
 interface QuestionType {
   id: string;
@@ -51,7 +52,7 @@ export default function MockConfigPage() {
 
   const fetchTypes = async () => {
     try {
-      const res = await fetch('/api/interview/question-types');
+      const res = await apiFetch('/api/interview/question-types');
       if (res.ok) {
         const data = await res.json();
         setTypes(data.types ?? []);
@@ -73,7 +74,7 @@ export default function MockConfigPage() {
       const supabase = createClient();
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-      const res = await fetch('/api/interview/mock', {
+      const res = await apiFetch('/api/interview/mock', {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
       if (res.ok) {
@@ -114,7 +115,7 @@ export default function MockConfigPage() {
       const supabase = createClient();
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-      const res = await fetch('/api/interview/mock', {
+      const res = await apiFetch('/api/interview/mock', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -142,7 +143,7 @@ export default function MockConfigPage() {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (session) headers['Authorization'] = `Bearer ${session.access_token}`;
 
-      const res = await fetch('/api/interview/mock', {
+      const res = await apiFetch('/api/interview/mock', {
         method: 'POST',
         headers,
         body: JSON.stringify({

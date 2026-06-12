@@ -24,23 +24,23 @@ export async function GET() {
       );
     }
 
-    // 获取各类型的题目数量
-    const typesWithCount = await Promise.all(
-      (types ?? []).map(async (t) => {
-        const { count } = await supabase
-          .from('interview_questions')
-          .select('*', { count: 'exact', head: true })
-          .eq('type_id', t.id);
+    // 获取各类型的题目数量 — single query + JS aggregation instead of N+1
+    const { data: questions } = await supabase
+      .from('interview_questions')
+      .select('type_id');
 
-        return {
-          id: t.id,
-          name: t.name,
-          description: t.description,
-          is_seed: t.is_seed,
-          question_count: count ?? 0,
-        };
-      })
-    );
+    const countMap: Record<string, number> = {};
+    for (const q of questions ?? []) {
+      if (q.type_id) countMap[q.type_id] = (countMap[q.type_id] || 0) + 1;
+    }
+
+    const typesWithCount = (types ?? []).map(t => ({
+      id: t.id,
+      name: t.name,
+      description: t.description,
+      is_seed: t.is_seed,
+      question_count: countMap[t.id] ?? 0,
+    }));
 
     return NextResponse.json({ types: typesWithCount });
   } catch (error) {

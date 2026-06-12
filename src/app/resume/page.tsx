@@ -1,12 +1,16 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { MotionDiv, MotionP, AnimatePresence } from '@/components/ui/lazy-motion';
 import ResumeUploader from '@/components/resume/ResumeUploader';
 import JdInput from '@/components/resume/JdInput';
 import VersionSelector from '@/components/resume/VersionSelector';
 import ResumeResult from '@/components/resume/ResumeResult';
+import CompanyProfileCard from '@/components/resume/CompanyProfileCard';
+import { useCompanyProfile } from '@/lib/hooks/useCompanyProfile';
+import type { CompanyPreference } from '@/components/resume/CompanyProfileCard';
 import dynamic from 'next/dynamic';
+import { apiFetch } from '@/lib/api/fetch';
 
 const ResumePDFExportButton = dynamic(() => import('@/components/resume/ResumePDFExportButton'), { ssr: false });
 
@@ -39,6 +43,8 @@ interface PersistedState {
   changesSummary: string;
   companyName: string;
   positionName: string;
+  companyType: string | null;
+  companyPreferenceData: string | null; // JSON-serialized
   savedAt: number;
 }
 
@@ -88,7 +94,7 @@ function ScoreBar({ score, className = '' }: { score: number; className?: string
     : 'bg-gradient-to-r from-rose-400 to-rose-500';
   return (
     <div className={`h-2.5 overflow-hidden rounded-full bg-secondary ${className}`}>
-      <motion.div
+      <MotionDiv
         initial={{ width: 0 }}
         animate={{ width: `${score}%` }}
         transition={{ duration: 0.8, ease: 'easeOut' }}
@@ -105,6 +111,8 @@ export default function ResumePage() {
   const [style, setStyle] = useState('standard');
   const [companyName, setCompanyName] = useState('');
   const [positionName, setPositionName] = useState('');
+  const [companyType, setCompanyType] = useState<string | null>(null);
+  const [companyPreference, setCompanyPreference] = useState<CompanyPreference | null>(null);
 
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<AnalysisData | null>(null);
@@ -113,10 +121,24 @@ export default function ResumePage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [modifiedResume, setModifiedResume] = useState('');
   const [changesSummary, setChangesSummary] = useState('');
-  const [resumeData, setResumeData] = useState<Record<string, unknown> | null>(null);
   const [generateError, setGenerateError] = useState('');
+  const [profileWeight, setProfileWeight] = useState<'strong' | 'moderate' | 'light'>('strong');
 
   const persistRef = useRef(false);
+
+  // Company profile hook
+  const { profile: companyProfile, isLoading: profileLoading, error: profileError } = useCompanyProfile(companyName);
+
+  // Sync profile data to local state
+  useEffect(() => {
+    if (companyProfile) {
+      setCompanyType(companyProfile.companyType);
+      setCompanyPreference(companyProfile.preference);
+    } else if (!companyName || companyName.trim().length < 2) {
+      setCompanyType(null);
+      setCompanyPreference(null);
+    }
+  }, [companyProfile, companyName]);
 
   // Restore from localStorage on mount
   useEffect(() => {
@@ -130,6 +152,12 @@ export default function ResumePage() {
       if (saved.changesSummary) setChangesSummary(saved.changesSummary);
       if (saved.companyName) setCompanyName(saved.companyName);
       if (saved.positionName) setPositionName(saved.positionName);
+      if (saved.companyType) setCompanyType(saved.companyType);
+      if (saved.companyPreferenceData) {
+        try {
+          setCompanyPreference(JSON.parse(saved.companyPreferenceData));
+        } catch {}
+      }
     }
     // Also check sessionStorage for JD passed from other pages
     try {
@@ -147,12 +175,19 @@ export default function ResumePage() {
     if (!initialized) return;
     persistRef.current = true;
     const timer = setTimeout(() => {
-      saveState({ resumeText, jdText, style, analysis, modifiedResume, changesSummary, companyName, positionName });
+      saveState({
+        resumeText, jdText, style, analysis, modifiedResume, changesSummary,
+        companyName, positionName,
+        companyType,
+        companyPreferenceData: companyPreference ? JSON.stringify(companyPreference) : null,
+      });
     }, 500);
     return () => clearTimeout(timer);
-  }, [resumeText, jdText, style, analysis, modifiedResume, changesSummary, companyName, positionName, initialized]);
+  }, [resumeText, jdText, style, analysis, modifiedResume, changesSummary, companyName, positionName, companyType, companyPreference, initialized]);
 
-  const canAnalyze = resumeText.trim().length > 0 && jdText.trim().length > 0;
+  const hasJd = jdText.trim().length >= 20;
+  const hasCompany = companyName.trim().length >= 2;
+  const canAnalyze = resumeText.trim().length > 0 && (hasJd || hasCompany);
   const canGenerate = analysis !== null && !isGenerating;
 
   const handleAnalyze = useCallback(async () => {
@@ -164,10 +199,16 @@ export default function ResumePage() {
     setChangesSummary('');
 
     try {
-      const res = await fetch('/api/resume/analyze', {
+      const res = await apiFetch('/api/resume/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ resume_text: resumeText, jd_text: jdText }),
+        body: JSON.stringify({
+          resume_text: resumeText,
+          jd_text: jdText || '',
+          company_name: companyName,
+          company_type: companyType,
+          company_preference: companyPreference ? JSON.stringify(companyPreference) : '',
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -180,7 +221,7 @@ export default function ResumePage() {
     } finally {
       setIsAnalyzing(false);
     }
-  }, [resumeText, jdText, canAnalyze]);
+  }, [resumeText, jdText, companyName, companyType, companyPreference, canAnalyze]);
 
   const handleGenerate = useCallback(async () => {
     if (!canGenerate) return;
@@ -188,16 +229,20 @@ export default function ResumePage() {
     setGenerateError('');
 
     try {
-      const res = await fetch('/api/resume/generate', {
+      const res = await apiFetch('/api/resume/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           resume_text: resumeText,
-          jd_text: jdText,
+          jd_text: jdText || '',
           style_type: style,
-          analysis,
           company_name: companyName,
           position_name: positionName,
+          company_type: companyType || undefined,
+          company_preference: companyPreference ? JSON.stringify(companyPreference) : undefined,
+          profile_weight: profileWeight,
+          analysis_gaps: analysis?.gaps || [],
+          analysis_strengths: analysis?.strengths || [],
         }),
       });
       const data = await res.json();
@@ -207,17 +252,16 @@ export default function ResumePage() {
       }
       setModifiedResume(data.modified_resume || '');
       setChangesSummary(data.changes_summary || '');
-      setResumeData(data.resume_data || null);
     } catch {
       setGenerateError('网络错误，请重试');
     } finally {
       setIsGenerating(false);
     }
-  }, [resumeText, jdText, style, analysis, companyName, positionName, canGenerate]);
+  }, [resumeText, jdText, style, analysis, companyName, positionName, companyType, companyPreference, canGenerate]);
 
   const handleRestoreVersion = useCallback(async (versionId: string) => {
     try {
-      const res = await fetch(`/api/resume/versions?id=${versionId}`);
+      const res = await apiFetch(`/api/resume/versions?id=${versionId}`);
       if (!res.ok) return;
       const data = await res.json();
       const v = data.version;
@@ -239,6 +283,8 @@ export default function ResumePage() {
     setStyle('standard');
     setCompanyName('');
     setPositionName('');
+    setCompanyType(null);
+    setCompanyPreference(null);
     setAnalysis(null);
     setAnalysisError('');
     setModifiedResume('');
@@ -248,6 +294,11 @@ export default function ResumePage() {
   }, []);
 
   const ats = analysis?.ats_analysis;
+
+  // Determine analyze button label
+  const analyzeButtonLabel = !hasJd && hasCompany
+    ? '基于公司画像分析'
+    : '分析匹配度';
 
   if (!initialized) {
     return (
@@ -273,7 +324,7 @@ export default function ResumePage() {
         <div className="relative z-10 flex items-center justify-between px-8 py-8">
           <div>
             <h1 className="mb-1 text-2xl font-bold text-white drop-shadow-sm">AI 简历修改助手</h1>
-            <p className="text-sm text-white/80">上传简历 + 粘贴 JD，AI 帮你量身优化简历 + 大厂 ATS 评分</p>
+            <p className="text-sm text-white/80">上传简历 + 输入公司名或粘贴 JD，AI 帮你量身优化简历 + 大厂 ATS 评分</p>
           </div>
           {(resumeText || jdText || analysis) && (
             <button
@@ -298,26 +349,17 @@ export default function ResumePage() {
             </h2>
             <ResumeUploader onTextExtracted={setResumeText} />
             {resumeText && (
-              <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-2 text-xs text-emerald-600">
+              <MotionP initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-2 text-xs text-emerald-600">
                 已提取 {resumeText.length} 字符
-              </motion.p>
+              </MotionP>
             )}
           </div>
 
-          {/* JD input */}
-          <div className="rounded-xl border border-border bg-card p-5">
-            <h2 className="mb-3 flex items-center gap-2 text-base font-semibold text-foreground">
-              <span className="flex h-6 w-6 items-center justify-center rounded-md bg-indigo-50 text-xs text-indigo-600">2</span>
-              职位描述
-            </h2>
-            <JdInput value={jdText} onChange={setJdText} />
-          </div>
-
-          {/* Company & Position (optional) */}
+          {/* Company & Position */}
           <div className="rounded-xl border border-border bg-card p-5">
             <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
-              <span className="flex h-5 w-5 items-center justify-center rounded-md bg-muted text-[10px] text-muted-foreground">选填</span>
-              公司 / 岗位名称
+              <span className="flex h-6 w-6 items-center justify-center rounded-md bg-indigo-50 text-xs text-indigo-600">2</span>
+              目标公司
             </h2>
             <div className="grid grid-cols-2 gap-3">
               <input
@@ -333,6 +375,32 @@ export default function ResumePage() {
                 className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
               />
             </div>
+            <p className="mt-1.5 text-xs text-muted-foreground">输入公司名即可自动匹配公司画像，无需JD也可优化简历</p>
+
+            {/* Company Profile Card */}
+            <div className="mt-3">
+              <CompanyProfileCard
+                companyName={companyName}
+                companyType={companyType}
+                companyPreference={companyPreference}
+                isLoading={profileLoading}
+                error={profileError}
+                fixedPersona={companyProfile?.fixedPersona}
+                preferenceSource={companyProfile?.preferenceSource}
+              />
+            </div>
+          </div>
+
+          {/* JD input */}
+          <div className="rounded-xl border border-border bg-card p-5">
+            <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
+              <span className="flex h-5 w-5 items-center justify-center rounded-md bg-muted text-xs text-muted-foreground">选填</span>
+              职位描述（JD）
+            </h2>
+            <JdInput value={jdText} onChange={setJdText} />
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              {hasJd ? '✓ 已输入JD，将结合JD和公司画像优化' : '不填则仅基于公司画像优化简历'}
+            </p>
           </div>
 
           {/* Analyze button */}
@@ -347,43 +415,45 @@ export default function ResumePage() {
                 分析中...
               </span>
             ) : (
-              '分析匹配度'
+              analyzeButtonLabel
             )}
           </button>
 
           {/* Analysis error */}
           <AnimatePresence>
             {analysisError && (
-              <motion.div
+              <MotionDiv
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
                 className="rounded-xl border border-rose-200 bg-rose-50/30 p-4 text-sm text-rose-600"
               >
                 {analysisError}
-              </motion.div>
+              </MotionDiv>
             )}
           </AnimatePresence>
 
           {/* Analysis loading */}
           <AnimatePresence>
             {isAnalyzing && (
-              <motion.div
+              <MotionDiv
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 className="flex items-center justify-center rounded-xl border border-border bg-card py-10"
               >
                 <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
-                <span className="ml-3 text-sm text-muted-foreground">AI 正在分析匹配度 + ATS 评分...</span>
-              </motion.div>
+                <span className="ml-3 text-sm text-muted-foreground">
+                  {hasJd ? 'AI 正在分析匹配度 + ATS 评分...' : 'AI 正在基于公司画像分析 + ATS 评分...'}
+                </span>
+              </MotionDiv>
             )}
           </AnimatePresence>
 
           {/* Analysis results */}
           <AnimatePresence>
             {analysis && !isAnalyzing && (
-              <motion.div
+              <MotionDiv
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
@@ -392,7 +462,9 @@ export default function ResumePage() {
                 {/* Match score */}
                 <div className="rounded-xl border border-border bg-card p-5">
                   <div className="mb-4 flex items-center justify-between">
-                    <h3 className="text-base font-semibold text-foreground">匹配度分析</h3>
+                    <h3 className="text-base font-semibold text-foreground">
+                      {hasJd ? '匹配度分析' : '公司画像匹配分析'}
+                    </h3>
                     <ScoreBadge score={analysis.match_score} />
                   </div>
                   <ScoreBar score={analysis.match_score} />
@@ -404,7 +476,7 @@ export default function ResumePage() {
                     <div className="mb-4 flex items-center justify-between">
                       <h3 className="flex items-center gap-2 text-base font-semibold text-foreground">
                         <svg className="h-5 w-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.955 11.955 0 0112 2.944c-2.5 0-4.865 1.1-6.5 2.964m6.5-2.964a11.955 11.955 0 006.5 2.964m-3 7.036A11.955 11.955 0 0012 21.056c2.5 0 4.865-1.1 6.5-2.964m-6.5 2.964a11.955 11.955 0 01-6.5-2.964" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.955 11.955 0 0112 2.944c-2.5 0-4.865 1.1-6.5 2.964m6.5-2.964a11.955 11.955 0 006.5 2.964m-3 7.036A11.955 11.955 0 0012 21.056c2.5 0-4.865-1.1-6.5-2.964m6.5 2.964a11.955 11.955 0 01-6.5-2.964" />
                         </svg>
                         大厂 ATS 评分
                       </h3>
@@ -423,7 +495,7 @@ export default function ResumePage() {
                               }`}>{d.score}</span>
                             </div>
                             <div className="h-1.5 overflow-hidden rounded-full bg-secondary">
-                              <motion.div
+                              <MotionDiv
                                 initial={{ width: 0 }}
                                 animate={{ width: `${d.score}%` }}
                                 transition={{ duration: 0.6, ease: 'easeOut', delay: i * 0.1 }}
@@ -432,7 +504,7 @@ export default function ResumePage() {
                                 }`}
                               />
                             </div>
-                            <p className="mt-0.5 text-[11px] text-muted-foreground">{d.comment}</p>
+                            <p className="mt-0.5 text-xs text-muted-foreground">{d.comment}</p>
                           </div>
                         ))}
                       </div>
@@ -505,6 +577,33 @@ export default function ResumePage() {
                   </h3>
                   <VersionSelector value={style} onChange={setStyle} />
 
+                  {/* Profile weight selector — only show when company profile exists */}
+                  {companyPreference && (
+                    <div className="space-y-2">
+                      <label className="text-xs font-medium text-muted-foreground">画像融入强度</label>
+                      <div className="flex gap-2">
+                        {([
+                          { value: 'strong' as const, label: '强融入', desc: '画像为核心驱动，强制融入每个技能' },
+                          { value: 'moderate' as const, label: '适中', desc: '画像作为重要参考，适度融入' },
+                          { value: 'light' as const, label: '轻度', desc: '画像作为辅助参考，少量融入' },
+                        ]).map(opt => (
+                          <button
+                            key={opt.value}
+                            onClick={() => setProfileWeight(opt.value)}
+                            title={opt.desc}
+                            className={`flex-1 rounded-lg border px-3 py-2 text-xs font-medium transition-colors ${
+                              profileWeight === opt.value
+                                ? 'border-indigo-400 bg-indigo-50 text-indigo-700 dark:border-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-300'
+                                : 'border-border bg-card text-muted-foreground hover:border-indigo-200 hover:text-foreground dark:hover:border-indigo-800'
+                            }`}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   <button
                     onClick={handleGenerate}
                     disabled={!canGenerate || isGenerating}
@@ -516,7 +615,7 @@ export default function ResumePage() {
                         生成中...
                       </span>
                     ) : (
-                      '生成修改版'
+                      hasJd ? '生成修改版' : '基于公司画像生成修改版'
                     )}
                   </button>
                 </div>
@@ -524,17 +623,17 @@ export default function ResumePage() {
                 {/* Generate error */}
                 <AnimatePresence>
                   {generateError && (
-                    <motion.div
+                    <MotionDiv
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: 'auto' }}
                       exit={{ opacity: 0, height: 0 }}
                       className="rounded-xl border border-rose-200 bg-rose-50/30 p-4 text-sm text-rose-600"
                     >
                       {generateError}
-                    </motion.div>
+                    </MotionDiv>
                   )}
                 </AnimatePresence>
-              </motion.div>
+              </MotionDiv>
             )}
           </AnimatePresence>
         </div>
@@ -544,7 +643,7 @@ export default function ResumePage() {
           {/* Generate loading */}
           <AnimatePresence>
             {isGenerating && (
-              <motion.div
+              <MotionDiv
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
@@ -552,14 +651,14 @@ export default function ResumePage() {
               >
                 <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
                 <span className="ml-3 text-sm text-muted-foreground">AI 正在生成修改版简历...</span>
-              </motion.div>
+              </MotionDiv>
             )}
           </AnimatePresence>
 
           {/* Result display */}
           <AnimatePresence>
             {modifiedResume && !isGenerating && (
-              <motion.div
+              <MotionDiv
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
@@ -570,10 +669,29 @@ export default function ResumePage() {
                   changesSummary={changesSummary}
                   companyName={companyName}
                   positionName={positionName}
-                  resumeData={resumeData}
+                  resumeData={null}
                 />
                 <ResumeResult modifiedResume={modifiedResume} changesSummary={changesSummary} />
-              </motion.div>
+                {/* Debug button: show raw markdown in an alert-style modal */}
+                <button
+                  onClick={() => {
+                    const el = document.createElement('textarea');
+                    el.value = modifiedResume;
+                    el.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:99999;font-size:12px;padding:16px;border:none;background:#1e1e1e;color:#d4d4d4;font-family:monospace;resize:none';
+                    document.body.appendChild(el);
+                    el.select();
+                    el.addEventListener('keydown', (e) => { if (e.key === 'Escape') document.body.removeChild(el); });
+                    const hint = document.createElement('div');
+                    hint.style.cssText = 'position:fixed;top:8px;right:16px;z-index:100000;background:#6366F1;color:white;padding:8px 16px;border-radius:8px;font-size:14px;font-family:sans-serif;cursor:pointer';
+                    hint.textContent = '按 ESC 关闭 | 点击复制';
+                    hint.onclick = () => { el.select(); document.execCommand('copy'); hint.textContent = '已复制！'; setTimeout(() => document.body.removeChild(el), 1000); };
+                    document.body.appendChild(hint);
+                  }}
+                  className="mt-3 w-full rounded-lg border-2 border-dashed border-indigo-300 bg-indigo-50 px-4 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-100 transition-colors"
+                >
+                  🔍 查看 AI 生成的简历源码
+                </button>
+              </MotionDiv>
             )}
           </AnimatePresence>
 
@@ -586,7 +704,7 @@ export default function ResumePage() {
                 </svg>
               </div>
               <h3 className="text-sm font-medium text-muted-foreground">修改后的简历将显示在这里</h3>
-              <p className="mt-1 text-xs text-muted-foreground">上传简历并分析匹配度后，选择风格生成修改版</p>
+              <p className="mt-1 text-xs text-muted-foreground">上传简历并输入公司名或分析匹配度后，选择风格生成修改版</p>
             </div>
           )}
         </div>

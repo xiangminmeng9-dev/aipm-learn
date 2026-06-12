@@ -7,6 +7,7 @@ import DevFlowResult from '@/components/coding/DevFlowResult';
 import PageShell from '@/components/layout/PageShell';
 import GradientBackground from '@/components/ui/gradient-background';
 import type { DevMode } from '@/types';
+import { apiFetch } from '@/lib/api/fetch';
 
 export default function CodingPracticePage() {
   const [modes, setModes] = useState<DevMode[]>([]);
@@ -16,13 +17,13 @@ export default function CodingPracticePage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    fetch('/api/coding/dev-modes')
+    apiFetch('/api/coding/dev-modes')
       .then((r) => r.json())
       .then((data) => setModes(data.modes ?? []))
       .catch(() => {});
 
     // 恢复最近一次开发流程
-    fetch('/api/coding/generate')
+    apiFetch('/api/coding/generate')
       .then((r) => r.json())
       .then((data) => {
         if (data.result) {
@@ -37,7 +38,7 @@ export default function CodingPracticePage() {
     if (!selectedMode) return;
     setIsLoading(true); setError(''); setResult(null);
     try {
-      const res = await fetch('/api/coding/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question, mode_id: selectedMode }) });
+      const res = await apiFetch('/api/coding/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question, mode_id: selectedMode }) });
       const data = await res.json();
       if (!res.ok) { setError(data.error ?? '生成失败'); return; }
       setResult(data);
@@ -59,7 +60,7 @@ export default function CodingPracticePage() {
       )}
 
       {error && (
-        <div className="rounded-2xl border border-[#ff3b30]/20 bg-[#ff3b30]/5 p-4 text-sm text-[#ff3b30]">{error}</div>
+        <div className="rounded-2xl border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive">{error}</div>
       )}
 
       {isLoading && (

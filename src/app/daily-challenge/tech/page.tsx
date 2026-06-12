@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import GradientBackground from '@/components/ui/gradient-background';
+import { apiFetch } from '@/lib/api/fetch';
 
 interface TechItem {
   id?: string;
@@ -27,7 +28,7 @@ export default function DailyTechPage() {
 
   const fetchData = useCallback(async (forceRefresh = false) => {
     try {
-      const res = await fetch(`/api/daily-challenge/tech${forceRefresh ? '?refresh=1' : ''}`);
+      const res = await apiFetch(`/api/daily-challenge/tech${forceRefresh ? '?refresh=1' : ''}`);
       if (res.ok) {
         const data = await res.json();
         setToday(data.tech);
@@ -76,7 +77,7 @@ export default function DailyTechPage() {
     const action = isBookmarked ? 'unbookmark' : 'bookmark';
     const techItem = date === today?.date ? today : history.find(h => h.date === date);
     try {
-      const res = await fetch('/api/daily-challenge/tech', {
+      const res = await apiFetch('/api/daily-challenge/tech', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -245,7 +246,7 @@ export default function DailyTechPage() {
                       <div className="mt-1 flex items-center gap-2">
                         <p className="text-xs text-muted-foreground line-clamp-1 flex-1">{item.summary}</p>
                         {item.source_published_at && (
-                          <span className="text-[10px] text-indigo-500 dark:text-indigo-400 shrink-0">
+                          <span className="text-xs text-indigo-500 dark:text-indigo-400 shrink-0">
                             {new Date(item.source_published_at).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })}
                           </span>
                         )}

@@ -52,9 +52,12 @@ export function useActivityTracker(module: string) {
       accumulatedRef.current += elapsed;
     };
 
-    document.addEventListener('visibilitychange', () => {
+    // Store handler reference so we can properly remove it on cleanup
+    const onVisibilityChange = () => {
       if (document.hidden) onHidden(); else onVisible();
-    });
+    };
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
 
     timerRef.current = setInterval(() => {
       if (visibleRef.current) {
@@ -74,7 +77,7 @@ export function useActivityTracker(module: string) {
     return () => {
       flush();
       if (timerRef.current) clearInterval(timerRef.current);
-      document.removeEventListener('visibilitychange', () => {});
+      document.removeEventListener('visibilitychange', onVisibilityChange);
       window.removeEventListener('beforeunload', onUnload);
     };
   }, [module, sendLog, flush]);

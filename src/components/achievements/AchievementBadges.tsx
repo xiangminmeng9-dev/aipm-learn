@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { apiFetch } from '@/lib/api/fetch';
 
 interface Achievement {
   key: string; title: string; description: string; icon: string;
@@ -25,7 +26,7 @@ export default function AchievementBadges() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/user/achievements')
+    apiFetch('/api/user/achievements')
       .then(r => r.ok ? r.json() : null)
       .then(d => {
         if (d) {

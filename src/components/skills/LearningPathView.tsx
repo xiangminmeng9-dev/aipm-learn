@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import LearningPathCard from './LearningPathCard';
 import type { RecommendedModule } from '@/types';
+import { apiFetch } from '@/lib/api/fetch';
 
 interface PathResult {
   id: string;
@@ -23,7 +24,7 @@ export default function LearningPathView() {
     setResult(null);
 
     try {
-      const res = await fetch('/api/skills/ai-learning-path', {
+      const res = await apiFetch('/api/skills/ai-learning-path', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       });

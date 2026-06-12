@@ -4,9 +4,11 @@ import { useState, useEffect, useCallback } from 'react';
 import QuestionInput from '@/components/interview/QuestionInput';
 import AnalysisResult from '@/components/interview/AnalysisResult';
 import TrendingQuestions from '@/components/interview/TrendingQuestions';
-import Markdown from '@/components/ui/markdown';
+import dynamic from 'next/dynamic';
+const Markdown = dynamic(() => import('@/components/ui/markdown'), { ssr: false });
 import type { AnalysisResult as AnalysisResultType } from '@/types';
 import GradientBackground from '@/components/ui/gradient-background';
+import { apiFetch } from '@/lib/api/fetch';
 
 function frequencyStyle(freq: string) {
   switch (freq) {
@@ -31,7 +33,7 @@ export default function QAPage() {
 
   const fetchHistory = useCallback(async () => {
     try {
-      const res = await fetch('/api/interview/analyze/history');
+      const res = await apiFetch('/api/interview/analyze/history');
       if (res.ok) {
         const data = await res.json();
         setHistory(data.records || []);
@@ -42,7 +44,7 @@ export default function QAPage() {
   useEffect(() => {
     fetchTrending();
     fetchHistory();
-    fetch('/api/interview/analyze')
+    apiFetch('/api/interview/analyze')
       .then((r) => r.json())
       .then((data) => {
         if (data.result) {
@@ -56,14 +58,14 @@ export default function QAPage() {
 
   const fetchTrending = async () => {
     try {
-      const res = await fetch('/api/interview/trending?limit=10');
+      const res = await apiFetch('/api/interview/trending?limit=10');
       if (res.ok) { const data = await res.json(); setTrendingQuestions(data.questions ?? []); }
     } catch {}
   };
 
   const fetchFrequency = useCallback(async (typeId: string) => {
     try {
-      const res = await fetch(`/api/interview/frequency?type_id=${typeId}`);
+      const res = await apiFetch(`/api/interview/frequency?type_id=${typeId}`);
       const data = await res.json();
       setFrequency(data.frequency);
     } catch {
@@ -76,7 +78,7 @@ export default function QAPage() {
     setLastQuestion(question);
 
     try {
-      const res = await fetch('/api/interview/analyze', {
+      const res = await apiFetch('/api/interview/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question }),
@@ -184,7 +186,7 @@ export default function QAPage() {
   const handleDeleteHistory = useCallback(async (id: string) => {
     if (!confirm('确定删除这条记录吗？')) return;
     try {
-      const res = await fetch('/api/interview/analyze/history', {
+      const res = await apiFetch('/api/interview/analyze/history', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id }),
@@ -211,7 +213,7 @@ export default function QAPage() {
         <div>
           <button
             onClick={() => setShowHistory(!showHistory)}
-            className="flex items-center gap-2 text-sm font-medium text-primary hover:text-[#4338CA]"
+            className="flex items-center gap-2 text-sm font-medium text-primary hover:text-primary/80"
           >
             <svg className={`h-4 w-4 transition-transform ${showHistory ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
@@ -254,7 +256,7 @@ export default function QAPage() {
       <QuestionInput onSubmit={handleAnalyze} isLoading={isLoading} />
 
       {error && (
-        <div className="rounded-2xl border border-[#ff3b30]/20 bg-[#ff3b30]/5 p-4 text-base text-[#ff3b30]">{error}</div>
+        <div className="rounded-2xl border border-destructive/20 bg-destructive/5 p-4 text-base text-destructive">{error}</div>
       )}
 
       {/* Streaming text display */}

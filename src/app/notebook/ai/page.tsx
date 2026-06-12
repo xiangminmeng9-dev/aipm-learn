@@ -1,11 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { MotionDiv, AnimatePresence } from '@/components/ui/lazy-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { type Note, type Task, getNotes, getTasks } from '@/lib/notebook-store';
 import GradientBackground from '@/components/ui/gradient-background';
+import { apiFetch } from '@/lib/api/fetch';
 
 /* ---------------------------- Glass Button ---------------------------- */
 
@@ -75,7 +76,7 @@ export default function AIAnalysisPage() {
       const prompt = buildAnalysisPrompt(notesContext, tasksContext, activeTab);
 
       // Call AI
-      const res = await fetch('/api/notebook/ai/analyze', {
+      const res = await apiFetch('/api/notebook/ai/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt }),
@@ -143,7 +144,7 @@ export default function AIAnalysisPage() {
       {/* Analysis result */}
       <AnimatePresence mode="wait">
         {isAnalyzing ? (
-          <motion.div
+          <MotionDiv
             key="loading"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -152,9 +153,9 @@ export default function AIAnalysisPage() {
           >
             <div className="h-10 w-10 animate-spin rounded-full border-2 border-purple-500 border-t-transparent" />
             <p className="mt-4 text-sm text-muted-foreground">AI 正在分析你的笔记和任务...</p>
-          </motion.div>
+          </MotionDiv>
         ) : analysis ? (
-          <motion.div
+          <MotionDiv
             key="result"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -164,9 +165,9 @@ export default function AIAnalysisPage() {
             <div className="prose prose-sm max-w-none">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{analysis}</ReactMarkdown>
             </div>
-          </motion.div>
+          </MotionDiv>
         ) : (
-          <motion.div
+          <MotionDiv
             key="empty"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -175,7 +176,7 @@ export default function AIAnalysisPage() {
             <p className="text-4xl mb-4">🧠</p>
             <p className="text-sm text-muted-foreground">点击「开始分析」获取 AI 对你笔记和任务的智能总结</p>
             <p className="mt-2 text-xs text-muted-foreground">分析内容包括：工作模式洞察、时间分配建议、优先级优化、风险预警</p>
-          </motion.div>
+          </MotionDiv>
         )}
       </AnimatePresence>
     </div>

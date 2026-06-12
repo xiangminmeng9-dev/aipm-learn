@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { cacheGet, cacheSet, cacheRemove, TTL } from '@/lib/cache';
 import GradientBackground from '@/components/ui/gradient-background';
+import { apiFetch } from '@/lib/api/fetch';
 
 interface SavedPath {
   id: string;
@@ -45,18 +46,19 @@ export default function LearningPathPage() {
   // Fetch daily plan when a path is selected
   useEffect(() => {
     if (selectedPath) {
-      fetch('/api/skills/learning-path/daily-plan')
+      apiFetch('/api/skills/learning-path/daily-plan')
         .then((r) => r.ok ? r.json() : null)
         .then((data) => {
           if (data?.dailyTasks) setDailyPlan(data);
         })
-        .catch(() => {});
+        .catch(() => setError('获取每日计划失败'));
     }
   }, [selectedPath]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [path, setPath] = useState<SavedPath['path_data'] | null>(null);
   const [savedPaths, setSavedPaths] = useState<SavedPath[]>([]);
   const [viewingPathId, setViewingPathId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   // 加载已保存的路径
   useEffect(() => {
@@ -64,7 +66,7 @@ export default function LearningPathPage() {
     const cached = cacheGet<SavedPath[]>('learning-paths');
     if (cached) setSavedPaths(cached);
 
-    fetch('/api/skills/learning-path')
+    apiFetch('/api/skills/learning-path')
       .then((r) => r.ok ? r.json() : null)
       .then((data) => {
         if (data?.paths) {
@@ -72,14 +74,15 @@ export default function LearningPathPage() {
           cacheSet('learning-paths', data.paths, TTL.USER_DATA);
         }
       })
-      .catch(() => {});
+      .catch(() => setError('加载学习路径失败'));
   }, []);
 
   const handleGenerate = async () => {
     if (!targetPosition.trim() || isGenerating) return;
     setIsGenerating(true);
+    setError(null);
     try {
-      const res = await fetch('/api/skills/learning-path', {
+      const res = await apiFetch('/api/skills/learning-path', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ target_position: targetPosition.trim(), current_level: currentLevel, time_budget: timeBudget, jd_text: jdText.trim() }),
@@ -90,7 +93,7 @@ export default function LearningPathPage() {
         // Invalidate cache after creating a new path
         cacheRemove('learning-paths');
         // 刷新已保存列表
-        const listRes = await fetch('/api/skills/learning-path');
+        const listRes = await apiFetch('/api/skills/learning-path');
         if (listRes.ok) {
           const listData = await listRes.json();
           if (listData?.paths) {
@@ -98,8 +101,10 @@ export default function LearningPathPage() {
             cacheSet('learning-paths', listData.paths, TTL.USER_DATA);
           }
         }
+      } else {
+        setError('生成学习路径失败');
       }
-    } catch { /* ignore */ } finally { setIsGenerating(false); }
+    } catch { setError('生成学习路径失败'); } finally { setIsGenerating(false); }
   };
 
   const handleGenerateStageTest = async () => {
@@ -108,7 +113,7 @@ export default function LearningPathPage() {
     if (!stage) return;
     setIsGeneratingTest(true);
     try {
-      const res = await fetch('/api/skills/learning-path/stage-test', {
+      const res = await apiFetch('/api/skills/learning-path/stage-test', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ stage_name: stage.stage_name, modules: stage.modules }),
@@ -132,7 +137,7 @@ export default function LearningPathPage() {
         answer: stageAnswers[i] || '',
         key_points: q.key_points,
       }));
-      const res = await fetch('/api/skills/learning-path/stage-test', {
+      const res = await apiFetch('/api/skills/learning-path/stage-test', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ stage_name: dailyPlan?.currentStage ?? '', answers }),
@@ -161,7 +166,7 @@ export default function LearningPathPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('确定删除此学习路径？')) return;
     try {
-      const res = await fetch(`/api/skills/learning-path?id=${id}`, { method: 'DELETE' });
+      const res = await apiFetch(`/api/skills/learning-path?id=${id}`, { method: 'DELETE' });
       if (res.ok) {
         setSavedPaths(prev => prev.filter(p => p.id !== id));
         cacheRemove('learning-paths');
@@ -180,6 +185,13 @@ export default function LearningPathPage() {
         <p className="mt-1 text-sm text-muted-foreground">AI 根据你的目标岗位生成个性化学习路径，自动关联技能树</p>
       </div>
 
+      {error && (
+        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/30 dark:text-red-300">
+          <p>{error}</p>
+          <button onClick={() => { setError(null); window.location.reload(); }} className="mt-1 text-xs font-medium text-red-600 hover:text-red-800 dark:text-red-400">重试</button>
+        </div>
+      )}
+
       {/* 已保存的路径 */}
       {savedPaths.length > 0 && !path && (
         <div className="mt-6 rounded-2xl border border-border bg-card p-5">
@@ -190,12 +202,12 @@ export default function LearningPathPage() {
                 <button onClick={() => handleViewSaved(sp)} className="flex-1 text-left">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium text-foreground">{sp.target_position}</span>
-                    <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-medium text-indigo-700">
+                    <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">
                       {sp.current_level}
                     </span>
                     <span className="text-xs text-muted-foreground">{sp.time_budget}</span>
                     {sp.jd_text && (
-                      <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-medium text-emerald-700">
+                      <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
                         含JD
                       </span>
                     )}
@@ -302,12 +314,12 @@ export default function LearningPathPage() {
                         {mod.priority === 'high' ? '高优先' : mod.priority === 'medium' ? '中优先' : '低优先'}
                       </span>
                       {mod.matched_module_slug && !mod.matched_module_slug.startsWith('custom-') && (
-                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-medium text-emerald-700">
+                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
                           技能树已有
                         </span>
                       )}
                       {mod.matched_module_slug?.startsWith('custom-') && (
-                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">
+                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
                           已补充到技能树
                         </span>
                       )}

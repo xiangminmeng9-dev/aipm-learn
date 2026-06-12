@@ -5,6 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import SpecScoreCard from './SpecScoreCard';
 import type { DimensionScore, SpecSuggestion } from '@/types';
+import { apiFetch } from '@/lib/api/fetch';
 
 interface EvaluationResult {
   id: string;
@@ -31,7 +32,7 @@ export default function SpecPracticeView() {
     setError('');
     try {
       const url = refresh ? '/api/coding/spec-practice?refresh=1' : '/api/coding/spec-practice';
-      const res = await fetch(url);
+      const res = await apiFetch(url);
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.error || '获取题目失败');
@@ -77,7 +78,7 @@ export default function SpecPracticeView() {
     abortRef.current = abortController;
 
     try {
-      const res = await fetch('/api/coding/spec-practice', {
+      const res = await apiFetch('/api/coding/spec-practice', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

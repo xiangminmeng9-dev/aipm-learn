@@ -1,7 +1,7 @@
 'use client';
 
 import type { EChartsOption } from 'echarts';
-import ReactECharts from '@/components/ui/EChartsWrapper';
+import ReactECharts from '@/components/ui/LazyECharts';
 
 interface PieChartProps {
   data: { type_name: string; count: number; percentage: number }[];

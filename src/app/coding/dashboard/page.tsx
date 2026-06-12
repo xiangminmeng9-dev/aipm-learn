@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import GradientBackground from '@/components/ui/gradient-background';
-import ReactECharts from '@/components/ui/EChartsWrapper';
+import ReactECharts from '@/components/ui/LazyECharts';
+import { apiFetch } from '@/lib/api/fetch';
 
 interface CodingStats {
   flows_count: number;
@@ -30,18 +31,30 @@ export default function CodingDashboardPage() {
   const [stats, setStats] = useState<CodingStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [range, setRange] = useState<'7d' | '30d' | 'all'>('30d');
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const fetchDashboard = useCallback(async () => {
     setLoading(true);
-    fetch(`/api/coding/dashboard?range=${range}`)
-      .then(r => r.json())
-      .then(d => {
+    setError(null);
+    try {
+      const r = await apiFetch(`/api/coding/dashboard?range=${range}`);
+      if (r.ok) {
+        const d = await r.json();
         if (d.stats) setStats(d.stats);
         else setStats(null);
-      })
-      .catch(() => setStats(null))
-      .finally(() => setLoading(false));
+      } else {
+        setError('加载看板数据失败');
+        setStats(null);
+      }
+    } catch {
+      setError('加载看板数据失败');
+      setStats(null);
+    } finally {
+      setLoading(false);
+    }
   }, [range]);
+
+  useEffect(() => { fetchDashboard(); }, [fetchDashboard]);
 
   if (loading) {
     return (
@@ -55,8 +68,19 @@ export default function CodingDashboardPage() {
     return (
       <div className="flex min-h-screen items-center justify-center p-6">
         <div className="text-center">
-          <p className="text-lg font-medium text-muted-foreground">暂无Coding练习数据</p>
-          <p className="mt-2 text-sm text-muted-foreground">开始练习后，看板数据将自动展示</p>
+          {error ? (
+            <>
+              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/30 dark:text-red-300">
+                <p>{error}</p>
+                <button onClick={fetchDashboard} className="mt-1 text-xs font-medium text-red-600 hover:text-red-800 dark:text-red-400">重试</button>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="text-lg font-medium text-muted-foreground">暂无Coding练习数据</p>
+              <p className="mt-2 text-sm text-muted-foreground">开始练习后，看板数据将自动展示</p>
+            </>
+          )}
         </div>
       </div>
     );

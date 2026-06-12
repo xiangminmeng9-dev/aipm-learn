@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { normalizeSkill } from '@/lib/ai/skill-normalizer';
 
+
+
 function getPositionCategory(positionName: string): string {
   const pos = (positionName || '').toLowerCase();
   if (pos.includes('产品') || pos.includes('pm') || pos.includes('product')) return '产品经理';

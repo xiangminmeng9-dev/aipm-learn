@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import Markdown from '@/components/ui/markdown';
+import dynamic from 'next/dynamic';
+const Markdown = dynamic(() => import('@/components/ui/markdown'), { ssr: false });
 import type { SimulatorStageConfig } from '@/lib/simulator-config';
+import { apiFetch } from '@/lib/api/fetch';
 
 interface Message {
   id: string;
@@ -71,7 +73,7 @@ export default function InteractiveChat({ stage, sessionId, scenarioId, savedMes
     abortRef.current = new AbortController();
 
     try {
-      const res = await fetch('/api/simulator/chat', {
+      const res = await apiFetch('/api/simulator/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

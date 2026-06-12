@@ -2,41 +2,14 @@
 
 import dynamic from 'next/dynamic';
 
-const ReactECharts = dynamic(
-  () => import('echarts/core').then(async (echarts) => {
-    const [
-      { BarChart, LineChart, PieChart, RadarChart, ScatterChart, GraphChart },
-      { GridSimpleComponent, GridComponent, TooltipComponent, LegendComponent,
-        DataZoomComponent, ToolboxComponent, MarkLineComponent, MarkPointComponent,
-        TitleComponent, VisualMapComponent },
-      { CanvasRenderer },
-      echartsForReactCore,
-    ] = await Promise.all([
-      import('echarts/charts'),
-      import('echarts/components'),
-      import('echarts/renderers'),
-      import('echarts-for-react/lib/core'),
-    ]);
-
-    echarts.use([
-      BarChart, LineChart, PieChart, RadarChart, ScatterChart, GraphChart,
-      GridSimpleComponent, GridComponent, TooltipComponent, LegendComponent,
-      DataZoomComponent, ToolboxComponent, MarkLineComponent, MarkPointComponent,
-      TitleComponent, VisualMapComponent,
-      CanvasRenderer,
-    ]);
-
-    return echartsForReactCore;
-  }),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="flex h-64 items-center justify-center">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
-      </div>
-    ),
-  },
-);
+const ReactECharts = dynamic(() => import('echarts-for-react'), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-64 items-center justify-center">
+      <div className="h-6 w-6 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+    </div>
+  ),
+});
 
 export const highDPIChartOption = {
   animation: true,

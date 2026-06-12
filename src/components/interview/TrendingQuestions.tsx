@@ -27,7 +27,7 @@ export default function TrendingQuestions({ questions, onSelect }: TrendingQuest
           >
             <p className="mb-2 line-clamp-2 text-base text-foreground">{q.text}</p>
             {q.type && (
-              <span className="rounded-full bg-[#E5E7EB] px-2 py-0.5 text-sm text-muted-foreground">{q.type.name}</span>
+              <span className="rounded-full bg-muted px-2 py-0.5 text-sm text-muted-foreground">{q.type.name}</span>
             )}
           </div>
         ))}

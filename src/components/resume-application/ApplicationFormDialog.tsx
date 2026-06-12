@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { APPLICATION_CHANNELS, APPLICATION_STATUSES } from './constants';
+import { apiFetch } from '@/lib/api/fetch';
 import type { ResumeApplication } from '@/types';
 
 interface Props {
@@ -64,7 +65,7 @@ export default function ApplicationFormDialog({ open, onClose, onSaved, editing 
     };
     if (!editing) body.status = status;
 
-    const res = await fetch(url, {
+    const res = await apiFetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),

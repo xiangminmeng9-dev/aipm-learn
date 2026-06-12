@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import GradientBackground from '@/components/ui/gradient-background';
+import { apiFetch } from '@/lib/api/fetch';
 
 interface Tip {
   id: string;
@@ -26,7 +27,7 @@ export default function TipsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/interview/tips')
+    apiFetch('/api/interview/tips')
       .then((r) => r.ok ? r.json() : null)
       .then((d) => {
         if (d) { setTips(d.tips); setCategories(d.categories); }
@@ -102,13 +103,13 @@ export default function TipsPage() {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <h3 className="text-sm font-semibold text-foreground">{tip.title}</h3>
-                    <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] text-indigo-600 dark:bg-indigo-950/30 dark:text-indigo-400 shrink-0">
+                    <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-xs text-indigo-600 dark:bg-indigo-950/30 dark:text-indigo-400 shrink-0">
                       {tip.category}
                     </span>
                   </div>
                   <div className="mt-2 flex flex-wrap gap-1">
                     {tip.tags.map((t) => (
-                      <span key={t} className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">{t}</span>
+                      <span key={t} className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">{t}</span>
                     ))}
                   </div>
                 </button>

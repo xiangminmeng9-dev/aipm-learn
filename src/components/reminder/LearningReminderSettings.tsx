@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { apiFetch } from '@/lib/api/fetch';
 
 const DAYS = [
   { value: 1, label: '周一' }, { value: 2, label: '周二' }, { value: 3, label: '周三' },
@@ -16,7 +17,7 @@ export default function LearningReminderSettings() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
-    fetch('/api/settings/learning-reminder')
+    apiFetch('/api/settings/learning-reminder')
       .then((r) => r.ok ? r.json() : null)
       .then((d) => {
         if (d?.reminder) {
@@ -33,7 +34,7 @@ export default function LearningReminderSettings() {
     setSaving(true);
     setMessage(null);
     try {
-      const res = await fetch('/api/settings/learning-reminder', {
+      const res = await apiFetch('/api/settings/learning-reminder', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reminder_time: time, enabled_days: enabledDays, enabled }),

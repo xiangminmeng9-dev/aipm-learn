@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, MotionDiv } from '@/components/ui/lazy-motion';
+import { apiFetch } from '@/lib/api/fetch';
 
 interface ResumeUploaderProps {
   onTextExtracted: (text: string) => void;
@@ -31,7 +32,7 @@ export default function ResumeUploader({ onTextExtracted }: ResumeUploaderProps)
       const formData = new FormData();
       formData.append('file', file);
 
-      const res = await fetch('/api/resume/parse', {
+      const res = await apiFetch('/api/resume/parse', {
         method: 'POST',
         body: formData,
       });
@@ -83,7 +84,7 @@ export default function ResumeUploader({ onTextExtracted }: ResumeUploaderProps)
   return (
     <div className="space-y-3">
       {/* Drop zone */}
-      <motion.div
+      <MotionDiv
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -110,7 +111,7 @@ export default function ResumeUploader({ onTextExtracted }: ResumeUploaderProps)
 
         <AnimatePresence mode="wait">
           {isUploading ? (
-            <motion.div
+            <MotionDiv
               key="loading"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -119,9 +120,9 @@ export default function ResumeUploader({ onTextExtracted }: ResumeUploaderProps)
             >
               <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
               <p className="text-sm text-muted-foreground">正在解析简历...</p>
-            </motion.div>
+            </MotionDiv>
           ) : fileName && !error ? (
-            <motion.div
+            <MotionDiv
               key="success"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -135,9 +136,9 @@ export default function ResumeUploader({ onTextExtracted }: ResumeUploaderProps)
               </div>
               <p className="text-sm font-medium text-emerald-700">{fileName}</p>
               <p className="text-xs text-muted-foreground">点击重新上传</p>
-            </motion.div>
+            </MotionDiv>
           ) : (
-            <motion.div
+            <MotionDiv
               key="default"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -153,15 +154,15 @@ export default function ResumeUploader({ onTextExtracted }: ResumeUploaderProps)
                 <p className="text-sm font-medium text-foreground">拖拽或点击上传简历</p>
                 <p className="mt-1 text-xs text-muted-foreground">支持 PDF、DOCX 格式</p>
               </div>
-            </motion.div>
+            </MotionDiv>
           )}
         </AnimatePresence>
-      </motion.div>
+      </MotionDiv>
 
       {/* Error state */}
       <AnimatePresence>
         {error && (
-          <motion.div
+          <MotionDiv
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
@@ -174,7 +175,7 @@ export default function ResumeUploader({ onTextExtracted }: ResumeUploaderProps)
             >
               重试
             </button>
-          </motion.div>
+          </MotionDiv>
         )}
       </AnimatePresence>
 
@@ -191,7 +192,7 @@ export default function ResumeUploader({ onTextExtracted }: ResumeUploaderProps)
       {/* Paste textarea */}
       <AnimatePresence>
         {showPaste && (
-          <motion.div
+          <MotionDiv
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
@@ -213,7 +214,7 @@ export default function ResumeUploader({ onTextExtracted }: ResumeUploaderProps)
                 使用此文本
               </button>
             </div>
-          </motion.div>
+          </MotionDiv>
         )}
       </AnimatePresence>
     </div>

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { cacheGet, cacheSet, TTL } from '@/lib/cache';
 import GradientBackground from '@/components/ui/gradient-background';
+import { apiFetch } from '@/lib/api/fetch';
 
 export default function DailyChallengePage() {
   const [challenge, setChallenge] = useState<{ id: string; question: string; category: string; difficulty: string; hint: string; perfect_answer: string } | null>(null);
@@ -34,8 +35,8 @@ export default function DailyChallengePage() {
     }
     try {
       const [todayRes, streakRes] = await Promise.all([
-        fetch(`/api/daily-challenge/today${forceRefresh ? '?refresh=1' : ''}`),
-        fetch('/api/daily-challenge/streak'),
+        apiFetch(`/api/daily-challenge/today${forceRefresh ? '?refresh=1' : ''}`),
+        apiFetch('/api/daily-challenge/streak'),
       ]);
       if (todayRes.ok) {
         const data = await todayRes.json();
@@ -63,7 +64,7 @@ export default function DailyChallengePage() {
     setEvaluation(null);
     setSubmission(null);
     try {
-      const res = await fetch('/api/daily-challenge/submit', {
+      const res = await apiFetch('/api/daily-challenge/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ challenge_id: challenge.id, answer: answer.trim(), time_spent: Math.round((Date.now() - startTimeRef.current) / 1000) }),

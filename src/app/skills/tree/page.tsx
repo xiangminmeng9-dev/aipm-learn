@@ -9,8 +9,10 @@ import CustomModuleDialog from '@/components/skills/CustomModuleDialog';
 import SkillTreeChart from '@/components/skills/SkillTreeChart';
 import SkillRadarChart from '@/components/skills/SkillRadarChart';
 import KnowledgeGraph from '@/components/skills/KnowledgeGraph';
+import CompanySkillGraph from '@/components/skills/CompanySkillGraph';
 import { buildSkillGraphData } from '@/components/skills/SkillTreeLayout';
 import type { SkillModuleWithProgress } from '@/types';
+import { apiFetch } from '@/lib/api/fetch';
 
 const LEVEL_CONFIG: Record<number, { name: string; color: string; bg: string; desc: string }> = {
   1: { name: '基础入门', color: 'text-[#34c759]', bg: 'bg-[#34c759]', desc: '产品经理核心基础，零基础起步' },
@@ -20,7 +22,7 @@ const LEVEL_CONFIG: Record<number, { name: string; color: string; bg: string; de
 };
 
 type ModuleWithCustom = SkillModuleWithProgress & { is_custom?: boolean };
-type ViewMode = 'tree' | 'cards' | 'graph';
+type ViewMode = 'tree' | 'cards' | 'graph' | 'kg';
 
 export default function SkillsTreePage() {
   const [modules, setModules] = useState<ModuleWithCustom[]>([]);
@@ -37,7 +39,7 @@ export default function SkillsTreePage() {
       setModules(cached);
       setIsLoading(false);
     }
-    fetch('/api/skills/modules')
+    apiFetch('/api/skills/modules')
       .then((r) => r.json())
       .then((data) => {
         const mods = data.modules ?? [];
@@ -51,7 +53,7 @@ export default function SkillsTreePage() {
   useEffect(() => {
     fetchModules();
     // Fetch interview average score for radar chart
-    fetch('/api/interview/stats')
+    apiFetch('/api/interview/stats')
       .then((r) => r.ok ? r.json() : null)
       .then((data) => {
         if (data?.averageScore) setInterviewAvgScore(Math.round(data.averageScore));
@@ -62,7 +64,7 @@ export default function SkillsTreePage() {
   const handleDeleteCustomModule = async (id: string) => {
     if (!confirm('确定删除此自定义模块？所有学习任务将一并删除。')) return;
     try {
-      const res = await fetch(`/api/skills/custom-modules/${id}`, { method: 'DELETE' });
+      const res = await apiFetch(`/api/skills/custom-modules/${id}`, { method: 'DELETE' });
       if (res.ok) fetchModules();
     } catch {}
   };
@@ -139,6 +141,17 @@ export default function SkillsTreePage() {
               </svg>
               知识图谱
             </button>
+            <button
+              onClick={() => setViewMode('kg')}
+              className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                viewMode === 'kg' ? 'bg-indigo-50 text-indigo-600' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 0 0-5.656 0l-4 4a4 4 0 1 0 5.656 5.656l1.102-1.101m-.758-4.899a4 4 0 0 0 5.656 0l4-4a4 4 0 0 0-5.656-5.656l-1.1 1.1" />
+              </svg>
+              公司图谱
+            </button>
           </div>
           {/* Add custom module */}
           <button
@@ -167,7 +180,7 @@ export default function SkillsTreePage() {
                   </span>
                   <span className="font-semibold text-indigo-600">{overallPct}%</span>
                 </div>
-                <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#E5E7EB]">
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
                   <div className="h-full rounded-full progress-gradient transition-all" style={{ width: `${overallPct}%` }} />
                 </div>
               </div>
@@ -224,6 +237,13 @@ export default function SkillsTreePage() {
           {viewMode === 'graph' && (
             <div className="relative z-10">
               <KnowledgeGraph modules={modules} />
+            </div>
+          )}
+
+          {/* Company-Skill knowledge graph view */}
+          {viewMode === 'kg' && (
+            <div className="relative z-10">
+              <CompanySkillGraph />
             </div>
           )}
         </>

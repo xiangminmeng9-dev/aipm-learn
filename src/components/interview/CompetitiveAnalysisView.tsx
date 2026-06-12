@@ -1,9 +1,11 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import Markdown from '@/components/ui/markdown';
+import dynamic from 'next/dynamic';
+const Markdown = dynamic(() => import('@/components/ui/markdown'), { ssr: false });
 import CompetitiveScoreCard from './CompetitiveScoreCard';
 import type { DimensionScore } from '@/types';
+import { apiFetch } from '@/lib/api/fetch';
 
 interface AnalysisResult {
   id: string;
@@ -39,7 +41,7 @@ export default function CompetitiveAnalysisView() {
     abortRef.current = abortController;
 
     try {
-      const res = await fetch('/api/interview/competitive', {
+      const res = await apiFetch('/api/interview/competitive', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ productName: productName.trim() }),

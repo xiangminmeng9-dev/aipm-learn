@@ -7,6 +7,7 @@ type Protocol = 'anthropic' | 'openai';
 
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import LearningReminderSettings from '@/components/reminder/LearningReminderSettings';
+import { apiFetch } from '@/lib/api/fetch';
 
 export default function SettingsPage() {
   const [protocol, setProtocol] = useState<Protocol>('anthropic');
@@ -21,7 +22,7 @@ export default function SettingsPage() {
 
   const fetchConfig = useCallback(async () => {
     try {
-      const res = await fetch('/api/settings/ai-config');
+      const res = await apiFetch('/api/settings/ai-config');
       if (res.ok) {
         const data = await res.json();
         if (data.config) {
@@ -41,7 +42,7 @@ export default function SettingsPage() {
     setIsSaving(true);
     setMessage(null);
     try {
-      const res = await fetch('/api/settings/ai-config', {
+      const res = await apiFetch('/api/settings/ai-config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ protocol, base_url: baseUrl.trim(), api_key: apiKey.trim(), model: model.trim() }),
@@ -62,7 +63,7 @@ export default function SettingsPage() {
     if (!confirm('确定恢复为系统默认模型？你自定义的配置将被删除。')) return;
     setIsSaving(true);
     try {
-      const res = await fetch('/api/settings/ai-config', { method: 'DELETE' });
+      const res = await apiFetch('/api/settings/ai-config', { method: 'DELETE' });
       if (res.ok) {
         setProtocol('anthropic');
         setBaseUrl('');

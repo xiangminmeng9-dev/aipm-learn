@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import { apiFetch } from '@/lib/api/fetch';
 
 interface CustomModuleDialogProps {
   level: number;
@@ -38,7 +39,7 @@ export default function CustomModuleDialog({
   const [availableModules, setAvailableModules] = useState<{ id: string; name: string; level: number }[]>(existingModules);
   useEffect(() => {
     if (open && existingModules.length === 0) {
-      fetch('/api/skills/modules')
+      apiFetch('/api/skills/modules')
         .then((r) => r.json())
         .then((data) => {
           const mods = (data.modules ?? []).filter((m: { id: string }) => m.id !== '__jd_gaps__' && m.id !== '__bookmarked_tech__');
@@ -61,7 +62,7 @@ export default function CustomModuleDialog({
     setPreview(null);
 
     try {
-      const res = await fetch('/api/skills/custom-modules/generate', {
+      const res = await apiFetch('/api/skills/custom-modules/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ description: description.trim(), level, prerequisites: selectedPrereqs }),

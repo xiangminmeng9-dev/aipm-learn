@@ -6,6 +6,7 @@ import { SIMULATOR_SCENARIOS, SimulatorStageConfig, findStageByStageId } from '@
 import InteractiveChat from '@/components/simulator/InteractiveChat';
 import StageDetail from '@/components/simulator/StageDetail';
 import { cacheGet, cacheSet, TTL } from '@/lib/cache';
+import { apiFetch } from '@/lib/api/fetch';
 
 interface StageScore {
   score: number;
@@ -68,7 +69,7 @@ function StagePageContent({ params }: { params: Promise<{ stageId: string }> }) 
   const loadHistory = async (sid: string | null, stgId: string): Promise<{ role: string; content: string }[]> => {
     if (!sid) return [];
     try {
-      const res = await fetch(`/api/simulator/messages?session_id=${sid}&stage_id=${stgId}`);
+      const res = await apiFetch(`/api/simulator/messages?session_id=${sid}&stage_id=${stgId}`);
       if (res.ok) {
         const data = await res.json();
         if (data.messages && data.messages.length > 0) {

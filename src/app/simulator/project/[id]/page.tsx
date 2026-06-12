@@ -3,7 +3,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { PROJECT_SCENARIOS } from '@/lib/project-scenarios';
-import Markdown from '@/components/ui/markdown';
+import dynamic from 'next/dynamic';
+const Markdown = dynamic(() => import('@/components/ui/markdown'), { ssr: false });
+import { apiFetch } from '@/lib/api/fetch';
 
 export default function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const [projectId, setProjectId] = useState('');
@@ -42,7 +44,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     setIsStreaming(true);
 
     try {
-      const res = await fetch(`/api/simulator/project/${projectId}/chat`, {
+      const res = await apiFetch(`/api/simulator/project/${projectId}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: text }),

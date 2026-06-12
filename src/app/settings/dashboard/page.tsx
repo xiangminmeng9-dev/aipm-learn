@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import ReactECharts from '@/components/ui/EChartsWrapper';
+import ReactECharts from '@/components/ui/LazyECharts';
 import AchievementBadges from '@/components/achievements/AchievementBadges';
+import { apiFetch } from '@/lib/api/fetch';
 
 /* -- Types -- */
 interface ModuleDetails {
@@ -118,7 +119,7 @@ export default function LearningDashboardPage() {
 
   useEffect(() => {
     setIsLoading(true);
-    fetch(`/api/learning/dashboard?range=${timeRange}`)
+    apiFetch(`/api/learning/dashboard?range=${timeRange}`)
       .then((r) => r.ok ? r.json() : null)
       .then((d) => setData(d))
       .catch(() => {})

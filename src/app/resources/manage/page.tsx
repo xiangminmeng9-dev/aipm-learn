@@ -6,6 +6,7 @@ import type { ExternalResource, ResourceCategoryType as ResourceType } from '@/t
 import { RESOURCE_TYPES, PRESET_RESOURCES, AI_PM_DIRECTIONS, AI_PM_WORKFLOW, getResourceTypeIcon, getSubcategoriesForType, getResourceTypeLabel, getSubcategoryLabel, getFoldersForType, getDirectChildrenCount, getFolderPath, LEARNING_MAP_TO_SKILL_MODULE, SKILL_MODULE_TO_LEARNING_MAP } from '@/components/resources/constants';
 import { ResourceCard, FolderCard } from '@/components/resources/ResourceCard';
 import GradientBackground from '@/components/ui/gradient-background';
+import { apiFetch } from '@/lib/api/fetch';
 
 const TYPE_HEADER_STYLES: Record<ResourceType, string> = {
   website:  'bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-600/40 dark:to-purple-600/40',
@@ -57,7 +58,7 @@ export default function ResourcesManagePage() {
 
   const fetchResources = useCallback(async () => {
     try {
-      const res = await fetch('/api/external-resources');
+      const res = await apiFetch('/api/external-resources');
       if (res.ok) { const data = await res.json(); setResources(data.resources ?? []); }
     } finally { setLoading(false); }
   }, []);
@@ -78,7 +79,7 @@ export default function ResourcesManagePage() {
   }, [resources]);
 
   useEffect(() => {
-    fetch('/api/skills/modules').then(r => r.json()).then(data => {
+    apiFetch('/api/skills/modules').then(r => r.json()).then(data => {
       const modules = (data.modules ?? []).filter((m: { is_custom?: boolean }) => !m.is_custom);
       setSkillModules(modules.map((m: { id: string; name: string; level: number; level_name: string }) => ({ id: m.id, name: m.name, level: m.level, level_name: m.level_name })));
     }).catch(() => {});
@@ -86,7 +87,7 @@ export default function ResourcesManagePage() {
 
   // Auto-migrate on first load
   useEffect(() => {
-    fetch('/api/external-resources/migrate', { method: 'POST' }).catch(() => {});
+    apiFetch('/api/external-resources/migrate', { method: 'POST' }).catch(() => {});
   }, []);
 
   // 每种类型的资源数量（不含文件夹）
@@ -175,7 +176,7 @@ export default function ResourcesManagePage() {
         related_module_id: addForm.related_module_id || null,
         related_module_name: addForm.related_module_name || null,
       };
-      const res = await fetch('/api/external-resources', {
+      const res = await apiFetch('/api/external-resources', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -199,7 +200,7 @@ export default function ResourcesManagePage() {
     if (!folderForm.title.trim() || activeTab === 'overview') return;
     setAdding(true);
     try {
-      const res = await fetch('/api/external-resources', {
+      const res = await apiFetch('/api/external-resources', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -227,7 +228,7 @@ export default function ResourcesManagePage() {
     if (!editingResource) return;
     setAdding(true);
     try {
-      const res = await fetch(`/api/external-resources/${editingResource.id}`, {
+      const res = await apiFetch(`/api/external-resources/${editingResource.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -266,7 +267,7 @@ export default function ResourcesManagePage() {
     if (!movingResource) return;
     setAdding(true);
     try {
-      const res = await fetch(`/api/external-resources/${movingResource.id}`, {
+      const res = await apiFetch(`/api/external-resources/${movingResource.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ parent_id: targetFolderId }),
@@ -289,7 +290,7 @@ export default function ResourcesManagePage() {
       ? `该文件夹内有 ${childCount} 个子项，删除后将一并移除。确认删除？`
       : '确认删除此资源？';
     if (!confirm(msg)) return;
-    const res = await fetch(`/api/external-resources/${id}`, { method: 'DELETE' });
+    const res = await apiFetch(`/api/external-resources/${id}`, { method: 'DELETE' });
     if (res.ok) fetchResources();
   };
 
@@ -297,7 +298,7 @@ export default function ResourcesManagePage() {
     setAdding(true);
     try {
       for (const p of PRESET_RESOURCES) {
-        await fetch('/api/external-resources', {
+        await apiFetch('/api/external-resources', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -336,7 +337,7 @@ export default function ResourcesManagePage() {
         if (hasItems) continue;
         // 补充知识点资源
         for (const item of stage.items) {
-          await fetch('/api/external-resources', {
+          await apiFetch('/api/external-resources', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -349,7 +350,7 @@ export default function ResourcesManagePage() {
         }
         // 如果文件夹缺少subcategory，顺便补上
         if (!existingFolder.subcategory) {
-          await fetch(`/api/external-resources/${existingFolder.id}`, {
+          await apiFetch(`/api/external-resources/${existingFolder.id}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ subcategory: stage.subcategory }),
@@ -366,7 +367,7 @@ export default function ResourcesManagePage() {
       // 先删除所有 workflow 资源
       const workflowResources = resources.filter(r => r.resource_type === 'workflow');
       for (const r of workflowResources) {
-        await fetch(`/api/external-resources/${r.id}`, { method: 'DELETE' });
+        await apiFetch(`/api/external-resources/${r.id}`, { method: 'DELETE' });
       }
       await fetchResources();
       // 重新导入
@@ -378,7 +379,7 @@ export default function ResourcesManagePage() {
   const doAddWorkflow = async () => {
     // 创建13个阶段文件夹（直接在顶层，不需要根文件夹）
     for (const stage of AI_PM_WORKFLOW.stages) {
-      const stageRes = await fetch('/api/external-resources', {
+      const stageRes = await apiFetch('/api/external-resources', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -392,7 +393,7 @@ export default function ResourcesManagePage() {
 
       // 在每个阶段文件夹下创建知识点资源
       for (const item of stage.items) {
-        await fetch('/api/external-resources', {
+        await apiFetch('/api/external-resources', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -516,7 +517,7 @@ export default function ResourcesManagePage() {
         <input
           value={search} onChange={(e) => setSearch(e.target.value)}
           placeholder="搜索资源名称、链接、作者..."
-          className="w-full rounded-xl border border-border bg-card py-2.5 pl-10 pr-4 text-base text-foreground placeholder-[#9CA3AF] outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+          className="w-full rounded-xl border border-border bg-card py-2.5 pl-10 pr-4 text-base text-foreground placeholder:text-muted-foreground outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
         />
       </div>
 
@@ -871,7 +872,7 @@ export default function ResourcesManagePage() {
                     value={addForm.title}
                     onChange={e => setAddForm(f => ({ ...f, title: e.target.value }))}
                     placeholder="资源名称"
-                    className="w-full rounded-xl border border-border px-3 py-2 text-sm text-foreground placeholder-[#9CA3AF] outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                    className="w-full rounded-xl border border-border px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
                   />
                 </div>
                 <div>
@@ -882,7 +883,7 @@ export default function ResourcesManagePage() {
                     value={addForm.url}
                     onChange={e => setAddForm(f => ({ ...f, url: e.target.value }))}
                     placeholder={addForm.resource_type === 'book' ? 'https://... 或留空' : 'https://...'}
-                    className="w-full rounded-xl border border-border px-3 py-2 text-sm text-foreground placeholder-[#9CA3AF] outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                    className="w-full rounded-xl border border-border px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
                   />
                 </div>
               </div>
@@ -896,7 +897,7 @@ export default function ResourcesManagePage() {
                       value={addForm.local_path}
                       onChange={e => setAddForm(f => ({ ...f, local_path: e.target.value }))}
                       placeholder="/Users/xxx/books/AI产品经理.pdf"
-                      className="w-full rounded-xl border border-border px-3 py-2 text-sm text-foreground placeholder-[#9CA3AF] outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                      className="w-full rounded-xl border border-border px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
                     />
                   </div>
                 )}
@@ -907,7 +908,7 @@ export default function ResourcesManagePage() {
                       value={addForm.author}
                       onChange={e => setAddForm(f => ({ ...f, author: e.target.value }))}
                       placeholder="作者姓名"
-                      className="w-full rounded-xl border border-border px-3 py-2 text-sm text-foreground placeholder-[#9CA3AF] outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                      className="w-full rounded-xl border border-border px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
                     />
                   </div>
                 )}
@@ -919,7 +920,7 @@ export default function ResourcesManagePage() {
                       onChange={e => setAddForm(f => ({ ...f, year: e.target.value }))}
                       placeholder="2024"
                       type="number"
-                      className="w-full rounded-xl border border-border px-3 py-2 text-sm text-foreground placeholder-[#9CA3AF] outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                      className="w-full rounded-xl border border-border px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
                     />
                   </div>
                 )}
@@ -931,7 +932,7 @@ export default function ResourcesManagePage() {
                         value={addForm.platform}
                         onChange={e => setAddForm(f => ({ ...f, platform: e.target.value }))}
                         placeholder="B站 / YouTube / 极客时间"
-                        className="w-full rounded-xl border border-border px-3 py-2 text-sm text-foreground placeholder-[#9CA3AF] outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                        className="w-full rounded-xl border border-border px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
                       />
                     </div>
                     <div>
@@ -940,7 +941,7 @@ export default function ResourcesManagePage() {
                         value={addForm.duration}
                         onChange={e => setAddForm(f => ({ ...f, duration: e.target.value }))}
                         placeholder="1:30:00"
-                        className="w-full rounded-xl border border-border px-3 py-2 text-sm text-foreground placeholder-[#9CA3AF] outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                        className="w-full rounded-xl border border-border px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
                       />
                     </div>
                   </>
@@ -956,7 +957,7 @@ export default function ResourcesManagePage() {
                     onChange={e => setAddForm(f => ({ ...f, description: e.target.value }))}
                     placeholder="资源简介..."
                     rows={2}
-                    className="w-full rounded-xl border border-border px-3 py-2 text-sm text-foreground placeholder-[#9CA3AF] outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                    className="w-full rounded-xl border border-border px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
                   />
                 </div>
                 <div>
@@ -966,7 +967,7 @@ export default function ResourcesManagePage() {
                     onChange={e => setAddForm(f => ({ ...f, notes: e.target.value }))}
                     placeholder="个人备注..."
                     rows={2}
-                    className="w-full rounded-xl border border-border px-3 py-2 text-sm text-foreground placeholder-[#9CA3AF] outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                    className="w-full rounded-xl border border-border px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
                   />
                 </div>
               </div>
@@ -979,7 +980,7 @@ export default function ResourcesManagePage() {
                     value={addForm.thumbnail_url}
                     onChange={e => setAddForm(f => ({ ...f, thumbnail_url: e.target.value }))}
                     placeholder="图片URL"
-                    className="w-full rounded-xl border border-border px-3 py-2 text-sm text-foreground placeholder-[#9CA3AF] outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                    className="w-full rounded-xl border border-border px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
                   />
                 </div>
                 <div>
@@ -988,7 +989,7 @@ export default function ResourcesManagePage() {
                     value={addForm.source}
                     onChange={e => setAddForm(f => ({ ...f, source: e.target.value }))}
                     placeholder="知乎、B站、手动添加"
-                    className="w-full rounded-xl border border-border px-3 py-2 text-sm text-foreground placeholder-[#9CA3AF] outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                    className="w-full rounded-xl border border-border px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
                   />
                 </div>
               </div>
@@ -1206,7 +1207,7 @@ export default function ResourcesManagePage() {
                   onChange={e => setFolderForm(f => ({ ...f, title: e.target.value }))}
                   placeholder="文件夹名称"
                   autoFocus
-                  className="w-full rounded-xl border border-border px-3 py-2 text-sm text-foreground placeholder-[#9CA3AF] outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                  className="w-full rounded-xl border border-border px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
                 />
               </div>
               <div>
@@ -1215,7 +1216,7 @@ export default function ResourcesManagePage() {
                   value={folderForm.notes}
                   onChange={e => setFolderForm(f => ({ ...f, notes: e.target.value }))}
                   placeholder="文件夹说明..."
-                  className="w-full rounded-xl border border-border px-3 py-2 text-sm text-foreground placeholder-[#9CA3AF] outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                  className="w-full rounded-xl border border-border px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
                 />
               </div>
               <div className="flex gap-3 pt-2">

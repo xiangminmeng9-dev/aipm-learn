@@ -2,10 +2,12 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import Markdown from '@/components/ui/markdown';
+import dynamic from 'next/dynamic';
+const Markdown = dynamic(() => import('@/components/ui/markdown'), { ssr: false });
 import { useToast } from '@/components/ui/toast';
 import { createClient } from '@/lib/supabase/client';
 import GradientBackground from '@/components/ui/gradient-background';
+import { apiFetch } from '@/lib/api/fetch';
 
 interface HistoryRecord {
   id: string;
@@ -54,7 +56,7 @@ export default function InterviewAssistantPage() {
       const supabase = createClient();
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { setIsAuthed(false); return; }
-      const res = await fetch('/api/interview/assistant/history', {
+      const res = await apiFetch('/api/interview/assistant/history', {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
       if (res.ok) {
@@ -84,7 +86,7 @@ export default function InterviewAssistantPage() {
         return;
       }
 
-      const res = await fetch('/api/interview/assistant', {
+      const res = await apiFetch('/api/interview/assistant', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -163,7 +165,7 @@ export default function InterviewAssistantPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { setIsAuthed(false); return; }
 
-      const res = await fetch('/api/interview/assistant', {
+      const res = await apiFetch('/api/interview/assistant', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -198,7 +200,7 @@ export default function InterviewAssistantPage() {
       const supabase = createClient();
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { setIsAuthed(false); return; }
-      const res = await fetch('/api/interview/assistant/history', {
+      const res = await apiFetch('/api/interview/assistant/history', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',

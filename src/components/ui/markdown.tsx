@@ -1,8 +1,18 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import ReactECharts from '@/components/ui/EChartsWrapper';
+
+// Lazy-load ECharts only when enableECharts=true — saves ~1MB on 15 pages that use Markdown without charts
+const ReactECharts = dynamic(() => import('@/components/ui/LazyECharts'), {
+  ssr: false,
+  loading: () => (
+    <div className="my-3 flex h-56 items-center justify-center rounded-xl border border-border bg-card">
+      <div className="h-5 w-5 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+    </div>
+  ),
+});
 
 interface MarkdownProps {
   content: string;

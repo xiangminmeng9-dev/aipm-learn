@@ -4,8 +4,10 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import Markdown from '@/components/ui/markdown';
+import dynamic from 'next/dynamic';
+const Markdown = dynamic(() => import('@/components/ui/markdown'), { ssr: false });
 import SessionHeader from '@/components/interview/SessionHeader';
+import { apiFetch } from '@/lib/api/fetch';
 
 interface Message {
   id: string;
@@ -43,7 +45,7 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
   useEffect(() => {
     if (!sessionId) return;
 
-    fetch(`/api/interview/sessions/${sessionId}`)
+    apiFetch(`/api/interview/sessions/${sessionId}`)
       .then(r => r.json())
       .then(data => {
         setSession(data.session);
@@ -78,7 +80,7 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
     setIsLoading(true);
 
     try {
-      const res = await fetch(`/api/interview/sessions/${sessionId}/chat`, {
+      const res = await apiFetch(`/api/interview/sessions/${sessionId}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: userMessage.content }),
@@ -143,7 +145,7 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
     setIsUpdating(true);
 
     try {
-      const res = await fetch(`/api/interview/sessions/${sessionId}`, {
+      const res = await apiFetch(`/api/interview/sessions/${sessionId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -204,7 +206,7 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
                       <path strokeLinecap="round" strokeLinejoin="round" d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.636 50.636 0 0 0-2.658-.813A59.906 59.906 0 0 1 12 3.493a59.903 59.903 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0 1 12 13.489a50.702 50.702 0 0 1 7.74-3.342" />
                     </svg>
                   </div>
-                  <span className="text-[10px] font-medium text-indigo-600">AI 教练</span>
+                  <span className="text-xs font-medium text-indigo-600">AI 教练</span>
                 </div>
               )}
 
@@ -222,7 +224,7 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
                 )}
               </div>
 
-              <p className={`mt-1 text-[10px] text-muted-foreground ${msg.role === 'user' ? 'text-right' : ''}`}>
+              <p className={`mt-1 text-xs text-muted-foreground ${msg.role === 'user' ? 'text-right' : ''}`}>
                 {new Date(msg.timestamp).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
               </p>
             </div>
@@ -238,7 +240,7 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
                     <path strokeLinecap="round" strokeLinejoin="round" d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.636 50.636 0 0 0-2.658-.813A59.906 59.906 0 0 1 12 3.493a59.903 59.903 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0 1 12 13.489a50.702 50.702 0 0 1 7.74-3.342" />
                   </svg>
                 </div>
-                <span className="text-[10px] font-medium text-indigo-600">AI 教练</span>
+                <span className="text-xs font-medium text-indigo-600">AI 教练</span>
               </div>
               <div className="rounded-2xl border border-border bg-card px-4 py-3 shadow-sm">
                 <div className="flex items-center gap-1.5">

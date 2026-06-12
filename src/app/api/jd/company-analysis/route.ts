@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { generateText } from '@/lib/ai/claude';
 import { aggregateSkills } from '@/lib/ai/skill-normalizer';
+import { getCompanyNameVariants } from '@/lib/ai/company-personas';
+import { withTimeout, AI_TIMEOUT_MS } from '@/lib/ai/with-timeout';
 
 const COMPANY_ANALYSIS_PROMPT = `你是一位资深招聘分析师，擅长从多个岗位JD中深入分析公司的招聘偏好和人才画像。
 
@@ -56,12 +58,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '请先登录' }, { status: 401 });
     }
 
-    const { data: analyses, error } = await supabase
+    const companyVariants = getCompanyNameVariants(companyName);
+
+    let { data: analyses, error } = await supabase
       .from('jd_analyses')
       .select('*')
       .eq('user_id', user.id)
-      .eq('company_name', companyName)
+      .in('company_name', companyVariants)
       .order('created_at', { ascending: false });
+
+    // Fallback: if no results, try ilike substring match for unknown companies
+    if ((!error && (!analyses || analyses.length === 0))) {
+      const { data: fuzzyAnalyses, error: fuzzyError } = await supabase
+        .from('jd_analyses')
+        .select('*')
+        .eq('user_id', user.id)
+        .ilike('company_name', `%${companyName}%`)
+        .order('created_at', { ascending: false });
+      if (!fuzzyError && fuzzyAnalyses && fuzzyAnalyses.length > 0) {
+        analyses = fuzzyAnalyses;
+      }
+    }
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
@@ -115,7 +132,16 @@ export async function POST(request: NextRequest) {
       .replace('{positionDetails}', positionDetails.join('\n'))
       .replace('{resumeGaps}', allResumeGaps.length > 0 ? allResumeGaps.join('\n') : '暂无简历差距数据');
 
-    const report = await generateText(prompt, { maxTokens: 2048 });
+    let report: string;
+    try {
+      report = await withTimeout(generateText(prompt, { maxTokens: 2048 }), AI_TIMEOUT_MS);
+    } catch (aiError) {
+      console.error('Company analysis AI call error:', aiError);
+      return NextResponse.json(
+        { error: `AI 调用失败: ${aiError instanceof Error ? aiError.message : '未知错误'}` },
+        { status: 500 },
+      );
+    }
 
     return NextResponse.json({
       companyName,

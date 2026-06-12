@@ -5,8 +5,10 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { LearningResource, UserTaskResource } from '@/types';
 import { Badge } from '@/components/ui/badge';
-import Markdown from '@/components/ui/markdown';
+import dynamic from 'next/dynamic';
+const Markdown = dynamic(() => import('@/components/ui/markdown'), { ssr: false });
 import AddResourceDialog from '@/components/skills/AddResourceDialog';
+import { apiFetch } from '@/lib/api/fetch';
 
 const RESOURCE_ICONS: Record<string, string> = { article: '📄', video: '🎬', book: '📚', note: '📝' };
 const RESOURCE_COLORS: Record<string, string> = {
@@ -58,7 +60,7 @@ export default function CustomModuleDetailPage({ params }: CustomModuleDetailPag
 
   useEffect(() => {
     params.then(({ id }) => {
-      fetch(`/api/skills/custom-modules/${id}`)
+      apiFetch(`/api/skills/custom-modules/${id}`)
         .then((r) => r.json())
         .then((data) => {
           if (data.module) setModule(data.module);
@@ -79,7 +81,7 @@ export default function CustomModuleDetailPage({ params }: CustomModuleDetailPag
       )
     );
     if (module) {
-      await fetch(`/api/skills/custom-modules/${module.id}/tasks/${taskId}`, {
+      await apiFetch(`/api/skills/custom-modules/${module.id}/tasks/${taskId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
@@ -89,7 +91,7 @@ export default function CustomModuleDetailPage({ params }: CustomModuleDetailPag
 
   const handleDelete = async () => {
     if (!module || !confirm('确定删除此自定义模块？所有学习任务将一并删除。')) return;
-    const res = await fetch(`/api/skills/custom-modules/${module.id}`, { method: 'DELETE' });
+    const res = await apiFetch(`/api/skills/custom-modules/${module.id}`, { method: 'DELETE' });
     if (res.ok) {
       router.push('/skills/tree');
     }
@@ -100,7 +102,7 @@ export default function CustomModuleDetailPage({ params }: CustomModuleDetailPag
   }, []);
 
   const handleResourceDeleted = useCallback(async (taskId: string, resourceId: string) => {
-    const res = await fetch(`/api/skills/resources/${resourceId}`, { method: 'DELETE' });
+    const res = await apiFetch(`/api/skills/resources/${resourceId}`, { method: 'DELETE' });
     if (res.ok) {
       setTasks((prev) => prev.map((t) => t.id === taskId ? { ...t, user_resources: (t.user_resources ?? []).filter((r) => r.id !== resourceId) } : t));
     }
@@ -110,7 +112,7 @@ export default function CustomModuleDetailPage({ params }: CustomModuleDetailPag
     if (!newTaskTitle.trim() || !module) return;
     setIsAddingTask(true);
     try {
-      const res = await fetch(`/api/skills/custom-modules/${module.id}/tasks`, {
+      const res = await apiFetch(`/api/skills/custom-modules/${module.id}/tasks`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title: newTaskTitle.trim(), objective: newTaskObjective.trim() || newTaskTitle.trim() }),
@@ -196,7 +198,7 @@ export default function CustomModuleDetailPage({ params }: CustomModuleDetailPag
                 <span className="text-muted-foreground">{completedCount}/{tasks.length} 完成</span>
                 <span className="font-semibold text-indigo-600">{progressPct}%</span>
               </div>
-              <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#E5E7EB]">
+              <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
                 <div className="h-full rounded-full progress-gradient transition-all" style={{ width: `${progressPct}%` }} />
               </div>
             </div>
@@ -221,14 +223,14 @@ export default function CustomModuleDetailPage({ params }: CustomModuleDetailPag
                       </div>
                     </button>
                     <div className="flex items-center gap-2 shrink-0 ml-4">
-                      <span className="rounded-full bg-[#E5E7EB] px-2 py-0.5 text-sm text-muted-foreground">{task.estimated_days}天</span>
-                      {resources.length > 0 && <span className="rounded-full bg-[#E5E7EB] px-2 py-0.5 text-sm text-muted-foreground">{totalResources}资源</span>}
+                      <span className="rounded-full bg-muted px-2 py-0.5 text-sm text-muted-foreground">{task.estimated_days}天</span>
+                      {resources.length > 0 && <span className="rounded-full bg-muted px-2 py-0.5 text-sm text-muted-foreground">{totalResources}资源</span>}
                       <button
                         onClick={() => handleToggle(task.id, task.status)}
                         className={`rounded-full px-3 py-1 text-sm font-medium transition-colors ${
                           task.status === 'completed'
                             ? 'bg-[#34c759] text-white'
-                            : 'bg-[#E5E7EB] text-muted-foreground hover:bg-secondary'
+                            : 'bg-muted text-muted-foreground hover:bg-secondary'
                         }`}
                       >
                         {task.status === 'completed' ? '✓ 已完成' : '标记完成'}
@@ -297,13 +299,13 @@ export default function CustomModuleDetailPage({ params }: CustomModuleDetailPag
                     value={newTaskTitle}
                     onChange={(e) => setNewTaskTitle(e.target.value)}
                     placeholder="任务名称，如：学习 RAG 检索优化"
-                    className="w-full rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-foreground placeholder-[#9CA3AF] focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    className="w-full rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                   />
                   <input
                     value={newTaskObjective}
                     onChange={(e) => setNewTaskObjective(e.target.value)}
                     placeholder="学习目标（可选），如：掌握混合检索和重排序技术"
-                    className="w-full rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-foreground placeholder-[#9CA3AF] focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    className="w-full rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                   />
                   <div className="flex gap-2">
                     <button
@@ -338,7 +340,7 @@ export default function CustomModuleDetailPage({ params }: CustomModuleDetailPag
           <div className="mt-8 flex justify-end">
             <button
               onClick={handleDelete}
-              className="rounded-lg border border-[#ff3b30]/20 px-4 py-2 text-sm text-[#ff3b30] hover:bg-[#ff3b30]/5 transition-colors"
+              className="rounded-lg border border-destructive/20 px-4 py-2 text-sm text-destructive hover:bg-destructive/5 transition-colors"
             >
               删除此模块
             </button>

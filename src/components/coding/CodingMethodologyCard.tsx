@@ -1,6 +1,7 @@
 'use client';
 
-import Markdown from '@/components/ui/markdown';
+import dynamic from 'next/dynamic';
+const Markdown = dynamic(() => import('@/components/ui/markdown'), { ssr: false });
 import type { CodingMethodology } from '@/types';
 
 interface CodingMethodologyCardProps {

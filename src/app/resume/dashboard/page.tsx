@@ -9,8 +9,9 @@ import DashboardFunnelChart from '@/components/resume-application/DashboardFunne
 import DashboardPositionCategoryChart from '@/components/resume-application/DashboardPositionCategoryChart';
 import DashboardRecentReviews from '@/components/resume-application/DashboardRecentReviews';
 import GradientBackground from '@/components/ui/gradient-background';
-import ReactECharts from '@/components/ui/EChartsWrapper';
+import ReactECharts from '@/components/ui/LazyECharts';
 import type { DashboardStats } from '@/types';
+import { apiFetch } from '@/lib/api/fetch';
 
 // localStorage 数据结构
 interface LocalRecord {
@@ -281,8 +282,8 @@ export default function DashboardPage() {
   useEffect(() => {
     setLoading(true);
     Promise.all([
-      fetch(`/api/resume/dashboard?range=${range}`).then(r => r.json()),
-      fetch('/api/resume/versions').then(r => r.json()).catch(() => ({ versions: [] })),
+      apiFetch(`/api/resume/dashboard?range=${range}`).then(r => r.json()),
+      apiFetch('/api/resume/versions').then(r => r.json()).catch(() => ({ versions: [] })),
     ])
       .then(([d, vData]) => {
         const versions: Array<{id:string; company_name:string|null; position_name:string|null; style_type:string; changes_summary:string|null; created_at:string}> = vData.versions || [];

@@ -62,7 +62,7 @@ export default function SkillModuleCard({ module, onClick, onDelete }: SkillModu
       </div>
       <h3 className="mb-1 text-base font-semibold text-foreground">{module.name}</h3>
       <p className="mb-3 line-clamp-2 text-sm text-muted-foreground">{module.description}</p>
-      <div className="mb-2 h-1.5 overflow-hidden rounded-full bg-[#E5E7EB]">
+      <div className="mb-2 h-1.5 overflow-hidden rounded-full bg-muted">
         <div
           className="h-full rounded-full progress-gradient transition-all"
           style={{ width: `${module.progress_percentage}%` }}

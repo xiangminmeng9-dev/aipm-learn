@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { BOSS_TYPES } from '@/lib/boss-1v1-config';
+import { apiFetch } from '@/lib/api/fetch';
 
 interface Message {
   id: string;
@@ -37,7 +38,7 @@ export default function Boss1v1ChatPage() {
   const nextMsgId = () => `msg-${++msgIdCounter.current}-${Date.now()}`;
 
   useEffect(() => {
-    fetch(`/api/simulator/boss-1v1/${sessionId}`)
+    apiFetch(`/api/simulator/boss-1v1/${sessionId}`)
       .then((r) => r.ok ? r.json() : null)
       .then((data) => {
         if (data) {
@@ -66,7 +67,7 @@ export default function Boss1v1ChatPage() {
     setIsSending(true);
 
     try {
-      const res = await fetch(`/api/simulator/boss-1v1/${sessionId}/chat`, {
+      const res = await apiFetch(`/api/simulator/boss-1v1/${sessionId}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: userMsg }),
@@ -128,7 +129,7 @@ export default function Boss1v1ChatPage() {
     setIsSubmitting(true);
 
     try {
-      const res = await fetch(`/api/simulator/boss-1v1/${sessionId}/chat`, {
+      const res = await apiFetch(`/api/simulator/boss-1v1/${sessionId}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: '请对我的表现进行评价', is_submission: true }),

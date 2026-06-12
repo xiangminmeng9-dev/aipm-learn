@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { PROJECT_SCENARIOS } from '@/lib/project-scenarios';
 import { cacheGet, cacheSet, cacheRemove, TTL } from '@/lib/cache';
 import GradientBackground from '@/components/ui/gradient-background';
+import { apiFetch } from '@/lib/api/fetch';
 
 export default function ProjectSandboxPage() {
   const [existingProjects, setExistingProjects] = useState<{ id: string; title: string; scenario_id: string; status: string }[]>([]);
@@ -14,7 +15,7 @@ export default function ProjectSandboxPage() {
     const cached = cacheGet<{ id: string; title: string; scenario_id: string; status: string }[]>('simulator-projects');
     if (cached) setExistingProjects(cached);
     try {
-      const res = await fetch('/api/simulator/project');
+      const res = await apiFetch('/api/simulator/project');
       if (res.ok) {
         const data = await res.json();
         const projects = data.projects || [];
@@ -29,7 +30,7 @@ export default function ProjectSandboxPage() {
   const handleCreate = async (scenarioId: string) => {
     setIsCreating(true);
     try {
-      const res = await fetch('/api/simulator/project', {
+      const res = await apiFetch('/api/simulator/project', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ scenario_id: scenarioId }),

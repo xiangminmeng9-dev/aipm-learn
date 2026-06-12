@@ -6,6 +6,7 @@ import { useToast } from '@/components/ui/toast';
 import { CardSkeleton } from '@/components/ui/skeleton';
 import PageShell from '@/components/layout/PageShell';
 import GradientBackground from '@/components/ui/gradient-background';
+import { apiFetch } from '@/lib/api/fetch';
 
 interface Bookmark {
   id: string; question_id: string; mastery_level: string; notes: string | null;
@@ -39,20 +40,20 @@ const BookmarkCard = memo(function BookmarkCard({
             onBlur={(e) => { if (e.target.value !== (b.notes || '')) onUpdate(b.id, { notes: e.target.value }); }} />
         </div>
         <div className="flex flex-col items-end gap-2 shrink-0">
-          <span className="text-[10px] text-muted-foreground">{new Date(b.created_at).toLocaleDateString('zh-CN')}</span>
+          <span className="text-xs text-muted-foreground">{new Date(b.created_at).toLocaleDateString('zh-CN')}</span>
           <div className="flex items-center gap-1">
-            <select className="rounded border border-border bg-muted/30 px-2 py-1 text-[10px] text-muted-foreground focus:outline-none"
+            <select className="rounded border border-border bg-muted/30 px-2 py-1 text-xs text-muted-foreground focus:outline-none"
               value={b.mastery_level} onChange={(e) => onUpdate(b.id, { mastery_level: e.target.value })}>
               <option value="mastered">已掌握</option>
               <option value="learning">学习中</option>
               <option value="review">需复习</option>
             </select>
             <Link href={`/interview/qa?q=${encodeURIComponent(b.question_text)}`}
-              className="rounded bg-indigo-50 px-2 py-1 text-[10px] font-medium text-indigo-600 hover:bg-indigo-100 dark:bg-indigo-950/30 dark:text-indigo-400 active:scale-95 transition-transform">
+              className="rounded bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-600 hover:bg-indigo-100 dark:bg-indigo-950/30 dark:text-indigo-400 active:scale-95 transition-transform">
               去分析
             </Link>
             <button onClick={() => onDelete(b.id)}
-              className="rounded px-2 py-1 text-[10px] text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 active:scale-95 transition-all">
+              className="rounded px-2 py-1 text-xs text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 active:scale-95 transition-all">
               删除
             </button>
           </div>
@@ -76,7 +77,7 @@ export default function FavoritesPage() {
     try {
       const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) });
       if (masteryFilter) params.set('mastery_level', masteryFilter);
-      const res = await fetch(`/api/interview/bookmarks?${params}`);
+      const res = await apiFetch(`/api/interview/bookmarks?${params}`);
       if (!res.ok) throw new Error();
       const json = await res.json();
       setBookmarks(json.data);
@@ -93,7 +94,7 @@ export default function FavoritesPage() {
     setTotal(prev => prev - 1);
     toast.success('已取消收藏');
     try {
-      const res = await fetch(`/api/interview/bookmarks?id=${id}`, { method: 'DELETE' });
+      const res = await apiFetch(`/api/interview/bookmarks?id=${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error();
     } catch { fetchBookmarks(); }
   }, [fetchBookmarks]);
@@ -101,7 +102,7 @@ export default function FavoritesPage() {
   const handleUpdate = useCallback(async (id: string, updates: Record<string, unknown>) => {
     setBookmarks(prev => prev.map(b => b.id === id ? { ...b, ...updates } : b));
     try {
-      await fetch('/api/interview/bookmarks', {
+      await apiFetch('/api/interview/bookmarks', {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, ...updates }),
       });

@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import GradientBackground from '@/components/ui/gradient-background';
-import ReactECharts from '@/components/ui/EChartsWrapper';
+import ReactECharts from '@/components/ui/LazyECharts';
 import { RESOURCE_TYPES, getResourceTypeIcon, getResourceTypeLabel } from '@/components/resources/constants';
+import { apiFetch } from '@/lib/api/fetch';
 
 interface SkillsStats {
   system_modules: number;
@@ -44,6 +45,7 @@ export default function SkillsDashboardPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedCompany, setSelectedCompany] = useState<string>('all');
   const [companyPreference, setCompanyPreference] = useState<Record<string, unknown> | null>(null);
+  const [fixedPersona, setFixedPersona] = useState<string | null>(null);
   const [preferenceLoading, setPreferenceLoading] = useState(false);
   const [commonSkillsData, setCommonSkillsData] = useState<{ skill: string; count: number; category?: string; companies?: string[] }[]>([]);
   const [resourceStats, setResourceStats] = useState<{ type_distribution: { type: string; count: number }[]; total: number } | null>(null);
@@ -51,7 +53,7 @@ export default function SkillsDashboardPage() {
   // 加载数据
   const loadData = useCallback(async (r: string) => {
     try {
-      const res = await fetch(`/api/skills/dashboard?range=${r}`);
+      const res = await apiFetch(`/api/skills/dashboard?range=${r}`);
       const d = await res.json();
       if (d.stats) {
         setStats(d.stats);
@@ -72,7 +74,7 @@ export default function SkillsDashboardPage() {
 
   // 加载资源统计
   useEffect(() => {
-    fetch('/api/external-resources')
+    apiFetch('/api/external-resources')
       .then(r => r.json())
       .then(data => {
         const resources = data.resources || [];
@@ -205,11 +207,15 @@ export default function SkillsDashboardPage() {
                     const val = e.target.value;
                     setSelectedCompany(val);
                     setCompanyPreference(null);
+                    setFixedPersona(null);
                     if (val !== 'all') {
                       setPreferenceLoading(true);
-                      fetch(`/api/skills/company-preference?company=${encodeURIComponent(val)}`)
+                      apiFetch(`/api/skills/company-preference?company=${encodeURIComponent(val)}`)
                         .then(r => r.json())
-                        .then(d => { if (d.preference) setCompanyPreference(d.preference); })
+                        .then(d => {
+                          if (d.preference) setCompanyPreference(d.preference);
+                          setFixedPersona(d.fixed_persona || null);
+                        })
                         .catch(() => {})
                         .finally(() => setPreferenceLoading(false));
                     }
@@ -227,26 +233,52 @@ export default function SkillsDashboardPage() {
             </div>
             {(() => {
               const colors = ['#6366F1', '#F59E0B', '#10B981', '#EF4444', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316', '#3B82F6', '#84CC16'];
-              const pieData = stats.company_distribution.map((c, i) => ({
-                name: c.company,
-                value: c.count,
-                itemStyle: {
-                  color: colors[i % colors.length],
-                  opacity: selectedCompany === 'all' ? 1 : (c.company === selectedCompany ? 1 : 0.25),
-                },
-              }));
-              return stats.company_distribution.length > 0 ? (
+              const MIN_COUNT_THRESHOLD = 10; // 出现次数 ≥10 的公司单独显示，其余归入「其他」
+              const allCompanies = stats.company_distribution;
+              const topCompanies = allCompanies.filter(c => c.count >= MIN_COUNT_THRESHOLD);
+              const otherCompanies = allCompanies.filter(c => c.count < MIN_COUNT_THRESHOLD);
+              const otherCount = otherCompanies.reduce((sum, c) => sum + c.count, 0);
+              const hasOther = otherCompanies.length > 0;
+
+              const pieData = [
+                ...topCompanies.map((c, i) => ({
+                  name: c.company,
+                  value: c.count,
+                  itemStyle: {
+                    color: colors[i % colors.length],
+                    opacity: selectedCompany === 'all' ? 1 : (c.company === selectedCompany ? 1 : 0.25),
+                  },
+                })),
+                ...(hasOther ? [{
+                  name: `其他 (${otherCompanies.length}家)`,
+                  value: otherCount,
+                  itemStyle: {
+                    color: '#9CA3AF',
+                    opacity: selectedCompany === 'all' ? 1 : 0.25,
+                  },
+                }] : []),
+              ];
+              return allCompanies.length > 0 ? (
                 <div className="flex gap-3">
                   <div className="flex-1">
                     <ReactECharts
                       option={{
-                        tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+                        tooltip: {
+                          trigger: 'item',
+                          formatter: (params: { name: string; value: number; percent: number }) =>
+                            `${params.name}: ${params.value} (${params.percent}%)`,
+                        },
                         series: [{
                           type: 'pie',
                           radius: ['40%', '70%'],
                           center: ['50%', '50%'],
                           data: pieData,
-                          label: { fontSize: 10, color: '#6B7280' },
+                          label: {
+                            fontSize: 10,
+                            color: '#6B7280',
+                            formatter: (params: { name: string }) =>
+                              params.name.length > 6 ? params.name.slice(0, 6) + '..' : params.name,
+                          },
                           emphasis: {
                             itemStyle: { opacity: 1 },
                           },
@@ -254,15 +286,20 @@ export default function SkillsDashboardPage() {
                       }}
                       style={{ height: 220 }}
                       onEvents={{
-                        click: (params: { name: string }) => {
-                          const companyName = params.name;
-                          if (companyName === '未提及公司') return;
+                        click: (params?: unknown) => {
+                          const p = params as { name?: string } | undefined;
+                          const companyName = p?.name;
+                          if (!companyName || companyName === '未提及公司' || companyName.startsWith('其他')) return;
                           setSelectedCompany(companyName);
                           setCompanyPreference(null);
+                          setFixedPersona(null);
                           setPreferenceLoading(true);
-                          fetch(`/api/skills/company-preference?company=${encodeURIComponent(companyName)}`)
+                          apiFetch(`/api/skills/company-preference?company=${encodeURIComponent(companyName)}`)
                             .then(r => r.json())
-                            .then(d => { if (d.preference) setCompanyPreference(d.preference); })
+                            .then(d => {
+                              if (d.preference) setCompanyPreference(d.preference);
+                              setFixedPersona(d.fixed_persona || null);
+                            })
                             .catch(() => {})
                             .finally(() => setPreferenceLoading(false));
                         },
@@ -270,32 +307,44 @@ export default function SkillsDashboardPage() {
                     />
                   </div>
                   <div className="w-[140px] flex flex-col gap-1.5 py-2 overflow-y-auto max-h-[220px]">
-                    {stats.company_distribution.filter(c => c.company !== '未提及公司').map((c, i) => (
-                      <button
-                        key={i}
-                        onClick={() => {
-                          setSelectedCompany(c.company);
-                          setCompanyPreference(null);
-                          setPreferenceLoading(true);
-                          fetch(`/api/skills/company-preference?company=${encodeURIComponent(c.company)}`)
-                            .then(r => r.json())
-                            .then(d => { if (d.preference) setCompanyPreference(d.preference); })
-                            .catch(() => {})
-                            .finally(() => setPreferenceLoading(false));
-                        }}
-                        className={`flex items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-all ${
-                          selectedCompany === c.company
-                            ? 'bg-indigo-100 dark:bg-indigo-900/40 ring-1 ring-indigo-400'
-                            : 'hover:bg-muted/50'
-                        }`}
-                      >
-                        <span className="shrink-0 w-3 h-3 rounded-sm" style={{ backgroundColor: colors[i % colors.length] }} />
-                        <span className={`text-xs truncate ${selectedCompany === c.company ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
-                          {c.company}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground ml-auto">{c.count}</span>
-                      </button>
-                    ))}
+                    {allCompanies.filter(c => c.company !== '未提及公司').map((c, i) => {
+                      const colorIdx = topCompanies.findIndex(t => t.company === c.company);
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => {
+                            setSelectedCompany(c.company);
+                            setCompanyPreference(null);
+                            setFixedPersona(null);
+                            setPreferenceLoading(true);
+                            apiFetch(`/api/skills/company-preference?company=${encodeURIComponent(c.company)}`)
+                              .then(r => r.json())
+                              .then(d => {
+                                if (d.preference) setCompanyPreference(d.preference);
+                                setFixedPersona(d.fixed_persona || null);
+                              })
+                              .catch(() => {})
+                              .finally(() => setPreferenceLoading(false));
+                          }}
+                          className={`flex items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-all ${
+                            selectedCompany === c.company
+                              ? 'bg-indigo-100 dark:bg-indigo-900/40 ring-1 ring-indigo-400'
+                              : 'hover:bg-muted/50'
+                          }`}
+                        >
+                          <span className="shrink-0 w-3 h-3 rounded-sm" style={{ backgroundColor: colorIdx >= 0 ? colors[colorIdx % colors.length] : '#9CA3AF' }} />
+                          <span className={`text-xs truncate ${selectedCompany === c.company ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
+                            {c.company}
+                          </span>
+                          <span className="text-xs text-muted-foreground ml-auto">{c.count}</span>
+                        </button>
+                      );
+                    })}
+                    {hasOther && (
+                      <div className="mt-1 pt-1 border-t border-border">
+                        <p className="text-[10px] text-muted-foreground px-2">另有 {otherCompanies.length} 家公司（各不足 {MIN_COUNT_THRESHOLD} 次）</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               ) : (
@@ -306,7 +355,7 @@ export default function SkillsDashboardPage() {
               <div className="mt-3 rounded-xl border border-indigo-200 bg-indigo-50/50 px-3 py-2.5 dark:border-indigo-800 dark:bg-indigo-950/30">
                 <div className="flex items-center gap-1.5 mb-1.5">
                   <span className="text-xs font-semibold text-indigo-700 dark:text-indigo-300">{selectedCompany}</span>
-                  <span className="text-[10px] text-muted-foreground">偏好画像</span>
+                  <span className="text-xs text-muted-foreground">偏好画像</span>
                 </div>
                 {preferenceLoading ? (
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -315,37 +364,43 @@ export default function SkillsDashboardPage() {
                   </div>
                 ) : companyPreference ? (() => {
                   const p = companyPreference;
-                  const persona = (p.persona as string) || '';
                   const coreSkills = (p.core_skills as Array<{ name: string; count: number }>) || [];
                   const softSkills = (p.soft_skills as string[]) || [];
                   const notCare = (p.not_care as string) || '';
                   const suggestion = (p.suggestion as string) || '';
                   const strengthen = (p.strengthen as string) || '';
+
+                  // Extract JD analysis part from combined persona
+                  const fullPersona = (p.persona as string) || '';
+                  const jdPersona = fixedPersona ? fullPersona.replace(fixedPersona + '\n\n', '').trim() : fullPersona;
+
                   return (
-                    <div className="space-y-1.5 text-[11px] leading-relaxed">
-                      {persona && (
-                        <div><span className="text-indigo-700 dark:text-indigo-300 font-medium">{selectedCompany}</span>更偏好<span className="text-foreground font-medium">{persona}</span>样的人</div>
-                      )}
+                    <div className="space-y-1.5 text-xs leading-relaxed">
+                      <div className="text-foreground font-medium leading-snug">{selectedCompany}更偏好<span className="text-indigo-700 dark:text-indigo-300">
+                        {fixedPersona ? (
+                          <><span className="font-semibold">{fixedPersona}</span>{jdPersona ? <span>。从JD分析来看，{jdPersona}</span> : null}</>
+                        ) : (
+                          fullPersona
+                        )}
+                      </span></div>
                       {coreSkills.length > 0 && (
-                        <div>原因在于岗位JD中体现了{coreSkills.map((s, i) => (
+                        <div>具体体现在分析的<span className="text-foreground font-medium">{stats.company_distribution.find(c => c.company === selectedCompany)?.count ?? 0}个</span>岗位中体现了{coreSkills.map((s, i) => (
                           <span key={i}><span className="text-emerald-700 dark:text-emerald-300 font-medium">{s.name}（{s.count}次）</span>{i < coreSkills.length - 1 ? '、' : ''}</span>
-                        ))}等核心技能要求，其次还包括了{softSkills.map((s, i) => (
-                          <span key={i}><span className="text-amber-700 dark:text-amber-300 font-medium">{s}</span>{i < softSkills.length - 1 ? '、' : ''}</span>
-                        ))}等软技能要求</div>
+                        ))}等核心技能要求</div>
                       )}
-                      {coreSkills.length === 0 && softSkills.length > 0 && (
+                      {softSkills.length > 0 && (
                         <div>其次还包括了{softSkills.map((s, i) => (
                           <span key={i}><span className="text-amber-700 dark:text-amber-300 font-medium">{s}</span>{i < softSkills.length - 1 ? '、' : ''}</span>
-                        ))}等软技能要求</div>
+                        ))}要求</div>
                       )}
                       {notCare && (
-                        <div>不看重<span className="text-muted-foreground italic">{notCare}</span></div>
+                        <div>不太看重<span className="text-muted-foreground">{notCare}</span></div>
                       )}
                       {suggestion && (
-                        <div className="pt-1 border-t border-indigo-200 dark:border-indigo-800">建议：<span className="text-blue-600 dark:text-blue-400">{suggestion}</span></div>
+                        <div className="pt-1 border-t border-indigo-200 dark:border-indigo-800">建议<span className="text-blue-600 dark:text-blue-400">{suggestion}</span></div>
                       )}
                       {strengthen && (
-                        <div>补强：<span className="text-rose-600 dark:text-rose-400 font-medium">{strengthen}</span></div>
+                        <div>目前简历需补强<span className="text-rose-600 dark:text-rose-400 font-medium">{strengthen}</span></div>
                       )}
                     </div>
                   );

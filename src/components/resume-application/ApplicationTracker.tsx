@@ -9,6 +9,7 @@ import {
 import CompanyTypeBadge from './CompanyTypeBadge';
 import { COMPANY_TYPES } from './constants';
 import type { CompanyType } from '@/types';
+import { apiFetch } from '@/lib/api/fetch';
 
 // ── Types ──────────────────────────────────────────────
 type KanbanStage = 'watching' | 'applied' | 'interviewing' | 'offer' | 'accepted' | 'rejected';
@@ -432,7 +433,7 @@ export default function ApplicationTracker() {
 
   // Also try loading from API on mount and merge
   useEffect(() => {
-    fetch('/api/resume/applications?limit=200')
+    apiFetch('/api/resume/applications?limit=200')
       .then((r) => r.json())
       .then((d) => {
         if (d.applications && d.applications.length > 0) {
@@ -543,7 +544,7 @@ export default function ApplicationTracker() {
   };
 
   const apiPatch = async (id:string, body:Record<string,unknown>) => {
-    try { await fetch(`/api/resume/applications/${id}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) }); } catch {}
+    try { await apiFetch(`/api/resume/applications/${id}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) }); } catch {}
   };
 
   const upsertRecord = async (r: AppRecord) => {
@@ -558,13 +559,13 @@ export default function ApplicationTracker() {
     if (idx>=0) {
       apiPatch(r.id, body);
     } else {
-      try { await fetch('/api/resume/applications', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) }); } catch {}
+      try { await apiFetch('/api/resume/applications', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) }); } catch {}
     }
   };
 
   const deleteRecord = (id: string) => {
     setRecords((prev)=>prev.filter((r)=>r.id!==id));
-    try { fetch(`/api/resume/applications/${id}`, { method:'DELETE' }); } catch {}
+    try { apiFetch(`/api/resume/applications/${id}`, { method:'DELETE' }); } catch {}
   };
 
   const updateField = (id:string, field:string, value:string|number) => {

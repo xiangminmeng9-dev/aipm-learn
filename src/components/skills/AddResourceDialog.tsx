@@ -5,6 +5,7 @@ import { X, Loader2, FileText, Video, BookOpen, StickyNote } from 'lucide-react'
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { UserResourceType, UserTaskType } from '@/types';
+import { apiFetch } from '@/lib/api/fetch';
 
 interface AddResourceDialogProps {
   taskId: string;
@@ -41,7 +42,7 @@ export default function AddResourceDialog({
     if (!title.trim() || (type !== 'note' && !url.trim())) return;
     setSubmitting(true);
     try {
-      const res = await fetch('/api/skills/resources', {
+      const res = await apiFetch('/api/skills/resources', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

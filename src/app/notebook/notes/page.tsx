@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { MotionDiv, AnimatePresence } from '@/components/ui/lazy-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { type Note, getNotes, createNote, updateNote, deleteNote } from '@/lib/notebook-store';
@@ -68,7 +68,7 @@ function NoteCard({
   const cc = CATEGORY_CONFIG[note.category] || CATEGORY_CONFIG.general;
 
   return (
-    <motion.div
+    <MotionDiv
       layout
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
@@ -88,7 +88,7 @@ function NoteCard({
           <div className="mb-2 flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <span className="text-sm">{cc.icon}</span>
-              <span className={`rounded-md px-2 py-0.5 text-[10px] font-semibold ${cc.color} ${cc.bg}`}>
+              <span className={`rounded-md px-2 py-0.5 text-xs font-semibold ${cc.color} ${cc.bg}`}>
                 {cc.label}
               </span>
             </div>
@@ -104,7 +104,7 @@ function NoteCard({
           )}
 
           {/* Date */}
-          <p className="mt-3 text-[10px] text-muted-foreground">{new Date(note.created_at).toLocaleDateString('zh-CN')}</p>
+          <p className="mt-3 text-xs text-muted-foreground">{new Date(note.created_at).toLocaleDateString('zh-CN')}</p>
         </div>
 
         {/* Hover actions */}
@@ -123,7 +123,7 @@ function NoteCard({
           </button>
         </div>
       </div>
-    </motion.div>
+    </MotionDiv>
   );
 }
 
@@ -145,7 +145,7 @@ function NoteEditor({
   const cc = CATEGORY_CONFIG[category] || CATEGORY_CONFIG.general;
 
   return (
-    <motion.div
+    <MotionDiv
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -153,12 +153,12 @@ function NoteEditor({
       onClick={onClose}
     >
       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
-      <motion.div
+      <MotionDiv
         initial={{ y: 30, scale: 0.95 }}
         animate={{ y: 0, scale: 1 }}
         exit={{ y: 30, scale: 0.95 }}
         className="relative z-10 flex w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
+        onClick={(e: React.MouseEvent) => e.stopPropagation()}
       >
         {/* Accent bar */}
         <div className={`h-1.5 w-full bg-gradient-to-r ${cc.gradient}`} />
@@ -216,11 +216,11 @@ function NoteEditor({
 
         {/* Footer */}
         <div className="flex items-center justify-between border-t border-border px-6 py-3">
-          <p className="text-[10px] text-muted-foreground">最后编辑: {new Date(note.updated_at).toLocaleString('zh-CN')}</p>
+          <p className="text-xs text-muted-foreground">最后编辑: {new Date(note.updated_at).toLocaleString('zh-CN')}</p>
           <GlassButton onClick={() => onSave(note.id, { title, content, category })} color="indigo" size="md">保存</GlassButton>
         </div>
-      </motion.div>
-    </motion.div>
+      </MotionDiv>
+    </MotionDiv>
   );
 }
 
@@ -347,7 +347,7 @@ export default function NotesPage() {
       {/* Create note form */}
       <AnimatePresence>
         {isCreating && (
-          <motion.div
+          <MotionDiv
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
@@ -382,7 +382,7 @@ export default function NotesPage() {
                 </div>
               </div>
             </div>
-          </motion.div>
+          </MotionDiv>
         )}
       </AnimatePresence>
 

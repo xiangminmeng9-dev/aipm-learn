@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import type { DailyAiNewsArticle, DailyAiNewsDigest } from '@/types';
 import { cacheGet, cacheSet, TTL } from '@/lib/cache';
 import GradientBackground from '@/components/ui/gradient-background';
+import { apiFetch } from '@/lib/api/fetch';
 
 function getTodayShanghai(): string {
   return new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Shanghai' });
@@ -39,7 +40,7 @@ export default function DailyAiNewsPage() {
       setLoading(false);
     }
     try {
-      const res = await fetch(`/api/daily-ai-news?date=${d}`);
+      const res = await apiFetch(`/api/daily-ai-news?date=${d}`);
       if (res.ok) {
         const data = await res.json();
         setArticles(data.articles ?? []);
@@ -56,7 +57,7 @@ export default function DailyAiNewsPage() {
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      await fetch('/api/daily-ai-news/refresh', {
+      await apiFetch('/api/daily-ai-news/refresh', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ date }),
@@ -100,7 +101,7 @@ export default function DailyAiNewsPage() {
           <button
             onClick={handleRefresh}
             disabled={refreshing}
-            className="rounded-lg bg-[#4F46E5] px-4 py-2 text-xs font-medium text-white hover:bg-[#4338CA] disabled:opacity-50 transition"
+            className="rounded-lg bg-primary px-4 py-2 text-xs font-medium text-white hover:bg-primary/90 disabled:opacity-50 transition"
           >
             {refreshing ? '刷新中...' : '刷新数据'}
           </button>
@@ -111,7 +112,7 @@ export default function DailyAiNewsPage() {
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="rounded-lg border border-border bg-muted px-3 py-1.5 text-xs text-foreground focus:border-[#4F46E5] focus:outline-none"
+            className="rounded-lg border border-border bg-muted px-3 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none"
           />
           <span className="text-xs text-muted-foreground">{articles.length} 篇文章</span>
         </div>
@@ -131,7 +132,7 @@ export default function DailyAiNewsPage() {
                 <div className="flex items-center gap-2 mb-3">
                   <span className="text-base">🤖</span>
                   <h2 className="text-sm font-semibold text-foreground">AI 每日摘要</h2>
-                  <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-medium text-indigo-600">
+                  <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-600">
                     {digest?.article_count ?? 0} 篇
                   </span>
                 </div>
@@ -164,14 +165,14 @@ export default function DailyAiNewsPage() {
                             <a href={article.url} target="_blank" rel="noopener noreferrer">{article.title}</a>
                           ) : article.title}
                         </h3>
-                        <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+                        <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
                           <span className="rounded bg-secondary px-1.5 py-0.5">{article.source}</span>
                           {article.published_at && <span>{timeAgo(article.published_at)}</span>}
                         </div>
                         {tags.length > 0 && (
                           <div className="mt-2 flex flex-wrap gap-1">
                             {tags.slice(0, 4).map(tag => (
-                              <span key={tag} className="rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-medium text-indigo-600">{tag}</span>
+                              <span key={tag} className="rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-600">{tag}</span>
                             ))}
                           </div>
                         )}
@@ -180,7 +181,7 @@ export default function DailyAiNewsPage() {
                         )}
                         {impact && (
                           <div className="mt-2 rounded-lg bg-amber-50/60 p-2">
-                            <p className="text-[10px] font-medium text-amber-700">对 PM 的意义</p>
+                            <p className="text-xs font-medium text-amber-700">对产品经理的意义</p>
                             <p className="mt-0.5 text-xs text-foreground line-clamp-2">{impact}</p>
                           </div>
                         )}

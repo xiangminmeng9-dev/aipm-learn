@@ -6,6 +6,7 @@ import MockInterviewFlow, { type MockInterviewResult } from '@/components/interv
 import MockSummary from '@/components/interview/MockSummary';
 import { Button } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/client';
+import { apiFetch } from '@/lib/api/fetch';
 
 interface MockDetailPageProps {
   params: Promise<{ id: string }>;
@@ -46,7 +47,7 @@ export default function MockDetailPage({ params }: MockDetailPageProps) {
           const parsed = JSON.parse(completedData);
           if (parsed.completed) {
             // Try server summary first, fallback to local data
-            fetch(`/api/interview/mock/${id}/summary`, { headers: authHeaders })
+            apiFetch(`/api/interview/mock/${id}/summary`, { headers: authHeaders })
               .then((r) => r.ok ? r.json() : null)
               .then((serverSummary) => {
                 if (serverSummary) {
@@ -75,14 +76,14 @@ export default function MockDetailPage({ params }: MockDetailPageProps) {
       } catch {}
 
       // 4. Try server API (for authenticated users)
-      fetch(`/api/interview/mock/${id}/state`, { headers: authHeaders })
+      apiFetch(`/api/interview/mock/${id}/state`, { headers: authHeaders })
         .then((r) => {
           if (r.status === 401) throw new Error('unauth');
           return r.json();
         })
         .then((data) => {
           if (data.status === 'completed') {
-            fetch(`/api/interview/mock/${id}/summary`, { headers: authHeaders })
+            apiFetch(`/api/interview/mock/${id}/summary`, { headers: authHeaders })
               .then((r) => r.json())
               .then((summaryData) => setPageState({ phase: 'summary', summary: summaryData }))
               .catch(() => setPageState({ phase: 'summary', summary: emptySummary(id) }));
@@ -116,7 +117,7 @@ export default function MockDetailPage({ params }: MockDetailPageProps) {
         const authHeaders: Record<string, string> = {};
         if (session) authHeaders['Authorization'] = `Bearer ${session.access_token}`;
 
-        const res = await fetch(`/api/interview/mock/${mockId}/summary`, { headers: authHeaders });
+        const res = await apiFetch(`/api/interview/mock/${mockId}/summary`, { headers: authHeaders });
         if (res.ok) {
           const data = await res.json();
           setPageState({ phase: 'summary', summary: data });

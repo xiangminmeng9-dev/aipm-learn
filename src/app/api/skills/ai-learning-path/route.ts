@@ -3,6 +3,9 @@ import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { generateText } from '@/lib/ai/claude';
 import { buildLearningPathPrompt, LEARNING_PATH_SYSTEM_PROMPT } from '@/lib/ai/prompts';
 import { validateBody, aiLearningPathSchema } from '@/lib/validations';
+import { withTimeout, AI_TIMEOUT_MS } from '@/lib/ai/with-timeout';
+
+export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,97 +26,116 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: validation.error }, { status: 400 });
     }
 
-    // Collect weakness data from multiple sources
+    // Collect weakness data from multiple sources — parallelized for faster response
     const weaknessParts: string[] = [];
 
-    try {
-      const { data: sysModules } = await serviceClient.from('skill_modules').select('id, name, level');
-      const { data: sysTasks } = await serviceClient.from('learning_tasks').select('id, module_id');
-      const { data: sysProgress } = await serviceClient.from('learning_progress').select('task_id, status').eq('user_id', user.id);
+    const [skillsResult, interviewsResult, qaResult] = await Promise.all([
+      // Skills weakness data
+      (async () => {
+        try {
+          const { data: sysModules } = await serviceClient.from('skill_modules').select('id, name, level');
+          const { data: sysTasks } = await serviceClient.from('learning_tasks').select('id, module_id');
+          const { data: sysProgress } = await serviceClient.from('learning_progress').select('task_id, status').eq('user_id', user.id);
 
-      const completedTaskIds = new Set((sysProgress ?? []).filter(p => p.status === 'completed').map(p => p.task_id));
-      const taskCountByModule: Record<string, { name: string; total: number; completed: number }> = {};
-      for (const t of sysTasks ?? []) {
-        if (!taskCountByModule[t.module_id]) {
-          const mod = sysModules?.find(m => m.id === t.module_id);
-          taskCountByModule[t.module_id] = { name: mod?.name || '未知', total: 0, completed: 0 };
-        }
-        taskCountByModule[t.module_id].total++;
-        if (completedTaskIds.has(t.id)) taskCountByModule[t.module_id].completed++;
-      }
+          const completedTaskIds = new Set((sysProgress ?? []).filter(p => p.status === 'completed').map(p => p.task_id));
+          const taskCountByModule: Record<string, { name: string; total: number; completed: number }> = {};
+          for (const t of sysTasks ?? []) {
+            if (!taskCountByModule[t.module_id]) {
+              const mod = sysModules?.find(m => m.id === t.module_id);
+              taskCountByModule[t.module_id] = { name: mod?.name || '未知', total: 0, completed: 0 };
+            }
+            taskCountByModule[t.module_id].total++;
+            if (completedTaskIds.has(t.id)) taskCountByModule[t.module_id].completed++;
+          }
 
-      const weakModules = Object.values(taskCountByModule)
-        .filter(m => m.total > 0 && m.completed / m.total < 0.5)
-        .sort((a, b) => (a.completed / a.total) - (b.completed / b.total));
+          const weakModules = Object.values(taskCountByModule)
+            .filter(m => m.total > 0 && m.completed / m.total < 0.5)
+            .sort((a, b) => (a.completed / a.total) - (b.completed / b.total));
 
-      if (weakModules.length > 0) {
-        weaknessParts.push('【技能树弱项模块】\n' + weakModules.map(m =>
-          `- ${m.name}: 完成率 ${Math.round(m.completed / m.total * 100)}% (${m.completed}/${m.total})`
-        ).join('\n'));
-      }
-    } catch (e) { console.error('Weakness data collection error (skills):', e); }
+          if (weakModules.length > 0) {
+            return '【技能树弱项模块】\n' + weakModules.map(m =>
+              `- ${m.name}: 完成率 ${Math.round(m.completed / m.total * 100)}% (${m.completed}/${m.total})`
+            ).join('\n');
+          }
+        } catch (e) { console.error('Weakness data collection error (skills):', e); }
+        return null;
+      })(),
 
-    try {
-      const { data: mockInterviews } = await serviceClient
-        .from('mock_interviews')
-        .select('id, type_id, total_score, weak_skill_modules')
-        .eq('user_id', user.id)
-        .eq('status', 'completed')
-        .order('created_at', { ascending: false })
-        .limit(5);
+      // Interview weakness data
+      (async () => {
+        try {
+          const { data: mockInterviews } = await serviceClient
+            .from('mock_interviews')
+            .select('id, type_id, total_score, weak_skill_modules')
+            .eq('user_id', user.id)
+            .eq('status', 'completed')
+            .order('created_at', { ascending: false })
+            .limit(5);
 
-      if (mockInterviews && mockInterviews.length > 0) {
-        const weakAreas: string[] = [];
-        for (const mi of mockInterviews) {
-          if (mi.weak_skill_modules && Array.isArray(mi.weak_skill_modules)) {
-            for (const wsm of mi.weak_skill_modules) {
-              weakAreas.push(`${wsm.module_name}: ${wsm.recommended_tasks?.map((t: { task_name: string }) => t.task_name).join('、') || '无具体任务'}`);
+          if (mockInterviews && mockInterviews.length > 0) {
+            const weakAreas: string[] = [];
+            for (const mi of mockInterviews) {
+              if (mi.weak_skill_modules && Array.isArray(mi.weak_skill_modules)) {
+                for (const wsm of mi.weak_skill_modules) {
+                  weakAreas.push(`${wsm.module_name}: ${wsm.recommended_tasks?.map((t: { task_name: string }) => t.task_name).join('、') || '无具体任务'}`);
+                }
+              }
+              if (mi.total_score !== null && mi.total_score < 70) {
+                weakAreas.push(`模拟面试总分偏低: ${mi.total_score}/100`);
+              }
+            }
+            if (weakAreas.length > 0) {
+              return '【面试弱项】\n' + [...new Set(weakAreas)].map(a => `- ${a}`).join('\n');
             }
           }
-          if (mi.total_score !== null && mi.total_score < 70) {
-            weakAreas.push(`模拟面试总分偏低: ${mi.total_score}/100`);
+        } catch (e) { console.error('Weakness data collection error (interviews):', e); }
+        return null;
+      })(),
+
+      // QA weakness data
+      (async () => {
+        try {
+          const { data: qaRecords } = await serviceClient
+            .from('assistant_qa_records')
+            .select('evaluation, category')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false })
+            .limit(10);
+
+          const lowScoreCategories: Record<string, { count: number; avgScore: number }> = {};
+          for (const r of qaRecords ?? []) {
+            const ev = r.evaluation as Record<string, unknown> | null;
+            if (ev) {
+              const s = ev.total_score ?? ev.score ?? ev.overall_score;
+              if (typeof s === 'number' && s < 60) {
+                const cat = r.category || '未分类';
+                if (!lowScoreCategories[cat]) lowScoreCategories[cat] = { count: 0, avgScore: 0 };
+                lowScoreCategories[cat].count++;
+                lowScoreCategories[cat].avgScore += s;
+              }
+            }
           }
-        }
-        if (weakAreas.length > 0) {
-          weaknessParts.push('【面试弱项】\n' + [...new Set(weakAreas)].map(a => `- ${a}`).join('\n'));
-        }
-      }
-    } catch (e) { console.error('Weakness data collection error (interviews):', e); }
 
-    try {
-      const { data: qaRecords } = await serviceClient
-        .from('assistant_qa_records')
-        .select('evaluation, category')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(10);
+          const weakCats = Object.entries(lowScoreCategories).map(([cat, v]) => ({
+            category: cat,
+            count: v.count,
+            avgScore: Math.round(v.avgScore / v.count),
+          }));
 
-      const lowScoreCategories: Record<string, { count: number; avgScore: number }> = {};
-      for (const r of qaRecords ?? []) {
-        const ev = r.evaluation as Record<string, unknown> | null;
-        if (ev) {
-          const s = ev.total_score ?? ev.score ?? ev.overall_score;
-          if (typeof s === 'number' && s < 60) {
-            const cat = r.category || '未分类';
-            if (!lowScoreCategories[cat]) lowScoreCategories[cat] = { count: 0, avgScore: 0 };
-            lowScoreCategories[cat].count++;
-            lowScoreCategories[cat].avgScore += s;
+          if (weakCats.length > 0) {
+            return '【面试问答低分类别】\n' + weakCats.map(c =>
+              `- ${c.category}: 平均分 ${c.avgScore} (${c.count}次低分)`
+            ).join('\n');
           }
-        }
-      }
+        } catch (e) { console.error('Weakness data collection error (qa):', e); }
+        return null;
+      })(),
+    ]);
 
-      const weakCats = Object.entries(lowScoreCategories).map(([cat, v]) => ({
-        category: cat,
-        count: v.count,
-        avgScore: Math.round(v.avgScore / v.count),
-      }));
-
-      if (weakCats.length > 0) {
-        weaknessParts.push('【面试问答低分类别】\n' + weakCats.map(c =>
-          `- ${c.category}: 平均分 ${c.avgScore} (${c.count}次低分)`
-        ).join('\n'));
-      }
-    } catch (e) { console.error('Weakness data collection error (qa):', e); }
+    // Collect non-null results
+    for (const part of [skillsResult, interviewsResult, qaResult]) {
+      if (part) weaknessParts.push(part);
+    }
 
     const weaknessData = weaknessParts.length > 0
       ? weaknessParts.join('\n\n')
@@ -124,11 +146,11 @@ export async function POST(request: NextRequest) {
     // Use generateText for reliable error reporting
     let result: string;
     try {
-      result = await generateText(prompt, {
+      result = await withTimeout(generateText(prompt, {
         model: 'sonnet',
         system: LEARNING_PATH_SYSTEM_PROMPT,
         maxTokens: 4096,
-      });
+      }), AI_TIMEOUT_MS);
     } catch (aiErr) {
       console.error('AI learning path AI call error:', aiErr);
       return NextResponse.json({ error: `AI 调用失败: ${aiErr instanceof Error ? aiErr.message : '未知错误'}` }, { status: 500 });

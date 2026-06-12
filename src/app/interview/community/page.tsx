@@ -6,6 +6,7 @@ import { useToast } from '@/components/ui/toast';
 import { CardSkeleton } from '@/components/ui/skeleton';
 import PageShell from '@/components/layout/PageShell';
 import GradientBackground from '@/components/ui/gradient-background';
+import { apiFetch } from '@/lib/api/fetch';
 
 interface CommunityQuestion {
   id: string; text: string; type_name: string | null; created_at: string;
@@ -30,8 +31,8 @@ const QuestionCard = memo(function QuestionCard({ q, onVote }: { q: CommunityQue
       <div className="min-w-0 flex-1">
         <p className="text-[15px] leading-relaxed text-foreground">{q.text}</p>
         <div className="mt-2 flex items-center gap-2">
-          {q.type_name && <span className="rounded-md bg-accent px-2 py-0.5 text-[11px] font-medium text-accent-foreground">{q.type_name}</span>}
-          <span className="text-[11px] text-muted-foreground">{new Date(q.created_at).toLocaleDateString('zh-CN')}</span>
+          {q.type_name && <span className="rounded-md bg-accent px-2 py-0.5 text-xs font-medium text-accent-foreground">{q.type_name}</span>}
+          <span className="text-xs text-muted-foreground">{new Date(q.created_at).toLocaleDateString('zh-CN')}</span>
         </div>
       </div>
       <Link href={`/interview/qa?q=${encodeURIComponent(q.text)}`}
@@ -59,7 +60,7 @@ export default function CommunityPage() {
   const pageSize = 20;
 
   useEffect(() => {
-    fetch('/api/interview/question-types').then(r => r.ok ? r.json() : null).then(d => {
+    apiFetch('/api/interview/question-types').then(r => r.ok ? r.json() : null).then(d => {
       if (d?.types) setTypes(d.types);
     }).catch(() => {});
   }, []);
@@ -69,7 +70,7 @@ export default function CommunityPage() {
     try {
       const params = new URLSearchParams({ page: String(page), page_size: String(pageSize), sort });
       if (typeFilter) params.set('type_id', typeFilter);
-      const res = await fetch(`/api/interview/community/questions?${params}`);
+      const res = await apiFetch(`/api/interview/community/questions?${params}`);
       if (!res.ok) throw new Error();
       const json = await res.json();
       setQuestions(json.data);
@@ -91,7 +92,7 @@ export default function CommunityPage() {
       else { user_vote = vote; if (vote === 1) upvotes++; else downvotes++; }
       return { ...q, upvotes, downvotes, user_vote };
     }));
-    try { await fetch('/api/interview/community/votes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question_id: questionId, vote }) }); }
+    try { await apiFetch('/api/interview/community/votes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question_id: questionId, vote }) }); }
     catch { fetchQuestions(); }
   }, [fetchQuestions]);
 
@@ -99,7 +100,7 @@ export default function CommunityPage() {
     if (!newText.trim() || newText.trim().length < 5) { toast.error('问题至少需要 5 个字符'); return; }
     setSubmitting(true);
     try {
-      const res = await fetch('/api/interview/community/questions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: newText.trim(), type_id: newTypeId || undefined }) });
+      const res = await apiFetch('/api/interview/community/questions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: newText.trim(), type_id: newTypeId || undefined }) });
       if (res.ok) { setNewText(''); setNewTypeId(''); setShowSubmit(false); toast.success('提交成功'); fetchQuestions(); }
       else { const d = await res.json(); toast.error(d.error || '提交失败'); }
     } catch { toast.error('提交失败'); }
@@ -109,7 +110,7 @@ export default function CommunityPage() {
   async function handleFetchFromAI() {
     setFetching(true);
     try {
-      const res = await fetch('/api/interview/community/fetch', { method: 'POST' });
+      const res = await apiFetch('/api/interview/community/fetch', { method: 'POST' });
       const d = await res.json();
       if (res.ok) { toast.success(`已添加 ${d.added} 道新题`); fetchQuestions(); }
       else toast.error(d.error || '扫描失败');

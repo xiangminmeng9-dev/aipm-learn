@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import type { LearningResource, UserTaskResource } from '@/types';
 import AddResourceDialog from '@/components/skills/AddResourceDialog';
 import GradientBackground from '@/components/ui/gradient-background';
+import { apiFetch } from '@/lib/api/fetch';
 
 const RESOURCE_ICONS: Record<string, string> = { article: '📄', video: '🎬', book: '📚', note: '📝' };
 const RESOURCE_COLORS: Record<string, string> = {
@@ -40,7 +41,7 @@ export default function JdGapsPage() {
   const fetchTasks = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/skills/jd-gaps');
+      const res = await apiFetch('/api/skills/jd-gaps');
       if (res.ok) {
         const data = await res.json();
         setTasks(data.tasks ?? []);
@@ -56,7 +57,7 @@ export default function JdGapsPage() {
 
   const toggleStatus = async (task: JdGapTask) => {
     const next = task.status === 'completed' ? 'not_started' : 'completed';
-    const res = await fetch(`/api/skills/tasks/${task.id}`, {
+    const res = await apiFetch(`/api/skills/tasks/${task.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: next }),
@@ -74,7 +75,7 @@ export default function JdGapsPage() {
 
   const handleDelete = async (taskId: string) => {
     if (!confirm('确定删除此技能差距？')) return;
-    const res = await fetch(`/api/skills/tasks/${taskId}`, { method: 'DELETE' });
+    const res = await apiFetch(`/api/skills/tasks/${taskId}`, { method: 'DELETE' });
     if (res.ok) {
       setTasks((prev) => prev.filter((t) => t.id !== taskId));
     }
@@ -85,7 +86,7 @@ export default function JdGapsPage() {
   }, []);
 
   const handleResourceDeleted = useCallback(async (taskId: string, resourceId: string) => {
-    const res = await fetch(`/api/skills/resources/${resourceId}`, { method: 'DELETE' });
+    const res = await apiFetch(`/api/skills/resources/${resourceId}`, { method: 'DELETE' });
     if (res.ok) {
       setTasks((prev) => prev.map((t) => t.id === taskId ? { ...t, user_resources: (t.user_resources ?? []).filter((r) => r.id !== resourceId) } : t));
     }

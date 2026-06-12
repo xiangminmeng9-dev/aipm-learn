@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import Markdown from '@/components/ui/markdown';
+import { useState, useEffect, useCallback } from 'react';
+import { AnimatePresence, MotionDiv } from '@/components/ui/lazy-motion';
+import dynamic from 'next/dynamic';
+const Markdown = dynamic(() => import('@/components/ui/markdown'), { ssr: false });
 import GradientBackground from '@/components/ui/gradient-background';
+import { apiFetch } from '@/lib/api/fetch';
 
 /* ---------------------------- Section Config ---------------------------- */
 
@@ -80,12 +82,12 @@ function FlowCard({ flow, isExpanded, onToggle }: {
               {flow.question_text as string}
             </p>
             <div className="mt-1.5 flex items-center gap-2">
-              <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-medium ${modeStyle.bg} ${modeStyle.text} ${modeStyle.border} border`}>
+              <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${modeStyle.bg} ${modeStyle.text} ${modeStyle.border} border`}>
                 {modeName}
               </span>
-              <span className="text-[11px] text-muted-foreground">{dateStr} {timeStr}</span>
+              <span className="text-xs text-muted-foreground">{dateStr} {timeStr}</span>
               {sectionCount > 0 && (
-                <span className="text-[11px] text-muted-foreground">· {sectionCount} 个要点</span>
+                <span className="text-xs text-muted-foreground">· {sectionCount} 个要点</span>
               )}
             </div>
           </div>
@@ -99,14 +101,14 @@ function FlowCard({ flow, isExpanded, onToggle }: {
 
         <AnimatePresence>
           {isExpanded && (
-            <motion.div
+            <MotionDiv
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.2, ease: 'easeInOut' }}
               className="overflow-hidden"
             >
-              <div className="border-t border-[#F3F4F6] px-4 pb-4 pt-3">
+              <div className="border-t border-border px-4 pb-4 pt-3">
                 <div className="space-y-3">
                   {SECTION_CONFIG.map(({ key, label, icon, accent, bg, border }) => {
                     const content = flow[key] as string;
@@ -125,7 +127,7 @@ function FlowCard({ flow, isExpanded, onToggle }: {
                   })}
                 </div>
               </div>
-            </motion.div>
+            </MotionDiv>
           )}
         </AnimatePresence>
       </div>
@@ -139,14 +141,27 @@ export default function CodingFlowsPage() {
   const [flows, setFlows] = useState<Record<string, unknown>[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetch('/api/coding/flows')
-      .then((r) => r.json())
-      .then((data) => setFlows(data.flows ?? []))
-      .catch(() => {})
-      .finally(() => setIsLoading(false));
+  const fetchFlows = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const r = await apiFetch('/api/coding/flows');
+      if (r.ok) {
+        const data = await r.json();
+        setFlows(data.flows ?? []);
+      } else {
+        setError('加载开发流程失败');
+      }
+    } catch {
+      setError('加载开发流程失败');
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
+
+  useEffect(() => { fetchFlows(); }, [fetchFlows]);
 
   return (
     <div className="flex h-full flex-col bg-background">
@@ -154,6 +169,13 @@ export default function CodingFlowsPage() {
       {isLoading ? (
         <div className="relative z-10 flex flex-1 items-center justify-center">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+        </div>
+      ) : error ? (
+        <div className="relative z-10 flex flex-1 items-center justify-center">
+          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/30 dark:text-red-300">
+            <p>{error}</p>
+            <button onClick={fetchFlows} className="mt-1 text-xs font-medium text-red-600 hover:text-red-800 dark:text-red-400">重试</button>
+          </div>
         </div>
       ) : flows.length === 0 ? (
         <div className="relative z-10 flex flex-1 items-center justify-center">

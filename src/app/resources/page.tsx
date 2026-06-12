@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import GradientBackground from '@/components/ui/gradient-background';
-import ReactECharts from '@/components/ui/EChartsWrapper';
+import ReactECharts from '@/components/ui/LazyECharts';
+import { apiFetch } from '@/lib/api/fetch';
 
 interface ResourcesStats {
   total_resources: number;
@@ -31,7 +32,7 @@ export default function ResourcesDashboardPage() {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/resources/stats?range=${range}`)
+    apiFetch(`/api/resources/stats?range=${range}`)
       .then(r => r.json())
       .then(d => {
         if (d.total_resources !== undefined) setStats(d);

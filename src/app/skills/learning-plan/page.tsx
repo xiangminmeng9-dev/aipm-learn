@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import PageShell from '@/components/layout/PageShell';
 import { useToast } from '@/components/ui/toast';
+import { apiFetch } from '@/lib/api/fetch';
 
 interface PlanTask { day: number; title: string; description: string; module: string; estimated_minutes: number; }
 interface PlanWeek { week: number; theme: string; tasks: PlanTask[]; }
@@ -28,7 +29,7 @@ export default function LearningPlanPage() {
   const toast = useToast();
 
   useEffect(() => {
-    fetch('/api/skills/learning-plan')
+    apiFetch('/api/skills/learning-plan')
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (d?.plan?.plan_data?.weeks) setPlan(d.plan.plan_data); setTargetRole(d?.plan?.target_role || 'AI产品经理'); if (d?.plan?.target_date) setTargetDate(d.plan.target_date); })
       .catch(() => {})
@@ -38,7 +39,7 @@ export default function LearningPlanPage() {
   async function handleGenerate() {
     setGenerating(true);
     try {
-      const res = await fetch('/api/skills/learning-plan', {
+      const res = await apiFetch('/api/skills/learning-plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ target_role: targetRole, target_date: targetDate || null, weekly_hours: weeklyHours }),
@@ -136,15 +137,15 @@ export default function LearningPlanPage() {
               <div className="divide-y divide-border">
                 {week.tasks.map((task, i) => (
                   <div key={i} className="flex items-start gap-3 px-4 py-3">
-                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-100 text-[10px] font-bold text-amber-700">
+                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-100 text-xs font-bold text-amber-700">
                       {task.day}
                     </span>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-foreground">{task.title}</p>
                       <p className="mt-0.5 text-xs text-muted-foreground">{task.description}</p>
                       <div className="mt-1 flex items-center gap-2">
-                        <span className="rounded bg-accent px-1.5 py-0.5 text-[10px] text-accent-foreground">{task.module}</span>
-                        <span className="text-[10px] text-muted-foreground">{task.estimated_minutes} 分钟</span>
+                        <span className="rounded bg-accent px-1.5 py-0.5 text-xs text-accent-foreground">{task.module}</span>
+                        <span className="text-xs text-muted-foreground">{task.estimated_minutes} 分钟</span>
                       </div>
                     </div>
                   </div>

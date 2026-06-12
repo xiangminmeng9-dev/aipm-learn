@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import Markdown from '@/components/ui/markdown';
+import dynamic from 'next/dynamic';
+const Markdown = dynamic(() => import('@/components/ui/markdown'), { ssr: false });
 
 interface DevFlowResultProps {
   result: { clarification: string; breakdown: string; steps: string; notes: string; mode: { name: string } };

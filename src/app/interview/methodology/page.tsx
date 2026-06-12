@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import MethodologyCard from '@/components/interview/MethodologyCard';
 import GradientBackground from '@/components/ui/gradient-background';
+import { apiFetch } from '@/lib/api/fetch';
 
 interface Methodology {
   id: string;
@@ -99,8 +100,8 @@ export default function MethodologyPage() {
   const fetchMethodologies = async () => {
     try {
       const [methodRes, compRes] = await Promise.all([
-        fetch('/api/interview/methodology'),
-        fetch('/api/interview/competitive/methodology'),
+        apiFetch('/api/interview/methodology'),
+        apiFetch('/api/interview/competitive/methodology'),
       ]);
       if (methodRes.ok) {
         const data = await methodRes.json();
@@ -128,7 +129,7 @@ export default function MethodologyPage() {
 
     if (!details[methodology.id]) {
       try {
-        const res = await fetch(`/api/interview/methodology/${methodology.type.id}`);
+        const res = await apiFetch(`/api/interview/methodology/${methodology.type.id}`);
         if (res.ok) {
           const data = await res.json();
           setDetails((prev) => ({

@@ -11,7 +11,7 @@ export default function JdInput({ value, onChange }: JdInputProps) {
       <textarea
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="粘贴职位描述（JD），包括岗位要求、技能需求、工作职责等..."
+        placeholder="粘贴职位描述（JD）获得更精准匹配，不填则仅基于公司画像优化...（可选）"
         className="app-input w-full min-h-[200px] resize-none p-4 text-sm"
       />
       <div className="flex items-center justify-end">

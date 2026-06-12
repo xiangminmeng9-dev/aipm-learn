@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import SpecScoreCard from '@/components/coding/SpecScoreCard';
 import GradientBackground from '@/components/ui/gradient-background';
 import type { SpecPractice } from '@/types';
+import { apiFetch } from '@/lib/api/fetch';
 
 export default function SpecHistoryPage() {
   const [records, setRecords] = useState<SpecPractice[]>([]);
@@ -15,7 +16,7 @@ export default function SpecHistoryPage() {
   const fetchHistory = useCallback(async (p: number) => {
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/coding/spec-practice/history?page=${p}&limit=20`);
+      const res = await apiFetch(`/api/coding/spec-practice/history?page=${p}&limit=20`);
       if (res.ok) {
         const data = await res.json();
         setRecords(data.records ?? []);

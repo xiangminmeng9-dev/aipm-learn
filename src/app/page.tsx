@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { useState, useRef, useCallback } from 'react';
-import { motion, useInView, AnimatePresence } from 'framer-motion';
+import { useInView } from 'framer-motion';
+import { MotionDiv, MotionButton, AnimatePresence } from '@/components/ui/lazy-motion';
 import UserMenu from '@/components/layout/UserMenu';
 
 /* ---------------------------- Data ---------------------------- */
@@ -63,6 +64,7 @@ const topShelf: BookItem[] = [
       { label: 'AI 学习路径', href: '/skills/ai-learning-path' },
       { label: '路径历史', href: '/skills/path-history' },
       { label: 'JD差距分析', href: '/skills/jd-gaps' },
+      { label: 'Prompt练习', href: '/skills/prompt-practice' },
       { label: '收藏技术', href: '/skills/bookmarked-tech' },
     ],
   },
@@ -370,7 +372,7 @@ function CoverArt({ theme }: { theme: BookItem['theme'] }) {
 
 function DetailModal({ book, onClose }: { book: BookItem; onClose: () => void }) {
   return (
-    <motion.div
+    <MotionDiv
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -378,13 +380,13 @@ function DetailModal({ book, onClose }: { book: BookItem; onClose: () => void })
       onClick={onClose}
     >
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
-      <motion.div
+      <MotionDiv
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.9, y: 20 }}
         transition={{ type: 'spring', stiffness: 300, damping: 25 }}
         className="relative z-10 w-full max-w-lg overflow-hidden rounded-2xl bg-card shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
+        onClick={(e: React.MouseEvent) => e.stopPropagation()}
       >
         <div className="relative h-56 w-full overflow-hidden">
           <CoverArt theme={book.theme} />
@@ -427,8 +429,8 @@ function DetailModal({ book, onClose }: { book: BookItem; onClose: () => void })
             </svg>
           </Link>
         </div>
-      </motion.div>
-    </motion.div>
+      </MotionDiv>
+    </MotionDiv>
   );
 }
 
@@ -450,7 +452,7 @@ function EditionCard({
   onDetails: () => void;
 }) {
   return (
-    <motion.div
+    <MotionDiv
       id={`book-${book.id}`}
       initial={{ opacity: 0, y: 40 }}
       animate={{
@@ -492,7 +494,7 @@ function EditionCard({
         )}
 
         {/* Hover pill buttons */}
-        <motion.div
+        <MotionDiv
           initial={false}
           className="absolute inset-x-0 bottom-4 flex items-center justify-center gap-2 opacity-0 transition-all duration-200 group-hover:opacity-100 group-hover:-translate-y-1"
         >
@@ -508,9 +510,9 @@ function EditionCard({
           >
             Details
           </button>
-        </motion.div>
+        </MotionDiv>
       </div>
-    </motion.div>
+    </MotionDiv>
   );
 }
 
@@ -534,7 +536,7 @@ function FloatingShelf({
 
   return (
     <div ref={ref} className="relative w-full max-w-[1200px]">
-      <motion.div
+      <MotionDiv
         initial={{ opacity: 0 }}
         animate={inView ? { opacity: 1 } : {}}
         transition={{ duration: 0.4 }}
@@ -550,10 +552,10 @@ function FloatingShelf({
             onDetails={() => onDetails(book)}
           />
         ))}
-      </motion.div>
+      </MotionDiv>
 
       {/* Shelf plank */}
-      <motion.div
+      <MotionDiv
         initial={{ scaleX: 0.3, opacity: 0 }}
         animate={inView ? { scaleX: 1, opacity: 1 } : {}}
         transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
@@ -571,7 +573,7 @@ function FloatingShelf({
           className="absolute inset-x-0 top-full h-[3px]"
           style={{ background: 'linear-gradient(180deg, #c2c2c5, #9a9a9d)' }}
         />
-      </motion.div>
+      </MotionDiv>
       {/* cast shadow under shelf */}
       <div
         className="mx-auto mt-1 h-3 rounded-[50%] dark:hidden"
@@ -664,7 +666,7 @@ export default function HomePage() {
         {/* Mobile dropdown menu */}
         <AnimatePresence>
           {activeDropdown === 'mobile-menu' && (
-            <motion.div
+            <MotionDiv
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
@@ -678,7 +680,7 @@ export default function HomePage() {
                   )),
                 ])}
               </nav>
-            </motion.div>
+            </MotionDiv>
           )}
         </AnimatePresence>
       </header>
@@ -686,7 +688,7 @@ export default function HomePage() {
       {/* -- Main (Shopify Editions style) -- */}
       <main className="relative flex flex-1 flex-col items-center px-4 pb-16 pt-12 md:pt-16">
         {/* Editorial intro (top-left, Shopify style) */}
-        <motion.div
+        <MotionDiv
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: 'easeOut' }}
@@ -698,7 +700,7 @@ export default function HomePage() {
           <p className="mt-1 text-sm text-muted-foreground md:text-base">
             Everything you need to become an AI PM.<br />Curated every season.
           </p>
-        </motion.div>
+        </MotionDiv>
 
         {/* Shelves */}
         <div className="flex w-full flex-col items-center gap-24 md:gap-28">
@@ -712,7 +714,7 @@ export default function HomePage() {
             {allBooks.map((b, i) => {
               const isActive = highlightedId === b.id;
               return (
-                <motion.button
+                <MotionButton
                   key={b.id}
                   initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -728,7 +730,7 @@ export default function HomePage() {
                   <span className={`text-sm font-semibold transition-colors ${isActive ? 'text-indigo-700' : 'text-foreground group-hover:text-foreground'}`}>
                     {b.titleEn}
                   </span>
-                </motion.button>
+                </MotionButton>
               );
             })}
           </div>

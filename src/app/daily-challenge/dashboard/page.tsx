@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import GradientBackground from '@/components/ui/gradient-background';
-import ReactECharts from '@/components/ui/EChartsWrapper';
+import ReactECharts from '@/components/ui/LazyECharts';
+import { apiFetch } from '@/lib/api/fetch';
 
 interface DailyChallengeStats {
   total_submissions: number;
@@ -58,7 +59,7 @@ export default function DailyChallengeDashboardPage() {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/daily-challenge/dashboard?range=${range}`)
+    apiFetch(`/api/daily-challenge/dashboard?range=${range}`)
       .then(r => r.json())
       .then(d => {
         if (d.stats) setStats(d.stats);
@@ -303,7 +304,7 @@ export default function DailyChallengeDashboardPage() {
                     <div key={c.category} className="flex items-center gap-2">
                       <span className="shrink-0 w-3 h-3 rounded-sm" style={{ backgroundColor: CATEGORY_COLORS[i % CATEGORY_COLORS.length] }} />
                       <span className="text-xs text-muted-foreground truncate">{c.category}</span>
-                      <span className="text-[10px] text-muted-foreground ml-auto">{c.count}</span>
+                      <span className="text-xs text-muted-foreground ml-auto">{c.count}</span>
                     </div>
                   ))}
                 </div>
@@ -427,7 +428,7 @@ export default function DailyChallengeDashboardPage() {
                     <div key={d.difficulty} className="flex items-center gap-2">
                       <span className="shrink-0 w-3 h-3 rounded-sm" style={{ backgroundColor: DIFFICULTY_COLORS[i] || '#F59E0B' }} />
                       <span className="text-xs text-muted-foreground">{d.difficulty === 'easy' ? '简单' : d.difficulty === 'medium' ? '中等' : '困难'}</span>
-                      <span className="text-[10px] text-muted-foreground ml-auto">{d.count}</span>
+                      <span className="text-xs text-muted-foreground ml-auto">{d.count}</span>
                     </div>
                   ))}
                 </div>
@@ -471,7 +472,7 @@ export default function DailyChallengeDashboardPage() {
                   <div key={s.stage} className="flex items-center gap-2">
                     <span className="shrink-0 w-3 h-3 rounded-sm" style={{ backgroundColor: FUNNEL_COLORS[i] }} />
                     <span className="text-xs text-muted-foreground truncate">{FUNNEL_LABELS[s.stage] || s.stage}</span>
-                    <span className="text-[10px] text-muted-foreground ml-auto">{s.count}</span>
+                    <span className="text-xs text-muted-foreground ml-auto">{s.count}</span>
                   </div>
                 ))}
               </div>
@@ -502,12 +503,12 @@ export default function DailyChallengeDashboardPage() {
                 <div className="flex items-center gap-2">
                   <span className="shrink-0 w-3 h-3 rounded-sm" style={{ backgroundColor: '#10B981' }} />
                   <span className="text-xs text-muted-foreground">优秀</span>
-                  <span className="text-[10px] text-muted-foreground ml-auto">{stats.high_score_count}</span>
+                  <span className="text-xs text-muted-foreground ml-auto">{stats.high_score_count}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="shrink-0 w-3 h-3 rounded-sm" style={{ backgroundColor: '#EF4444' }} />
                   <span className="text-xs text-muted-foreground">不及格</span>
-                  <span className="text-[10px] text-muted-foreground ml-auto">{stats.low_score_count}</span>
+                  <span className="text-xs text-muted-foreground ml-auto">{stats.low_score_count}</span>
                 </div>
               </div>
             </div>

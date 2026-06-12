@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { PROJECT_SCENARIOS } from '@/lib/project-scenarios';
+import { withTimeout, AI_TIMEOUT_MS } from '@/lib/ai/with-timeout';
+
+export const maxDuration = 60;
 
 export async function POST(
   request: NextRequest,
@@ -55,20 +58,30 @@ export async function POST(
 
     const encoder = new TextEncoder();
     const readable = new ReadableStream({
-      async start(controller) {
-        let fullContent = '';
-        for await (const chunk of stream) {
-          fullContent += chunk;
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'chunk', content: chunk })}\n\n`));
-        }
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'done' })}\n\n`));
-        controller.close();
+      start(controller) {
+        const streamPromise = (async () => {
+          let fullContent = '';
+          for await (const chunk of stream) {
+            fullContent += chunk;
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'chunk', content: chunk })}\n\n`));
+          }
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'done' })}\n\n`));
+          controller.close();
 
-        // Save assistant message
-        await supabase.from('simulator_project_messages').insert({
-          project_id: id,
-          role: 'assistant',
-          content: fullContent,
+          // Save assistant message
+          await supabase.from('simulator_project_messages').insert({
+            project_id: id,
+            role: 'assistant',
+            content: fullContent,
+          });
+        })();
+
+        withTimeout(streamPromise, AI_TIMEOUT_MS).catch((err) => {
+          console.error('Project chat stream error:', err);
+          try {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'error', message: err instanceof Error ? err.message : '对话超时或失败' })}\n\n`));
+            controller.close();
+          } catch { /* controller already closed */ }
         });
       },
     });

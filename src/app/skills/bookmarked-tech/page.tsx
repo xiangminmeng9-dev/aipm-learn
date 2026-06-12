@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import GradientBackground from '@/components/ui/gradient-background';
+import { apiFetch } from '@/lib/api/fetch';
 
 interface BookmarkedTech {
   tech_date: string;
@@ -18,18 +19,23 @@ export default function BookmarkedTechPage() {
   const [items, setItems] = useState<BookmarkedTech[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchBookmarks = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
     try {
-      const res = await fetch('/api/skills/modules');
+      const res = await apiFetch('/api/skills/modules');
       if (res.ok) {
         const data = await res.json();
         const techModule = (data.modules || []).find(
           (m: { id: string; bookmarked_tech?: BookmarkedTech[] }) => m.id === '__bookmarked_tech__'
         );
         setItems(techModule?.bookmarked_tech || []);
+      } else {
+        setError('加载收藏技术失败');
       }
-    } catch { /* ignore */ } finally {
+    } catch { setError('加载收藏技术失败'); } finally {
       setIsLoading(false);
     }
   }, []);
@@ -38,7 +44,7 @@ export default function BookmarkedTechPage() {
 
   const handleUnbookmark = async (techDate: string) => {
     try {
-      const res = await fetch('/api/daily-challenge/tech', {
+      const res = await apiFetch('/api/daily-challenge/tech', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'unbookmark', tech_date: techDate }),
@@ -54,6 +60,17 @@ export default function BookmarkedTechPage() {
     return (
       <div className="h-full bg-muted flex items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="h-full bg-muted flex items-center justify-center">
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/30 dark:text-red-300">
+          <p>{error}</p>
+          <button onClick={fetchBookmarks} className="mt-1 text-xs font-medium text-red-600 hover:text-red-800 dark:text-red-400">重试</button>
+        </div>
       </div>
     );
   }

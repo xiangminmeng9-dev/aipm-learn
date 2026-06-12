@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { MotionDiv } from '@/components/ui/lazy-motion';
+import { apiFetch } from '@/lib/api/fetch';
 
 interface JobListing {
   id?: string;
@@ -29,7 +30,7 @@ export default function JobListings({ onUseJd }: JobListingsProps) {
     setIsLoading(true);
     setError('');
     try {
-      const res = await fetch('/api/resume/jobs');
+      const res = await apiFetch('/api/resume/jobs');
       if (!res.ok) throw new Error('获取职位失败');
       const data = await res.json();
       setJobs(data.jobs || []);
@@ -79,7 +80,7 @@ export default function JobListings({ onUseJd }: JobListingsProps) {
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       {jobs.map((job, index) => (
-        <motion.div
+        <MotionDiv
           key={job.id || `${job.company}-${job.title}-${index}`}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -109,7 +110,7 @@ export default function JobListings({ onUseJd }: JobListingsProps) {
           >
             使用此 JD
           </button>
-        </motion.div>
+        </MotionDiv>
       ))}
     </div>
   );

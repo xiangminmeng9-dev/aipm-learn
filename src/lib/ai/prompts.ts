@@ -2,6 +2,8 @@
 // Prompt Templates — AI PM Interview Assistant
 // ============================================================
 
+import { buildSkillInstructions } from '@/lib/ai/resume-skills';
+
 /**
  * 问题分析 prompt：要求输出四部分（问题分析、思考方式、回答思路、口语化模板）
  */
@@ -506,7 +508,11 @@ const STANDARD_SKILL_NAMES = [
 
 export function buildCombinedJdAnalysisPrompt(jdText: string, modules: { id: string; name: string; description?: string }[], resumeText?: string): string {
   const resumeSection = resumeText
-    ? `\n\n候选人简历：\n${resumeText}\n\n由于提供了简历，请额外输出 resume_match 字段，包含简历与JD的匹配分析。`
+    ? `\n\n候选人简历：\n${resumeText}\n\n由于提供了简历，请额外输出 resume_judgment 字段，只做语义判断，不要计算分数。`
+    : '';
+
+  const resumeFormat = resumeText
+    ? `,"resume_judgment":{"covered_skills":["简历覆盖的技能名1","技能名2"],"quantified_skills":["有量化成果的技能名1"],"jd_responsibilities":["职责条1","职责2"],"covered_responsibilities":["简历有对应经历的职责1"],"demonstrated_soft_skills":["简历体现的软技能名1"],"required_years":3,"candidate_years":5,"industry_match_level":"exact","strengths":["匹配优势1","匹配优势2"],"resume_gaps":[{"skill_name":"差距技能","detail":"简历中缺少的具体内容","suggestion":"提升建议"}],"improvement_suggestions":["简历改进建议1","简历改进建议2"]}`
     : '';
 
   return `分析JD，完整提取所有技能要求。输出严格JSON格式，不要markdown。
@@ -520,7 +526,7 @@ ${JSON.stringify(modules)}
 JD：${jdText}${resumeSection}
 
 输出格式：
-{"company_name":null,"position_name":"岗位名","extracted_skills":[{"skill_name":"技能","category":"类别","importance":"high"}],"matches":[{"skill_name":"技能","module_id":"模块ID","module_name":"模块名","match_score":80}],"gaps":[{"skill_name":"技能","category":"类别","suggestion":"学习建议","related_module_id":"最相关的模块ID","related_module_name":"最相关的模块名"}]${resumeText ? ',"resume_match":{"match_score":85,"strengths":["匹配优势1","匹配优势2"],"resume_gaps":[{"skill_name":"差距技能","detail":"简历中缺少的具体内容","suggestion":"提升建议"}],"improvement_suggestions":["简历改进建议1","简历改进建议2"],"apply_recommendation":{"should_apply":true,"confidence":"medium","reason":"核心AI产品经验匹配，但数据技能需补强","key_actions":["简历中添加XX项目经验描述","面试前准备XX案例"]}}' : ''}}
+{"company_name":null,"position_name":"岗位名","extracted_skills":[{"skill_name":"技能","category":"类别","importance":"high"}],"matches":[{"skill_name":"技能","module_id":"模块ID","module_name":"模块名","match_score":<0-100匹配度整数>}],"gaps":[{"skill_name":"技能","category":"类别","suggestion":"学习建议","related_module_id":"最相关的模块ID","related_module_name":"最相关的模块名"}]${resumeFormat}}
 
 重要要求：
 1. extracted_skills必须完整覆盖JD中提到的所有技能要求，不要遗漏，通常12-25个
@@ -530,19 +536,21 @@ JD：${jdText}${resumeSection}
 5. 每个技能在matches中有记录，match_score>=60归入模块，<60放入gaps
 6. gaps中的每个技能必须指定related_module_id和related_module_name——从现有模块中选最相关的一个，即使匹配度不高也要指定，不要填null
 7. company_name如果JD中没有明确提及公司名，填null，不要填"未明确"等文字${resumeText ? `
-8. resume_match.match_score是简历与JD的整体匹配度（0-100整数），必须严格按以下标准评分：
-   - 90-100：简历完全覆盖JD核心要求，几乎没有差距
-   - 75-89：简历覆盖大部分核心要求，有少量差距
-   - 60-74：简历覆盖部分核心要求，有明显差距
-   - 40-59：简历与JD要求差距较大，只覆盖少数要求
-   - 0-39：简历与JD几乎不匹配
-   重要：不要默认给80左右的分数！必须逐条对比JD要求和简历内容后给出差异化评分，不同岗位的匹配度应该有明显区分
-9. resume_match.strengths是简历中已具备的JD要求（3-5条）
-10. resume_match.resume_gaps是基于简历内容判断的差距——与gaps不同，resume_gaps是对比简历后发现候选人缺少什么，每条包含skill_name、detail（简历中缺少的具体内容）、suggestion（如何提升）
-11. resume_match.improvement_suggestions是针对简历本身的改进建议（2-4条）` : ''}`;
+8. resume_judgment 只做语义判断，不要计算分数！评分由系统本地计算。具体要求：
+   a. covered_skills：逐条对照extracted_skills，判断简历中是否有该技能的体现，将覆盖的技能名放入数组
+   b. quantified_skills：在covered_skills中，哪些技能在简历中有量化成果描述（含数字/百分比/金额），将技能名放入数组
+   c. jd_responsibilities：从JD中提取岗位职责条目（3-8条）
+   d. covered_responsibilities：逐条判断简历是否有对应经历，将覆盖的职责条目放入数组
+   e. demonstrated_soft_skills：从extracted_skills中category含软技能的条目，判断简历是否体现了该软技能，将体现的技能名放入数组
+   f. required_years：从JD提取年限要求，无则填null
+   g. candidate_years：从简历推断候选人工作年限，无法推断则填null
+   h. industry_match_level：判断JD所属行业和候选人行业经验的相关性。完全匹配="exact"，相关="related"，不相关="unrelated"，无法判断="unknown"
+   i. strengths：简历中已具备的JD要求（3-5条）
+   j. resume_gaps：对比简历后发现候选人缺少什么，每条包含skill_name、detail（简历中缺少的具体内容）、suggestion（如何提升）
+   k. improvement_suggestions：针对简历本身的改进建议（2-4条）` : ''}`;
 }
 
-export const COMBINED_JD_ANALYSIS_SYSTEM_PROMPT = `你是技术招聘专家。完整提取JD中所有技能要求（通常12-25个），逐条对照职位要求不遗漏。技能名称必须优先使用标准技能名称列表中的名称，含义相近的统一归到标准名。与现有模块匹配，输出纯JSON，无markdown。简历匹配度评分必须严格差异化，根据实际覆盖情况拉开分差，禁止默认给80左右的分数。`;
+export const COMBINED_JD_ANALYSIS_SYSTEM_PROMPT = `你是技术招聘专家。完整提取JD中所有技能要求（通常12-25个），逐条对照职位要求不遗漏。技能名称必须优先使用标准技能名称列表中的名称，含义相近的统一归到标准名。与现有模块匹配，输出纯JSON，无markdown。简历匹配分析只做语义判断（技能是否覆盖、职责是否匹配等），不要计算分数，评分由系统本地计算。`;
 
 export function buildSkillMatchingPrompt(extractedSkills: { skill_name: string; category: string; importance: string }[], modules: { id: string; name: string; description?: string }[]): string {
   const skillList = extractedSkills.map(s => s.skill_name).join('、');
@@ -591,8 +599,11 @@ export const SKILL_RECOMMENDATION_SYSTEM_PROMPT = `你是一位技能发展顾�
 // Resume
 // ============================================================
 
-export function buildResumeAnalysisPrompt(resumeText: string, jdText?: string): string {
-  let prompt = `请分析以下简历与目标岗位的匹配度。
+export function buildResumeAnalysisPrompt(resumeText: string, jdText?: string, companyProfile?: { companyName: string; companyType?: string; companyPreference?: string }): string {
+  const hasJd = !!jdText;
+  const hasProfile = !!companyProfile;
+
+  let prompt = `请分析以下简历${hasJd ? '与目标岗位' : hasProfile ? '与目标公司的' : ''}的匹配度。
 
 简历内容：
 ${resumeText}`;
@@ -601,9 +612,38 @@ ${resumeText}`;
     prompt += `\n\n目标岗位 JD：\n${jdText}`;
   }
 
+  if (hasProfile && !hasJd) {
+    const typeNames: Record<string, string> = {
+      big_company: '大厂（BAT/TMD级别大型科技公司）',
+      foreign: '外企（跨国/外资公司）',
+      state_owned: '国企（央企/事业单位）',
+      startup: '创业公司（早期初创）',
+      traditional: '传统行业（非科技类）',
+      other: '其他',
+    };
+    prompt += `\n\n目标公司：${companyProfile.companyName}`;
+    if (companyProfile.companyType && companyProfile.companyType !== 'other') {
+      prompt += `\n公司类型：${typeNames[companyProfile.companyType] || companyProfile.companyType}`;
+    }
+    if (companyProfile.companyPreference) {
+      prompt += `\n该公司招聘偏好画像：${companyProfile.companyPreference}`;
+    }
+  }
+
+  // JD + 画像共存时的优先级说明
+  if (hasJd && hasProfile) {
+    prompt += `\n\n【优先级说明】JD是岗位级硬性要求，优先匹配；公司画像是公司级偏好，作为措辞和表达方向的引导。匹配度评分以JD为准，画像偏好作为加分项参考。`;
+  }
+
+  const relevanceComment = hasJd
+    ? '<过往经历与目标岗位的相关程度>'
+    : hasProfile
+    ? '<过往经历与该类型公司典型岗位要求的匹配程度>'
+    : '<过往经历与目标岗位的相关程度>';
+
   prompt += `\n\n请从以下维度进行深入分析，并严格按 JSON 格式输出：
 {
-  "match_score": <0-100的整数，表示简历与JD的整体匹配度>,
+  "match_score": <0-100的整数，表示简历${hasJd ? '与JD' : hasProfile ? '与公司招聘偏好' : ''}的整体匹配度>,
   "strengths": ["<匹配优势1>", "<匹配优势2>", ...],
   "gaps": ["<差距1>", "<差距2>", ...],
   "suggestions": ["<具体修改建议1>", "<具体修改建议2>", ...],
@@ -613,7 +653,7 @@ ${resumeText}`;
       {
         "name": "关键词匹配",
         "score": <0-100>,
-        "comment": "<JD中的关键技能/关键词在简历中是否出现，缺失哪些>"
+        "comment": "<${hasJd ? 'JD中的关键技能/关键词在简历中是否出现，缺失哪些' : hasProfile ? '公司招聘偏好中的核心技能/关键词在简历中是否出现，缺失哪些' : '关键技能/关键词在简历中是否出现，缺失哪些'}>"
       },
       {
         "name": "格式兼容性",
@@ -633,7 +673,7 @@ ${resumeText}`;
       {
         "name": "经历相关性",
         "score": <0-100>,
-        "comment": "<过往经历与目标岗位的相关程度>"
+        "comment": "${relevanceComment}"
       }
     ],
     "improvement": "<针对ATS评分的总体改进建议，2-3句话>"
@@ -642,16 +682,16 @@ ${resumeText}`;
 
 分析要求：
 1. match_score 要综合评估，不要随意给高分
-2. strengths 列出3-5个简历与JD匹配的优势
+2. strengths 列出3-5个${hasJd ? '简历与JD匹配' : hasProfile ? '简历与公司招聘偏好匹配' : ''}的优势
 3. gaps 列出2-5个关键差距
 4. suggestions 给出3-5条具体可执行的修改建议
-5. ats_analysis 模拟大厂ATS系统（如Workday、Greenhouse、Lever）的简历筛选逻辑进行评分`;
+5. ats_analysis 模拟大厂ATS系统（如Workday、Greenhouse、Lever）的简历筛选逻辑进行评分${hasProfile && !hasJd ? '\n6. 重点对照公司招聘偏好中的核心技能和软技能，评估简历是否体现了该公司看重的特质' : ''}`;
   return prompt;
 }
 
-export const RESUME_ANALYSIS_SYSTEM_PROMPT = `你是一位资深简历顾问，同时精通大厂ATS（Applicant Tracking System）简历筛选机制。你熟悉Workday、Greenhouse、Lever等主流ATS系统的解析规则和筛选逻辑。输出严格的 JSON 格式，不要添加任何JSON之外的文字。`;
+export const RESUME_ANALYSIS_SYSTEM_PROMPT = `你是一位资深简历顾问，同时精通大厂ATS（Applicant Tracking System）简历筛选机制。你熟悉Workday、Greenhouse、Lever等主流ATS系统的解析规则和筛选逻辑。当没有JD但提供了公司招聘偏好画像时，根据公司的招聘偏好和画像分析简历匹配度。输出严格的 JSON 格式，不要添加任何JSON之外的文字。`;
 
-export function buildResumeGeneratePrompt(options: { resumeText: string; jdText?: string; styleType: string; companyType?: string; companyPreference?: string }): string {
+export function buildResumeGeneratePrompt(options: { resumeText: string; jdText?: string; styleType: string; companyType?: string; companyPreference?: string; companyName?: string; profileWeight?: 'strong' | 'moderate' | 'light'; positionName?: string; analysisGaps?: string[]; analysisStrengths?: string[] }): string {
   const styleNames: Record<string, string> = {
     standard: '标准风格',
     big_company: '大厂风格',
@@ -673,86 +713,340 @@ export function buildResumeGeneratePrompt(options: { resumeText: string; jdText?
     ? `\n目标公司类型：${companyTypeNames[options.companyType] || options.companyType}`
     : '';
 
-  const companyPrefSection = options.companyPreference
-    ? `\n该公司招聘偏好：${options.companyPreference}\n【重要】请根据上述招聘偏好调整简历内容，重点突出该公司看重的方面。`
+  const hasJd = !!options.jdText;
+  const hasProfile = !!options.companyPreference;
+  const profileWeight = options.profileWeight || 'strong';
+
+  // ── Auto-downgrade profile weight when JD also exists ──
+  // 有JD时JD优先，画像融入强度自动降一级：strong→moderate, moderate→light, light→light
+  const effectiveWeight: 'strong' | 'moderate' | 'light' = (() => {
+    if (!hasJd) return profileWeight;
+    if (profileWeight === 'strong') return 'moderate';
+    if (profileWeight === 'moderate') return 'light';
+    return 'light';
+  })();
+
+  // ── Build profile-first directive (core driving force, placed at top of prompt) ──
+  let profileDirective = '';
+  if (hasProfile) {
+    try {
+      const pref = typeof options.companyPreference === 'string'
+        ? JSON.parse(options.companyPreference)
+        : options.companyPreference;
+
+      const isStrong = effectiveWeight === 'strong';
+      const isModerate = effectiveWeight === 'moderate';
+      // light = minimal reference
+
+      const enforceWord = isStrong ? '必须' : isModerate ? '尽量' : '可';
+      const priorityWord = isStrong
+        ? '第一优先级'
+        : isModerate
+          ? (hasJd ? '重要参考（JD优先）' : '重要参考')
+          : '辅助参考';
+      const boldNote = isStrong || isModerate ? '画像融入的内容请用**粗体**标注。' : '';
+
+      // Build persona section
+      const personaSection = pref.persona
+        ? `该公司偏好画像：${pref.persona}`
+        : '';
+
+      // Build core skills list with per-skill instructions
+      const coreSkillsList = pref.core_skills?.length
+        ? pref.core_skills.slice(0, 8).map((s: { name: string; count?: number }, i: number) => {
+            const countNote = s.count ? `(${s.count}次)` : '';
+            return `${i + 1}. ${s.name}${countNote}`;
+          }).join('\n')
+        : '';
+
+      const coreSkillsDirective = coreSkillsList
+        ? `${enforceWord}融入的硬技能（${isStrong ? '每条至少在1条工作/项目经历中体现' : '在相关经历中体现'}）：
+${coreSkillsList}`
+        : '';
+
+      // Build soft skills list with narrative examples
+      const softSkillsList = pref.soft_skills?.length
+        ? pref.soft_skills.slice(0, 5).map((s: string, i: number) => `${i + 1}. ${s}`).join('\n')
+        : '';
+
+      const softSkillsDirective = softSkillsList
+        ? `${enforceWord}体现的软技能（通过事件叙事体现，${isStrong ? '不直接写"具备XX能力"' : '自然融入经历描述'}）：
+${softSkillsList}`
+        : '';
+
+      // Not care section
+      const notCareDirective = pref.not_care
+        ? `不太看重的（可淡化但保留）：${pref.not_care}`
+        : '';
+
+      // Persona tone adaptation
+      const toneDirective = pref.persona
+        ? `偏好适配措辞：根据画像描述调整表述力度——偏好数据驱动→多加量化指标和AB测试表述；偏好方法论→多加框架化表述；偏好技术深度→强化技术细节描述`
+        : '';
+
+      profileDirective = `【画像融入核心指令——本次修改的${priorityWord}】
+目标公司：${options.companyName || '未指定'}${companyTypeSection}
+${personaSection}
+
+${coreSkillsDirective}
+
+${softSkillsDirective}
+
+${notCareDirective}
+
+${toneDirective}
+
+${boldNote}${isStrong ? '为了融入公司画像，可以较大幅度改写措辞和调整表达方式，只要保留原始事实不删减整条即可。' : ''}`;
+    } catch {
+      profileDirective = '';
+    }
+  }
+
+  const jdSection = hasJd
+    ? `\n目标岗位 JD：\n${options.jdText}`
     : '';
 
-  return `请根据以下信息生成优化后的简历。
+  const companyNameSection = options.companyName
+    ? `\n目标公司：${options.companyName}`
+    : '';
+
+  const positionSection = options.positionName
+    ? `\n目标职位：${options.positionName}`
+    : '';
+
+  // Analysis gaps/strengths — inform the AI what to strengthen
+  const analysisSection = (options.analysisGaps?.length || options.analysisStrengths?.length)
+    ? `\n${options.analysisGaps?.length ? `简历与岗位的主要差距：${options.analysisGaps.join('、')}` : ''}${options.analysisStrengths?.length ? `\n简历的匹配优势：${options.analysisStrengths.join('、')}` : ''}`
+    : '';
+
+  // Dynamically select and build skill instructions based on JD/profile availability
+  const skillInstructions = buildSkillInstructions(hasJd, hasProfile, effectiveWeight);
+
+  // ── Build prompt with profile-first structure ──
+  // Profile directive goes FIRST (if exists), then resume, then JD, then rules, then skills
+  const profileBlock = profileDirective ? `${profileDirective}\n\n` : '';
+
+  // Priority coexistence rule — explicit resolution when both JD and profile exist
+  const priorityCoexistenceNote = (hasJd && hasProfile)
+    ? `【JD与画像优先级规则】
+- JD是岗位级硬性要求，优先匹配——JD中要求的技能、经验必须优先体现
+- 公司画像是公司级偏好，作为措辞和表达方向的引导——画像中的核心技能和软技能用来调整表述方式
+- 当JD要求和画像偏好冲突时，以JD为准
+- 画像融入时，在不与JD冲突的前提下，自然融入画像偏好的措辞风格和软技能叙事
+
+`
+    : '';
+
+  const styleLine = `目标风格：${styleNames[options.styleType] || options.styleType}`;
+
+  return `${profileBlock}${priorityCoexistenceNote}请优化以下简历的措辞和表达，使其更有竞争力。
 
 原始简历：
 ${options.resumeText}
 
-${options.jdText ? `目标岗位 JD：\n${options.jdText}` : ''}
+${jdSection}${companyNameSection}${positionSection}${analysisSection}
 
-目标风格：${styleNames[options.styleType] || options.styleType}${companyTypeSection}${companyPrefSection}
+${styleLine}${!profileDirective ? companyTypeSection : ''}
+
+【优化执行流程——必须严格按此顺序逐一执行，不能跳过任何板块！】
+你必须对原始简历的**每一个板块**逐一执行以下优化流程，不能只改部分板块而跳过其他板块：
+
+**第一步：遍历所有板块，逐一优化**
+对简历中的以下每个板块，都必须逐一走过第二步到第五步的优化流程：
+- Summary/定位语
+- 工作经历（每段经历的每个项目、每条亮点）
+- 项目经历（每个项目的每条亮点）
+- 实习经历（每段实习的每条亮点）
+- 教育经历
+- 核心技能/技术栈
+
+**第二步：P0 JD关键词对齐**（有JD时）
+- 检查该板块是否体现了JD中的关键技能/经验要求
+
+**第三步：P1 公司画像融入**（有画像时）
+- 检查该板块是否自然融入了画像中的硬技能和软技能
+
+**第四步：P2 核心表达优化**（每个板块都必须执行）
+- STAR法则：每条亮点是否按STAR结构组织（为什么做→怎么决策→做成了什么）
+- 量化法则：每条亮点是否有量化指标+基线+业务影响
+- 成就导向：是否从"负责XX"转为"为什么做→怎么决策→业务影响"
+- 强动词替换：是否用了强动词（主导/推动/驱动/交付 而非 负责/参与/协助）
+
+**第五步：P3 收尾优化**（每个板块都必须执行）
+- 格式统一、风格统一、篇幅统一
+- 去套话、红旗规避、3C原则、ATS友好
+
+**关键要求：**
+- 不能因为某个板块"看起来还行"就跳过优化——每个板块的每条描述都必须过一遍P2和P3
+- 不能只改工作经历而不管项目经历和实习经历——所有板块的优化力度必须一致
+- 如果某个板块确实没有需要优化的地方，在changes_summary中标注"无变更"
 
 请严格按以下 JSON 格式输出：
 {
-  "name": "姓名",
-  "contact": {
-    "phone": "手机号",
-    "email": "邮箱",
-    "location": "城市",
-    "linkedin": "LinkedIn 或个人主页（可选）",
-    "github": "GitHub（可选）"
-  },
-  "summary": "一句话职业定位（不超过30字）",
-  "work_experience": [
-    {
-      "company": "公司名",
-      "position": "职位",
-      "period": "2020.03 - 至今",
-      "highlights": ["核心业绩1（动词开头，量化结果）", "核心业绩2", "核心业绩3"]
-    }
-  ],
-  "projects": [
-    {
-      "name": "项目名",
-      "role": "担任角色",
-      "period": "2021.06 - 2021.12",
-      "description": "一句话描述项目",
-      "highlights": ["关键成果1", "关键成果2"]
-    }
-  ],
-  "education": [
-    {
-      "school": "学校名",
-      "degree": "学历",
-      "major": "专业",
-      "period": "2016.09 - 2020.06",
-      "highlights": ["荣誉/成就（可选）"]
-    }
-  ],
-  "skills": [
-    {
-      "category": "产品技能",
-      "items": ["技能1", "技能2", "技能3"]
-    },
-    {
-      "category": "数据技能",
-      "items": ["SQL", "Python", "数据看板"]
-    }
-  ],
-  "changes_summary": "修改说明"
+  "modified_resume": "优化后的完整简历文本（使用Markdown格式，层级清晰）",
+  "changes_summary": [
+    {"dimension": "画像融入|STAR法则|量化指标|成就导向|表达强化|排序优化|Summary|格式统一|风格统一|篇幅统一|去重|红旗规避|3C原则|ATS友好", "location": "政务RAG项目-第2条亮点", "before": "原文的具体文字", "after": "改成后的具体文字", "reason": "为什么这样改"},
+    ...更多改动（每一条有实质性修改的地方都要列出，不要笼统概括）
+  ]
 }
 
-简历优化原则：
-- STAR 法则描述业绩（Situation-Task-Action-Result）
-- 每条 highlight 以动词开头（主导、推动、优化、搭建、设计、落地）
-- 尽可能量化成果（提升XX%、管理X人团队、覆盖X万用户、节省X小时/月）
-- 去掉空洞的自我评价和套话
-- 突出与目标 JD 匹配的关键词
-- 控制工作经历 2-4 段，每段 3-5 条亮点
-- 不要使用 emoji`;
+【修改摘要详细度要求——非常重要！】
+- 每条 changes_summary 必须写明改了简历的**具体位置**（location字段：如"工作经历-三未信安-政务RAG项目-第2条亮点"、"核心技能-AI产品能力"、"Summary定位语"）
+- 每条必须写明**原文具体文字**（before字段）和**改成后的具体文字**（after字段），不能笼统写"融入了XX偏好"
+- ❌ 错误示例：{"dimension":"画像融入", "change":"在Summary中增加了数据驱动关键词", "reason":"融入美团偏好"}
+- ✅ 正确示例：{"dimension":"画像融入", "location":"Summary定位语", "before":"AI产品经理，擅长大模型应用落地", "after":"AI产品经理，擅长**用SQL/Python进行数据驱动决策**、精通RAG/Agent架构落地", "reason":"融入美团数据驱动偏好"}
+- ❌ 错误示例：{"dimension":"STAR法则", "change":"优化了政务RAG项目的描述", "reason":"体现产品决策思维"}
+- ✅ 正确示例：{"dimension":"STAR法则", "location":"工作经历-三未信安-政务RAG-第3条亮点", "before":"设计BM25+向量双路召回架构", "after":"面对用户口语化提问检索不准的痛点（S），对比规则引擎与语义模型后（T），设计BM25+向量双路召回+Rerank重排的混合检索架构（A），Top-3召回率52%→88%（R）", "reason":"STAR结构化，体现产品决策思维——为什么用混合检索而非单一方案"}
+- 简历中每一条有实质性修改的地方都必须列出，不能遗漏
+
+【修改摘要必须覆盖所有优化维度——非常重要！】
+你的优化是按照技能优先级体系（P0→P1→P2→P3）逐步执行的，changes_summary 必须按同样的流程完整记录每个维度的修改：
+1. **JD匹配（P0）**：如果提供了JD，列出关键词对齐的每一条修改
+2. **画像融入（P1）**：列出硬技能融入、软技能融入、偏好适配措辞的每一条修改
+3. **核心表达优化（P2）**：必须逐一列出以下每个维度的修改（有修改就列出，无修改则标注"无变更"）：
+   - STAR法则结构化重写：哪些条目从职责式改成了STAR结构
+   - 量化法则：哪些条目补充或强化了量化指标
+   - 成就导向转写：哪些条目从"负责XX"改成了"为什么做→怎么决策→做成了什么"
+   - 强动词替换：哪些动词被替换（如"负责"→"主导"、"优化"→"迭代优化"）
+   - 去套话：删除了哪些空洞描述
+4. **收尾优化（P3）**：格式统一、风格统一、篇幅统一等调整
+5. **Summary/定位语**：如果生成了新的定位语，列出来
+
+重要：不要只写画像融入！必须完整展示从P0到P3每个维度的修改过程，让用户清楚看到简历是经过系统化优化而非只改了画像相关内容。
+
+【绝对禁止删减内容！这是最重要的要求】
+- 可以优化某条描述的措辞，但绝对不能删除一整条经历/项目/工作亮点
+- 原始简历有5条工作亮点，输出也必须有5条，不能变成3条
+- 原始简历有3段工作经历，输出也必须有3段，不能合并或省略
+- 即使某条描述看起来不够好，也应该优化它的表达方式，而不是删掉它
+- 不能合并或拆分任何条目
+
+【修改标注要求——非常重要！】
+- 只有融入公司画像（P1维度）的内容才用**粗体**标注，其他维度的修改不加粗，保持普通文本
+- 画像融入粗体示例：原始"推动项目落地" → 输出"**数据驱动**推动项目落地**，AB测试验证效果**"（融入了字节跳动偏好中的"数据驱动"特质）
+- 画像融入粗体示例：原始"协调团队完成目标" → 输出"**跨部门协调3个团队**完成目标"（融入了偏好中的"沟通协作"软技能）
+- 画像融入粗体示例：原始"负责推荐系统优化" → 输出"负责**推荐算法**系统优化"（融入了偏好中的核心技能"推荐算法"）
+- 画像融入的判断标准：该修改是因为公司偏好画像中要求了某技能/特质，才添加或改写的措辞
+- 非画像融入的修改（如STAR优化、XYZ公式、量化、强动词替换等）不要加粗
+- 不要整段加粗，只标注画像融入的关键词或短语
+
+【输出格式要求——严格还原原始简历的格式结构】
+- 必须严格还原原始简历的格式和分组结构，不要自创格式！
+- 原始简历用什么标题（如"核心技能""专业技能""技术栈"），输出就用同样的标题
+- 原始简历把技能分成多个组（如"产品能力：XX / 数据能力：XX / AI技术：XX"），输出必须保留同样的分组和分类标题
+- 原始简历把项目按类型分组，输出必须保留同样的分组
+- 原始简历每个分组里有哪些技能，输出对应分组里也必须有同样数量的技能（措辞可优化，但不能移到别的分组或合并）
+- 如果原始简历没有分组（就是一坨技能列在一起），那输出也不用分组
+- 关键原则：原始简历的组织方式就是最好的组织方式，你只优化措辞，不要动结构
+- 使用 Markdown 格式：
+  - 姓名用 ## 标题：## 张三
+  - 联系方式用一行：手机 | 邮箱 | 城市
+  - 各大板块用 ## 标题：## 工作经历、## 项目经历、## 教育背景、## 核心技能 等（标题必须和原始简历一致）
+  - 板块内的公司/项目用 ### 标题
+  - 时间段用斜体：*2020.03 - 至今*
+  - 业绩/亮点用无序列表：- 主导3款AI产品从0到1落地...
+  - 技能分组标题用粗体：**产品能力**：需求分析、PRD撰写、数据驱动（保持原始分组名）
+  - 一句话定位用引用块：> AI产品经理，擅长大模型应用落地
+  - 【极其重要】每个 ## 和 ### 标题前后必须有空行！每个独立的段落/项目之间必须有空行！不要把不同项目或不同板块的内容挤在一起！
+  - 【极其重要】工作经历中每个公司的每个项目、实习经历中每段实习、项目经历中每个项目，都必须用 ### 标题开头，不能只用纯文本！
+  - 【极其重要】"项目背景："、"职责："、"成果："、"产品侧核心贡献：" 等关键段落开头，前面必须有空行，与上文分开
+
+【Markdown格式示例——你的输出必须严格按此格式】
+## 张三
+
+邮箱：zhangsan@email.com | 电话：138-0000-0000
+
+> AI产品经理，擅长数据驱动的大模型应用落地
+
+## 教育背景
+
+### 北京邮电大学 | 电子科学与技术
+
+*2021.09 - 2024.07*
+
+- GPA 3.2/4，研究方向：数字背向传输算法
+
+## 工作经历
+
+### AI 产品经理 | 三未信安
+
+*2024.07 - 2026.01*
+
+#### 政务 RAG 智能问答
+
+项目背景：政务日均咨询10w+，传统检索准确率仅52%
+
+职责：主导RAG智能问答系统0-1设计与落地
+
+- 需求分析与策略设计：基于逻辑思维拆解用户模糊表达痛点，制定段落语义边界切分策略
+- 架构设计与技术落地：设计BM25+向量双路召回+Rerank重排的混合检索架构
+- 模型评测与迭代：构建1000条真实场景query-doc对，定义Recall@3等核心指标
+
+成果：Top-3召回准确率52%→88%，问题解决率相对提升38%
+
+#### 智能客服 Agent
+
+项目背景：金融客服场景日均咨询2w+，FAQ自动化率仅5%
+
+职责：主导智能客服Agent产品0-1设计与落地
+
+- 架构设计与路由策略：设计感知-决策-执行-人机协同四层Agent架构
+- 策略定义与风险控制：制定"意图置信度+风险等级"双维度决策路由机制
+
+成果：自动化处理率5%→60%，人力成本预估节省528万
+
+## 项目经历
+
+### 甘肃电信「我要聆听」项目 | 产品负责人
+
+*2025.11 - 2025.11*
+
+- 主导客服录音智能分析产品设计，构建语音转写-语义理解-业务洞察闭环
+
+## 核心技能
+
+**AI 产品能力**：熟悉LLM/RAG/Agent主流技术栈，具备AI产品0-1落地经验
+
+**数据分析能力**：熟练使用Python/SQL进行用户行为与漏斗拆解
+
+（注意：上面示例中每个板块之间都有空行，每个子标题前后都有空行，项目背景/职责/成果前都有空行。你的输出必须严格遵守这个格式）
+
+【保持原始简历的结构不变】
+- 严格保持原始简历的板块划分和顺序排列
+- 不要重新组织、合并、拆分或调换原始简历的任何部分
+- 不要添加原始简历中没有的板块
+- 不要删除原始简历中的板块
+- 【关键】严格保持原始简历中的分组/分类结构：
+  - 如果原始简历把技能按类别分组（如"产品技能：XX / 数据技能：XX / 技术理解：XX"），必须保留同样的分组方式和分类标题
+  - 如果原始简历把项目按类型分组（如"B端产品 / C端产品 / 0-1项目"），必须保留同样的分组
+  - 如果原始简历用表格或多列展示某些内容，用等效的Markdown结构（列表+分类标题）保持分组
+  - 不要把分组的内容合并成一个大列表！每个分组保持独立，分组标题保持原样
+
+${skillInstructions}
+
+- 不要使用 emoji
+- 不要编造不存在的事实或数据，只能在原始简历已有数据的基础上优化表达
+- 保持个人信息（姓名、联系方式等）原样不变
+- 输出的内容量必须与原始简历相当，不能大幅缩水`;
 }
 
-export const RESUME_GENERATE_SYSTEM_PROMPT = `你是一位资深简历优化专家，擅长根据目标岗位和风格调整简历。输出严格的 JSON 格式，不要输出任何 JSON 之外的内容。
+export const RESUME_GENERATE_SYSTEM_PROMPT = `你是一位资深AI产品经理简历优化专家，擅长根据目标岗位、公司类型和招聘偏好调整简历措辞。当没有JD但有公司招聘偏好时，根据偏好调整简历的重点和措辞方向。
 
 核心原则：
-- 大厂风格：STAR 法则，动词开头，量化成果
-- 去掉套话和空洞描述
-- 突出 JD 匹配关键词
-- 控制在 1-2 页内容量`;
+1. 绝对不能删减原始简历的任何条目——每一条经历/亮点都必须保留，只能优化措辞
+2. 保持原始简历的结构和板块顺序完全不变，只优化具体措辞和表达方式。如果原始简历有分组/分类（如技能按层面分、项目按类型分），必须保留原有的分组结构和分类标题，禁止将分组内容合并为一个大列表
+3. 使用 Markdown 格式输出，确保层级清晰分明（## 大板块、### 子标题、- 列表项、**粗体**技能分类）
+4. 输出的内容量必须与原始简历相当，不能大幅缩水
+5. 只有融入公司画像(P1维度)的内容用**粗体**标注（硬技能关键词、软技能叙事、偏好适配措辞），其他维度的修改不加粗
+6. 【AI产品经理表达风格】所有经历描述必须体现产品决策思维——为什么做、怎么决策、业务影响是什么。用业务语言而非技术语言，将模型评估与迭代嵌入表述中。量化指标必须同时给出基线和业务影响。
+
+技能优先级体系（19个优化维度，按条件动态加载）：
+- P0（最高）：JD关键词与技能对齐——有JD时启用
+- P1（高）：公司画像匹配——硬技能融入、软技能融入、偏好适配措辞、不看重部分淡化——有画像时启用
+- P2（核心）：STAR法则结构化重写、XYZ公式、量化法则、成就导向转写、强动词替换、去套话、经历排序优化、Summary生成——始终启用
+- P3（收尾）：格式统一、风格统一、篇幅统一、重复去重、红旗规避、3C原则、ATS排版友好——始终启用
+
+输出严格的 JSON 格式，不要输出任何 JSON 之外的内容。`;
 
 // ============================================================
 // Custom Skill Module
@@ -1004,3 +1298,96 @@ ${weaknessData}
 
 请按系统提示的 JSON 格式输出。`;
 }
+
+// ============================================================
+// Prompt Practice — Prompt Engineering 练习
+// ============================================================
+
+export function buildPromptPracticeQuestionPrompt(options?: {
+  category?: string;
+  difficulty?: string;
+}): string {
+  const categoryLine = options?.category
+    ? `\n指定题目类别：${options.category}`
+    : '';
+  const difficultyLine = options?.difficulty
+    ? `\n指定难度：${options.difficulty}`
+    : '';
+
+  return `请生成一道 Prompt Engineering 练习题目，要求：
+1. 题目基于 2024-2026 年 AI 行业真实场景（大模型应用、AI Agent、RAG、多模态、AI 原生产品、Prompt Engineering 最佳实践等）
+2. 题目要求用户编写一个具体场景下的 prompt，而非理论分析
+3. 题目类型从以下类别中随机选择：生成式写作、结构化输出、多步骤推理、角色扮演、数据分析、创意发散
+4. 每次生成的题目应不同，避免重复
+5. 题目要包含场景描述和明确的 prompt 编写要求${categoryLine}${difficultyLine}
+
+请严格按以下 JSON 格式输出：
+{
+  "question": "题目内容，包含场景描述和编写要求",
+  "question_category": "题目类别（生成式写作|结构化输出|多步骤推理|角色扮演|数据分析|创意发散）",
+  "difficulty": "入门|进阶|实战"
+}`;
+}
+
+export const PROMPT_PRACTICE_QUESTION_SYSTEM_PROMPT = `你是一位资深的 Prompt Engineering 教练，擅长设计贴近真实 AI 产品工作场景的 prompt 练习题目。
+题目必须基于 2024-2026 年 AI 行业最新趋势，场景要具体、有深度、贴近真实业务。
+输出严格的 JSON 格式。`;
+
+export function buildPromptEvaluationPrompt(
+  question: string,
+  questionCategory: string,
+  difficulty: string,
+  userPrompt: string,
+): string {
+  return `你是一位资深的 Prompt Engineering 专家，请对以下用户编写的 prompt 进行专业评分。
+
+## 题目
+${question}
+
+## 题目类别
+${questionCategory}
+
+## 难度等级
+${difficulty}
+
+## 用户编写的 Prompt
+${userPrompt}
+
+请从以下 4 个维度评分，并给出差异对比、优化建议和满分答案：
+
+1. **清晰度**（0-25 分）：prompt 是否表述清晰、无歧义，AI 能否准确理解意图
+2. **完整性**（0-25 分）：prompt 是否覆盖了场景所需的全部要素（上下文、约束、输出格式等）
+3. **创造性**（0-25 分）：prompt 是否运用了高级技巧（如 few-shot、chain-of-thought、角色设定、格式约束等）
+4. **实用性**（0-25 分）：prompt 是否能在实际工作中直接使用，产出质量是否可靠
+
+请严格按以下 JSON 格式输出：
+{
+  "score": 75,
+  "dimensions": [
+    { "name": "清晰度", "score": 20, "maxScore": 25, "feedback": "具体评语" },
+    { "name": "完整性", "score": 18, "maxScore": 25, "feedback": "具体评语" },
+    { "name": "创造性", "score": 17, "maxScore": 25, "feedback": "具体评语" },
+    { "name": "实用性", "score": 20, "maxScore": 25, "feedback": "具体评语" }
+  ],
+  "differences": [
+    { "aspect": "上下文设定", "userAnswer": "用户的做法", "idealAnswer": "理想做法" },
+    { "aspect": "输出格式约束", "userAnswer": "用户的做法", "idealAnswer": "理想做法" }
+  ],
+  "optimizations": [
+    { "original": "用户 prompt 中的原文片段", "optimized": "优化后的版本", "reason": "优化原因" }
+  ],
+  "idealAnswer": "满分 prompt 示例（完整的、可直接使用的 prompt）",
+  "overallFeedback": "总体评价，指出亮点和核心改进方向（2-3 句话）"
+}
+
+要求：
+- score 是 4 个维度分数之和（0-100）
+- differences 至少给出 2 处差异对比，指出用户答案与理想答案在哪些方面不同
+- optimizations 至少给出 3 条优化建议，每条必须引用用户 prompt 中的原文
+- idealAnswer 必须是一个完整的、高质量的 prompt，可直接复制使用
+- feedback 要具体指出优点和不足，避免泛泛而谈`;
+}
+
+export const PROMPT_EVALUATION_SYSTEM_PROMPT = `你是一位资深的 Prompt Engineering 专家，擅长评估 prompt 质量并给出专业优化建议。
+评分要客观公正，优化建议要具体可操作，满分答案要完整实用。
+输出严格的 JSON 格式。`;

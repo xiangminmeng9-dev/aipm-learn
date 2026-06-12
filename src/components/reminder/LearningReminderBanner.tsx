@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { apiFetch } from '@/lib/api/fetch';
 
 const DAY_NAMES = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
 
@@ -16,7 +17,7 @@ export default function LearningReminderBanner() {
 
     async function check() {
       try {
-        const res = await fetch('/api/settings/learning-reminder');
+        const res = await apiFetch('/api/settings/learning-reminder');
         if (!res.ok) return;
         const { reminder } = await res.json();
         if (!reminder || !reminder.enabled) return;

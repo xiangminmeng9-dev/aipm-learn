@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
+import { MotionDiv, AnimatePresence } from '@/components/ui/lazy-motion';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import GradientBackground from '@/components/ui/gradient-background';
+import { apiFetch } from '@/lib/api/fetch';
 
 interface SessionListItem {
   id: string;
@@ -40,23 +41,28 @@ export default function SessionsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [newTitle, setNewTitle] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => { fetchSessions(); }, []);
 
   const fetchSessions = async () => {
+    setIsLoading(true);
+    setError(null);
     try {
-      const res = await fetch('/api/interview/sessions');
+      const res = await apiFetch('/api/interview/sessions');
       if (res.ok) {
         const data = await res.json();
         setSessions(data.data ?? []);
+      } else {
+        setError('加载对话列表失败');
       }
-    } catch {} finally { setIsLoading(false); }
+    } catch { setError('加载对话列表失败'); } finally { setIsLoading(false); }
   };
 
   const handleCreate = useCallback(async () => {
     setIsCreating(true);
     try {
-      const res = await fetch('/api/interview/sessions', {
+      const res = await apiFetch('/api/interview/sessions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title: newTitle.trim() || undefined }),
@@ -71,7 +77,7 @@ export default function SessionsPage() {
   const handleDelete = useCallback(async (id: string) => {
     if (!confirm('确定删除此对话？')) return;
     try {
-      const res = await fetch(`/api/interview/sessions/${id}`, { method: 'DELETE' });
+      const res = await apiFetch(`/api/interview/sessions/${id}`, { method: 'DELETE' });
       if (res.ok) setSessions((prev) => prev.filter((s) => s.id !== id));
     } catch {}
   }, []);
@@ -112,6 +118,11 @@ export default function SessionsPage() {
         <div className="flex justify-center py-16">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
         </div>
+      ) : error ? (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/30 dark:text-red-300">
+          <p>{error}</p>
+          <button onClick={fetchSessions} className="mt-1 text-xs font-medium text-red-600 hover:text-red-800 dark:text-red-400">重试</button>
+        </div>
       ) : sessions.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border bg-card py-16 text-center">
           <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-secondary">
@@ -132,7 +143,7 @@ export default function SessionsPage() {
                   ? 'border-l-indigo-400'
                   : 'border-l-sky-300';
               return (
-                <motion.div
+                <MotionDiv
                   key={session.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -147,17 +158,17 @@ export default function SessionsPage() {
                     </h3>
                     <div className="flex flex-wrap items-center gap-1.5">
                       {session.has_jd && (
-                        <span className="inline-flex items-center rounded-md bg-indigo-50 px-1.5 py-0.5 text-[10px] font-medium text-indigo-600">JD</span>
+                        <span className="inline-flex items-center rounded-md bg-indigo-50 px-1.5 py-0.5 text-xs font-medium text-indigo-600">JD</span>
                       )}
                       {session.has_resume && (
-                        <span className="inline-flex items-center rounded-md bg-violet-50 px-1.5 py-0.5 text-[10px] font-medium text-violet-600">简历</span>
+                        <span className="inline-flex items-center rounded-md bg-violet-50 px-1.5 py-0.5 text-xs font-medium text-violet-600">简历</span>
                       )}
-                      <span className="text-[11px] text-muted-foreground">{relativeTime(session.updated_at)}</span>
+                      <span className="text-xs text-muted-foreground">{relativeTime(session.updated_at)}</span>
                     </div>
                   </div>
 
                   {/* Bottom row: count + actions */}
-                  <div className="flex items-center justify-between border-t border-[#F3F4F6] px-4 py-3">
+                  <div className="flex items-center justify-between border-t border-border px-4 py-3">
                     <span className="text-xs text-muted-foreground">{session.message_count} 条消息</span>
                     <div className="flex items-center gap-1.5">
                       <Link href={`/interview/sessions/${session.id}`}>
@@ -167,13 +178,13 @@ export default function SessionsPage() {
                       </Link>
                       <button
                         onClick={() => handleDelete(session.id)}
-                        className="rounded-md px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-rose-50 hover:text-rose-500"
+                        className="rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-rose-50 hover:text-rose-500"
                       >
                         删除
                       </button>
                     </div>
                   </div>
-                </motion.div>
+                </MotionDiv>
               );
             })}
           </AnimatePresence>

@@ -59,13 +59,13 @@
   --primary: #4338CA;
   --primary-foreground: #FFFFFF;
   --secondary: #F3F4F6;
-  --secondary-foreground: #6B7280;
+  --secondary-foreground: #4B5563;
   --muted: #F3F4F6;
-  --muted-foreground: #6B7280;
+  --muted-foreground: #4B5563;
   --accent: #EEF2FF;
   --accent-foreground: #4338CA;
   --destructive: #EF4444;
-  --border: #D1D5DB;
+  --border: #C7CBD1;
   --input: #D1D5DB;
   --ring: #4338CA;
   --chart-1: #4F46E5;
@@ -89,19 +89,19 @@
   --background: #090E1A;
   --foreground: #F1F5F9;
   --card: #111827;
-  --card-foreground: #F1F5F9;
+  --card-foreground: #E2E8F0;
   --popover: #111827;
-  --popover-foreground: #F1F5F9;
+  --popover-foreground: #E2E8F0;
   --primary: #6366F1;
   --primary-foreground: #FFFFFF;
   --secondary: #1E293B;
-  --secondary-foreground: #94A3B8;
+  --secondary-foreground: #CBD5E1;
   --muted: #1E293B;
-  --muted-foreground: #94A3B8;
+  --muted-foreground: #CBD5E1;
   --accent: #312E81;
   --accent-foreground: #C7D2FE;
   --destructive: #EF4444;
-  --border: #374151;
+  --border: #4B5563;
   --input: #374151;
   --ring: #818CF8;
   --chart-1: #6366F1;
@@ -123,10 +123,6 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
-    -webkit-transform: translateZ(0);
-    transform: translateZ(0);
-    -webkit-backface-visibility: hidden;
-    backface-visibility: hidden;
   }
 
   html {
@@ -161,6 +157,24 @@
     font-feature-settings: "kern" 1, "liga" 1, "calt" 1, "dlig" 1;
   }
 
+  /* ── Visual Clarity Improvements ─────────────────────────────── */
+  /* Boost minimum text size for readability (13px instead of 12px) */
+  .text-xs {
+    font-size: 0.8125rem;
+    line-height: 1.5;
+  }
+
+  /* Card depth: stronger shadow for layer separation */
+  .shadow-sm {
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.08), 0 1px 2px -1px rgba(0, 0, 0, 0.06);
+  }
+
+  /* Label and badge readability */
+  .text-sm.font-medium,
+  .text-sm.font-semibold {
+    letter-spacing: -0.005em;
+  }
+
   button, input, select, textarea {
     font-weight: 500;
     letter-spacing: -0.003em;
@@ -190,17 +204,11 @@
     stroke-linecap: round;
     stroke-linejoin: round;
     vector-effect: non-scaling-stroke;
-    -webkit-transform: translateZ(0);
-    transform: translateZ(0);
   }
 
   img {
     image-rendering: -webkit-optimize-contrast;
     image-rendering: crisp-edges;
-    -webkit-backface-visibility: hidden;
-    backface-visibility: hidden;
-    -webkit-transform: translateZ(0);
-    transform: translateZ(0);
   }
 
   canvas {
@@ -215,91 +223,85 @@
   }
 }
 
-/* 功能区侧边栏主题色 - 明亮模式统一白色 */
+/* 功能区侧边栏主题色 - 明亮/暗黑模式统一 */
 :root {
-  /* 明亮模式 - 所有侧边栏白色底色 */
-  --sidebar-coding: #FFFFFF;
-  --sidebar-coding-accent: #EEF2FF;
-  --sidebar-coding-border: #E5E7EB;
-  --sidebar-coding-active: #4F46E5;
-
-  --sidebar-skills: #FFFFFF;
-  --sidebar-skills-accent: #EEF2FF;
-  --sidebar-skills-border: #E5E7EB;
-  --sidebar-skills-active: #4F46E5;
-
-  --sidebar-notebook: #FFFFFF;
-  --sidebar-notebook-accent: #EEF2FF;
-  --sidebar-notebook-border: #E5E7EB;
-  --sidebar-notebook-active: #4F46E5;
-
-  --sidebar-interview: #FFFFFF;
-  --sidebar-interview-accent: #EEF2FF;
-  --sidebar-interview-border: #E5E7EB;
-  --sidebar-interview-active: #4F46E5;
-
-  --sidebar-resume: #FFFFFF;
-  --sidebar-resume-accent: #EEF2FF;
-  --sidebar-resume-border: #E5E7EB;
-  --sidebar-resume-active: #4F46E5;
-
-  --sidebar-resources: #FFFFFF;
-  --sidebar-resources-accent: #EEF2FF;
-  --sidebar-resources-border: #E5E7EB;
-  --sidebar-resources-active: #4F46E5;
-
-  --sidebar-simulator: #FFFFFF;
-  --sidebar-simulator-accent: #EEF2FF;
-  --sidebar-simulator-border: #E5E7EB;
-  --sidebar-simulator-active: #4F46E5;
-
-  --sidebar-daily: #FFFFFF;
-  --sidebar-daily-accent: #EEF2FF;
-  --sidebar-daily-border: #E5E7EB;
-  --sidebar-daily-active: #4F46E5;
+  --sidebar-section: #FFFFFF;
+  --sidebar-section-accent: #EEF2FF;
+  --sidebar-section-border: #E5E7EB;
+  --sidebar-section-active: #4F46E5;
+  /* 各模块复用统一变量 */
+  --sidebar-coding: var(--sidebar-section);
+  --sidebar-coding-accent: var(--sidebar-section-accent);
+  --sidebar-coding-border: var(--sidebar-section-border);
+  --sidebar-coding-active: var(--sidebar-section-active);
+  --sidebar-skills: var(--sidebar-section);
+  --sidebar-skills-accent: var(--sidebar-section-accent);
+  --sidebar-skills-border: var(--sidebar-section-border);
+  --sidebar-skills-active: var(--sidebar-section-active);
+  --sidebar-notebook: var(--sidebar-section);
+  --sidebar-notebook-accent: var(--sidebar-section-accent);
+  --sidebar-notebook-border: var(--sidebar-section-border);
+  --sidebar-notebook-active: var(--sidebar-section-active);
+  --sidebar-interview: var(--sidebar-section);
+  --sidebar-interview-accent: var(--sidebar-section-accent);
+  --sidebar-interview-border: var(--sidebar-section-border);
+  --sidebar-interview-active: var(--sidebar-section-active);
+  --sidebar-resume: var(--sidebar-section);
+  --sidebar-resume-accent: var(--sidebar-section-accent);
+  --sidebar-resume-border: var(--sidebar-section-border);
+  --sidebar-resume-active: var(--sidebar-section-active);
+  --sidebar-resources: var(--sidebar-section);
+  --sidebar-resources-accent: var(--sidebar-section-accent);
+  --sidebar-resources-border: var(--sidebar-section-border);
+  --sidebar-resources-active: var(--sidebar-section-active);
+  --sidebar-simulator: var(--sidebar-section);
+  --sidebar-simulator-accent: var(--sidebar-section-accent);
+  --sidebar-simulator-border: var(--sidebar-section-border);
+  --sidebar-simulator-active: var(--sidebar-section-active);
+  --sidebar-daily: var(--sidebar-section);
+  --sidebar-daily-accent: var(--sidebar-section-accent);
+  --sidebar-daily-border: var(--sidebar-section-border);
+  --sidebar-daily-active: var(--sidebar-section-active);
 }
 
 .dark {
-  /* 暗黑模式保持原来的深色侧边栏 */
-  --sidebar-coding: #0A0A10;
-  --sidebar-coding-accent: #161628;
-  --sidebar-coding-border: #1C1C2E;
-  --sidebar-coding-active: #A78BFA;
-
-  --sidebar-skills: #0A0A10;
-  --sidebar-skills-accent: #161628;
-  --sidebar-skills-border: #1C1C2E;
-  --sidebar-skills-active: #A78BFA;
-
-  --sidebar-notebook: #0A0A10;
-  --sidebar-notebook-accent: #161628;
-  --sidebar-notebook-border: #1C1C2E;
-  --sidebar-notebook-active: #A78BFA;
-
-  --sidebar-interview: #0A0A10;
-  --sidebar-interview-accent: #161628;
-  --sidebar-interview-border: #1C1C2E;
-  --sidebar-interview-active: #A78BFA;
-
-  --sidebar-resume: #0A0A10;
-  --sidebar-resume-accent: #161628;
-  --sidebar-resume-border: #1C1C2E;
-  --sidebar-resume-active: #A78BFA;
-
-  --sidebar-resources: #0A0A10;
-  --sidebar-resources-accent: #161628;
-  --sidebar-resources-border: #1C1C2E;
-  --sidebar-resources-active: #A78BFA;
-
-  --sidebar-simulator: #0A0A10;
-  --sidebar-simulator-accent: #161628;
-  --sidebar-simulator-border: #1C1C2E;
-  --sidebar-simulator-active: #A78BFA;
-
-  --sidebar-daily: #0A0A10;
-  --sidebar-daily-accent: #161628;
-  --sidebar-daily-border: #1C1C2E;
-  --sidebar-daily-active: #A78BFA;
+  --sidebar-section: #0A0A10;
+  --sidebar-section-accent: #161628;
+  --sidebar-section-border: #1C1C2E;
+  --sidebar-section-active: #A78BFA;
+  /* 各模块复用统一变量 */
+  --sidebar-coding: var(--sidebar-section);
+  --sidebar-coding-accent: var(--sidebar-section-accent);
+  --sidebar-coding-border: var(--sidebar-section-border);
+  --sidebar-coding-active: var(--sidebar-section-active);
+  --sidebar-skills: var(--sidebar-section);
+  --sidebar-skills-accent: var(--sidebar-section-accent);
+  --sidebar-skills-border: var(--sidebar-section-border);
+  --sidebar-skills-active: var(--sidebar-section-active);
+  --sidebar-notebook: var(--sidebar-section);
+  --sidebar-notebook-accent: var(--sidebar-section-accent);
+  --sidebar-notebook-border: var(--sidebar-section-border);
+  --sidebar-notebook-active: var(--sidebar-section-active);
+  --sidebar-interview: var(--sidebar-section);
+  --sidebar-interview-accent: var(--sidebar-section-accent);
+  --sidebar-interview-border: var(--sidebar-section-border);
+  --sidebar-interview-active: var(--sidebar-section-active);
+  --sidebar-resume: var(--sidebar-section);
+  --sidebar-resume-accent: var(--sidebar-section-accent);
+  --sidebar-resume-border: var(--sidebar-section-border);
+  --sidebar-resume-active: var(--sidebar-section-active);
+  --sidebar-resources: var(--sidebar-section);
+  --sidebar-resources-accent: var(--sidebar-section-accent);
+  --sidebar-resources-border: var(--sidebar-section-border);
+  --sidebar-resources-active: var(--sidebar-section-active);
+  --sidebar-simulator: var(--sidebar-section);
+  --sidebar-simulator-accent: var(--sidebar-section-accent);
+  --sidebar-simulator-border: var(--sidebar-section-border);
+  --sidebar-simulator-active: var(--sidebar-section-active);
+  --sidebar-daily: var(--sidebar-section);
+  --sidebar-daily-accent: var(--sidebar-section-accent);
+  --sidebar-daily-border: var(--sidebar-section-border);
+  --sidebar-daily-active: var(--sidebar-section-active);
 }
 
 /* HiDPI / Retina — 2x+ device pixel ratio */
@@ -348,9 +350,7 @@
   border: 2.5px solid var(--border);
   border-radius: 8px;
   color: var(--foreground);
-  transition: all 0.15s ease;
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
   font-weight: 500;
 }
 .app-input::placeholder {
@@ -389,7 +389,7 @@
   border-radius: 8px;
   color: var(--foreground);
   font-weight: 500;
-  transition: all 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 .app-btn-outline:hover {
   background: var(--muted);

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import GradientBackground from '@/components/ui/gradient-background';
+import { apiFetch } from '@/lib/api/fetch';
 
 interface FlashCard {
   id: string;
@@ -32,12 +33,12 @@ export default function FlashcardsPage() {
   const fetchCards = useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await fetch('/api/daily-challenge/flashcards?mode=due');
+      const res = await apiFetch('/api/daily-challenge/flashcards?mode=due');
       if (res.ok) {
         const data = await res.json();
         setDueCards(data.cards || []);
       }
-      const res2 = await fetch('/api/daily-challenge/flashcards?mode=all');
+      const res2 = await apiFetch('/api/daily-challenge/flashcards?mode=all');
       if (res2.ok) {
         const data = await res2.json();
         setCards(data.cards || []);
@@ -52,7 +53,7 @@ export default function FlashcardsPage() {
     if (!card) return;
 
     try {
-      await fetch('/api/daily-challenge/flashcards', {
+      await apiFetch('/api/daily-challenge/flashcards', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ card_id: card.id, rating }),
@@ -73,7 +74,7 @@ export default function FlashcardsPage() {
     if (!generateTopic.trim()) return;
     setIsGenerating(true);
     try {
-      const res = await fetch('/api/daily-challenge/flashcards', {
+      const res = await apiFetch('/api/daily-challenge/flashcards', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ generate: true, topic: generateTopic.trim() }),
@@ -97,7 +98,7 @@ export default function FlashcardsPage() {
   const handleManualCreate = async () => {
     if (!manualFront.trim() || !manualBack.trim()) return;
     try {
-      const res = await fetch('/api/daily-challenge/flashcards', {
+      const res = await apiFetch('/api/daily-challenge/flashcards', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ front: manualFront, back: manualBack, category: manualCategory || 'general' }),
@@ -258,7 +259,7 @@ export default function FlashcardsPage() {
                       <p className="text-sm font-medium text-foreground">{card.front}</p>
                       <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{card.back}</p>
                     </div>
-                    <span className="shrink-0 rounded-lg bg-secondary px-2 py-0.5 text-[10px] text-muted-foreground">{card.category}</span>
+                    <span className="shrink-0 rounded-lg bg-secondary px-2 py-0.5 text-xs text-muted-foreground">{card.category}</span>
                   </div>
                 </div>
               ))

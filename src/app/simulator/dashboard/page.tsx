@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import GradientBackground from '@/components/ui/gradient-background';
-import ReactECharts from '@/components/ui/EChartsWrapper';
+import ReactECharts from '@/components/ui/LazyECharts';
+import { apiFetch } from '@/lib/api/fetch';
 
 interface SimulatorStats {
   total_sessions: number;
@@ -45,7 +46,7 @@ export default function SimulatorDashboardPage() {
 
   const loadData = useCallback(async (r: string) => {
     try {
-      const res = await fetch(`/api/simulator/dashboard?range=${r}`);
+      const res = await apiFetch(`/api/simulator/dashboard?range=${r}`);
       const d = await res.json();
       if (d.stats) setStats(d.stats);
     } catch (e) {
@@ -326,7 +327,7 @@ export default function SimulatorDashboardPage() {
                 {stats.recent_sessions.map((s) => (
                   <div key={s.id} className="flex items-center justify-between rounded-xl border border-border px-3 py-2">
                     <div className="flex items-center gap-2">
-                      <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${
+                      <span className={`rounded px-1.5 py-0.5 text-xs font-medium ${
                         s.status === 'completed' ? 'bg-emerald-100 text-emerald-700' :
                         s.status === 'in_progress' ? 'bg-cyan-100 text-cyan-700' :
                         'bg-indigo-100 text-indigo-700'
@@ -353,7 +354,7 @@ export default function SimulatorDashboardPage() {
                 {stats.recent_boss_sessions.map((b) => (
                   <div key={b.id} className="flex items-center justify-between rounded-xl border border-border px-3 py-2">
                     <div className="flex items-center gap-2">
-                      <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${
+                      <span className={`rounded px-1.5 py-0.5 text-xs font-medium ${
                         b.status === 'completed' ? 'bg-emerald-100 text-emerald-700' :
                         'bg-amber-100 text-amber-700'
                       }`}>
@@ -363,7 +364,7 @@ export default function SimulatorDashboardPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       {b.score != null && (
-                        <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${
+                        <span className={`rounded px-1.5 py-0.5 text-xs font-medium ${
                           b.score >= 80 ? 'bg-indigo-100 text-indigo-700' :
                           b.score >= 60 ? 'bg-emerald-100 text-emerald-700' :
                           b.score >= 40 ? 'bg-amber-100 text-amber-700' :

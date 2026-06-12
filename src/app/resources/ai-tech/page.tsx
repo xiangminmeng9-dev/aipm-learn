@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import GradientBackground from '@/components/ui/gradient-background';
+import { apiFetch } from '@/lib/api/fetch';
 
 interface Article {
   id: string;
@@ -25,7 +26,7 @@ export default function AiTechPage() {
   const fetchArticles = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/rss/articles?category=ai_tech');
+      const res = await apiFetch('/api/rss/articles?category=ai_tech');
       if (res.ok) {
         const data = await res.json();
         setArticles(data.data || []);
@@ -39,7 +40,7 @@ export default function AiTechPage() {
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      await fetch('/api/rss/refresh?category=ai_tech', { method: 'POST' });
+      await apiFetch('/api/rss/refresh?category=ai_tech', { method: 'POST' });
       await fetchArticles();
     } catch { /* ignore */ }
     setRefreshing(false);
@@ -62,7 +63,7 @@ export default function AiTechPage() {
           <button
             onClick={handleRefresh}
             disabled={refreshing}
-            className="rounded-lg bg-[#4F46E5] px-4 py-2 text-xs font-medium text-white hover:bg-[#4338CA] disabled:opacity-50 transition"
+            className="rounded-lg bg-primary px-4 py-2 text-xs font-medium text-white hover:bg-primary/90 disabled:opacity-50 transition"
           >
             {refreshing ? '采集中...' : '采集最新'}
           </button>
@@ -73,7 +74,7 @@ export default function AiTechPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="搜索技术动态..."
-            className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-xs text-foreground placeholder-[#9CA3AF] focus:border-[#4F46E5] focus:outline-none focus:ring-1 focus:ring-[#4F46E5]/20"
+            className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/20"
           />
         </div>
       </div>
@@ -129,14 +130,14 @@ function ArticleCard({ article }: { article: Article }) {
             </a>
           )}
         </div>
-        <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+        <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
           <span className="rounded bg-secondary px-1.5 py-0.5">{article.source}</span>
           {article.publishedAt && <span>{timeAgo(article.publishedAt)}</span>}
         </div>
         {article.tags.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1">
             {article.tags.slice(0, 4).map(tag => (
-              <span key={tag} className="rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-medium text-indigo-600">{tag}</span>
+              <span key={tag} className="rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-600">{tag}</span>
             ))}
           </div>
         )}
@@ -145,11 +146,11 @@ function ArticleCard({ article }: { article: Article }) {
         )}
         {article.impact && expanded && (
           <div className="mt-3 rounded-lg bg-amber-50/60 p-2.5">
-            <p className="text-[10px] font-medium text-amber-700">对产品经理意味着什么</p>
+            <p className="text-xs font-medium text-amber-700">对产品经理的意义</p>
             <p className="mt-0.5 text-xs text-foreground">{article.impact}</p>
           </div>
         )}
-        <button onClick={() => setExpanded(!expanded)} className="mt-2 text-[11px] font-medium text-indigo-600 hover:text-indigo-700 transition self-start">
+        <button onClick={() => setExpanded(!expanded)} className="mt-2 text-xs font-medium text-indigo-600 hover:text-indigo-700 transition self-start">
           {expanded ? '收起' : '展开详情'}
         </button>
       </div>

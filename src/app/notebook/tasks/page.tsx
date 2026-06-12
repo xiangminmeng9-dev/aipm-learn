@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { MotionDiv, AnimatePresence } from '@/components/ui/lazy-motion';
 import {
   DndContext,
   PointerSensor,
@@ -284,10 +284,10 @@ function TimelineTaskBar({
           {!isCompact && (
             <div className="mt-0.5 flex items-center gap-2 pl-5.5">
               {task.start_time && (
-                <span className="text-[10px] text-muted-foreground">{task.start_time}</span>
+                <span className="text-xs text-muted-foreground">{task.start_time}</span>
               )}
               {task.duration && (
-                <span className="text-[10px] text-muted-foreground">· {task.duration}</span>
+                <span className="text-xs text-muted-foreground">· {task.duration}</span>
               )}
               {task.from_template && (
                 <span className="rounded bg-purple-50 px-1 py-0 text-[9px] font-medium text-purple-500">模板</span>
@@ -340,7 +340,7 @@ function TaskEditor({
   const sc = STATUS_CONFIG[status] || STATUS_CONFIG.todo;
 
   return (
-    <motion.div
+    <MotionDiv
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -348,12 +348,12 @@ function TaskEditor({
       onClick={onClose}
     >
       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
-      <motion.div
+      <MotionDiv
         initial={{ y: 30, scale: 0.95 }}
         animate={{ y: 0, scale: 1 }}
         exit={{ y: 30, scale: 0.95 }}
         className="relative z-10 w-full max-w-md overflow-hidden rounded-2xl border border-border bg-card shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
+        onClick={(e: React.MouseEvent) => e.stopPropagation()}
       >
         {/* Accent bar */}
         <div className={`h-1.5 w-full bg-gradient-to-r ${sc.barGradient}`} />
@@ -441,8 +441,8 @@ function TaskEditor({
             <GlassButton onClick={() => onSave(task.id, { title, description, start_time: startTime, duration, status, is_fixed: isFixed })} color="indigo" size="md">保存</GlassButton>
           </div>
         </div>
-      </motion.div>
-    </motion.div>
+      </MotionDiv>
+    </MotionDiv>
   );
 }
 
@@ -686,7 +686,7 @@ export default function DailyTasksPage() {
         <div className="relative z-10 flex items-start justify-between px-8 py-6">
           <div>
             <h1 className="mb-1 text-2xl font-bold text-white">✅ AI PM 每日任务</h1>
-            <p className="text-sm text-white/80">{dateLabel}{nowLabel && <span className="ml-2 rounded-full bg-white/15 px-2 py-0.5 text-[11px] font-medium text-white/90 backdrop-blur">{nowLabel}</span>}</p>
+            <p className="text-sm text-white/80">{dateLabel}{nowLabel && <span className="ml-2 rounded-full bg-white/15 px-2 py-0.5 text-xs font-medium text-white/90 backdrop-blur">{nowLabel}</span>}</p>
             <p className="mt-1 text-xs text-white/60">0-24 小时时间轴 · 拖拽调整 · 最多 5 列并行</p>
             {!isAuthed && <p className="mt-2 text-xs text-white/40">数据保存在本地 · <a href="/login" className="underline hover:text-white/60">登录</a>后可同步至云端</p>}
           </div>
@@ -706,7 +706,7 @@ export default function DailyTasksPage() {
           <GlassButton onClick={() => setShowFixedPanel(!showFixedPanel)} color={showFixedPanel ? 'amber' : 'gray'}>📌 固定任务{fixedTemplates.length > 0 ? ` (${fixedTemplates.filter(t => t.is_active).length})` : ''}</GlassButton>
           <div className="flex items-center gap-2">
             <div className="text-right">
-              <p className="text-[10px] text-muted-foreground">完成进度</p>
+              <p className="text-xs text-muted-foreground">完成进度</p>
               <p className="text-sm font-semibold text-foreground">{doneCount}/{totalCount}</p>
             </div>
             <div className="relative h-9 w-9">
@@ -723,7 +723,7 @@ export default function DailyTasksPage() {
       {/* Templates */}
       <AnimatePresence>
         {showTemplates && (
-          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="mb-4 overflow-hidden">
+          <MotionDiv initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="mb-4 overflow-hidden">
             <div className="rounded-2xl border border-purple-200/60 bg-purple-50/40 p-4">
               <div className="mb-3 flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-purple-700">AI PM 每日工作模板</h3>
@@ -744,9 +744,9 @@ export default function DailyTasksPage() {
                       <div className="flex items-center gap-1.5">
                         <span className="text-sm">{tpl.icon}</span>
                         <span className="text-xs font-medium text-foreground">{tpl.title}</span>
-                        {exists && <span className="text-[10px] text-emerald-500">✓</span>}
+                        {exists && <span className="text-xs text-emerald-500">✓</span>}
                       </div>
-                      <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <span>{tpl.start_time}</span>
                         <span>· {tpl.duration}</span>
                       </div>
@@ -755,18 +755,18 @@ export default function DailyTasksPage() {
                 })}
               </div>
             </div>
-          </motion.div>
+          </MotionDiv>
         )}
       </AnimatePresence>
 
       {/* Fixed Task Management Panel */}
       <AnimatePresence>
         {showFixedPanel && (
-          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="mb-4 overflow-hidden">
+          <MotionDiv initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="mb-4 overflow-hidden">
             <div className="rounded-2xl border border-amber-200/60 bg-amber-50/40 p-4">
               <div className="mb-3 flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-amber-700">📌 固定任务管理</h3>
-                <span className="text-[10px] text-amber-600">每天自动创建</span>
+                <span className="text-xs text-amber-600">每天自动创建</span>
               </div>
               {fixedTemplates.length === 0 ? (
                 <p className="text-xs text-muted-foreground py-4 text-center">暂无固定任务。在任务编辑器中开启「固定任务」即可添加。</p>
@@ -781,7 +781,7 @@ export default function DailyTasksPage() {
                         <span className="text-xs font-medium text-foreground truncate flex-1">{tpl.title}</span>
                         {!tpl.is_active && <span className="text-[9px] text-gray-500 flex-shrink-0">已暂停</span>}
                       </div>
-                      <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         {tpl.start_time && <span>{tpl.start_time}</span>}
                         {tpl.duration && <span>· {tpl.duration}</span>}
                       </div>
@@ -812,7 +812,7 @@ export default function DailyTasksPage() {
                 </div>
               )}
             </div>
-          </motion.div>
+          </MotionDiv>
         )}
       </AnimatePresence>
 
@@ -825,7 +825,7 @@ export default function DailyTasksPage() {
               {Array.from({ length: TIMELINE_END + 1 }, (_, h) => (
                 <div
                   key={h}
-                  className="flex items-start justify-end pr-2 text-[10px] text-muted-foreground font-medium"
+                  className="flex items-start justify-end pr-2 text-xs text-muted-foreground font-medium"
                   style={{ height: `${HOUR_HEIGHT}px` }}
                 >
                   <span className="-mt-1.5">{h}:00</span>
@@ -878,7 +878,7 @@ export default function DailyTasksPage() {
                 >
                   <div className="h-2.5 w-2.5 rounded-full bg-indigo-400 -ml-1" />
                   <div className="h-px flex-1 bg-indigo-400/60 border-dashed" />
-                  <span className="absolute left-3 -top-3 rounded-md bg-indigo-500 px-1.5 py-0.5 text-[10px] font-semibold text-white shadow-sm">
+                  <span className="absolute left-3 -top-3 rounded-md bg-indigo-500 px-1.5 py-0.5 text-xs font-semibold text-white shadow-sm">
                     {formatHour(hoverHour)} 点击创建
                   </span>
                 </div>
@@ -946,7 +946,7 @@ export default function DailyTasksPage() {
                       </button>
                       <span className={`truncate text-xs font-semibold ${isDone ? 'text-muted-foreground line-through' : 'text-foreground'}`}>{task.title}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground pl-5.5">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground pl-5.5">
                       {task.duration && <span>{task.duration}</span>}
                       {task.from_template && <span className="rounded bg-purple-50 px-1 py-0 text-[9px] font-medium text-purple-500">模板</span>}
                       {task.is_fixed && <span className="rounded bg-amber-50 px-1 py-0 text-[9px] font-medium text-amber-600">固定</span>}

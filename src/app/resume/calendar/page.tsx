@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, Building2, Clock, Calendar as CalendarIcon } from 'lucide-react';
 import type { ApplicationCalendarDay } from '@/types';
+import { apiFetch } from '@/lib/api/fetch';
 
 const WEEKDAYS = ['一', '二', '三', '四', '五', '六', '日'];
 
@@ -76,7 +77,7 @@ export default function CalendarPage() {
     if (year === 0 || month === 0) return;
     setLoading(true);
     try {
-      const res = await fetch(`/api/resume/calendar?year=${year}&month=${month}`);
+      const res = await apiFetch(`/api/resume/calendar?year=${year}&month=${month}`);
       if (res.ok) {
         const data = await res.json();
         if (data.days && data.days.length > 0) setDays(data.days);
@@ -397,7 +398,7 @@ export default function CalendarPage() {
                   <div className="flex items-center gap-3">
                     <div className="flex flex-col items-center justify-center w-12 h-12 rounded-lg bg-primary/10 border border-primary/20">
                       <span className="text-lg font-bold text-primary">{task.daysUntil === 0 ? '今' : task.daysUntil === 1 ? '明' : task.daysUntil}</span>
-                      {task.daysUntil > 1 && <span className="text-[10px] text-muted-foreground">天后</span>}
+                      {task.daysUntil > 1 && <span className="text-xs text-muted-foreground">天后</span>}
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-foreground">{task.company}</p>

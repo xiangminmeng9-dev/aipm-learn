@@ -4,7 +4,9 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { createClient } from '@/lib/supabase/client';
-import Markdown from '@/components/ui/markdown';
+import dynamic from 'next/dynamic';
+const Markdown = dynamic(() => import('@/components/ui/markdown'), { ssr: false });
+import { apiFetch } from '@/lib/api/fetch';
 
 function formatEvalText(data: {
   score: number;
@@ -88,7 +90,7 @@ export default function MockInterviewFlow({
         const headers: Record<string, string> = {};
         if (session) headers['Authorization'] = `Bearer ${session.access_token}`;
 
-        const stateRes = await fetch(`/api/interview/mock/${mockId}/state`, { headers });
+        const stateRes = await apiFetch(`/api/interview/mock/${mockId}/state`, { headers });
         if (!stateRes.ok) return;
         const stateData = await stateRes.json();
 
@@ -99,7 +101,7 @@ export default function MockInterviewFlow({
 
         if (stateData.total_questions) setTotalQ(stateData.total_questions);
 
-        const answersRes = await fetch(`/api/interview/mock/${mockId}/answers`, { headers });
+        const answersRes = await apiFetch(`/api/interview/mock/${mockId}/answers`, { headers });
         if (!answersRes.ok) return;
         const answersData = await answersRes.json();
 
@@ -172,7 +174,7 @@ export default function MockInterviewFlow({
       if (skip) {
         // Skip — simple JSON response
         headers['Content-Type'] = 'application/json';
-        const res = await fetch(`/api/interview/mock/${mockId}/answer`, {
+        const res = await apiFetch(`/api/interview/mock/${mockId}/answer`, {
           method: 'POST',
           headers,
           body: JSON.stringify({ skip: true }),
@@ -194,7 +196,7 @@ export default function MockInterviewFlow({
 
       // Normal answer — SSE streaming
       headers['Content-Type'] = 'application/json';
-      const res = await fetch(`/api/interview/mock/${mockId}/answer`, {
+      const res = await apiFetch(`/api/interview/mock/${mockId}/answer`, {
         method: 'POST',
         headers,
         body: JSON.stringify({ answer: answer.trim() }),

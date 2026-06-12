@@ -6,6 +6,7 @@ import { SIMULATOR_SCENARIOS, DIFFICULTY_LABELS, SimulatorScenario } from '@/lib
 import StageRoadmap from '@/components/simulator/StageRoadmap';
 import { cacheGet, cacheSet, TTL } from '@/lib/cache';
 import GradientBackground from '@/components/ui/gradient-background';
+import { apiFetch } from '@/lib/api/fetch';
 
 interface StageScore {
   score: number;
@@ -33,7 +34,7 @@ export default function SimulatorPage() {
       const progressMap: Record<string, { currentStage: string; scores: Record<string, StageScore> }> = {};
       for (const scenario of SIMULATOR_SCENARIOS) {
         try {
-          const res = await fetch(`/api/simulator/progress?scenario_id=${scenario.id}`);
+          const res = await apiFetch(`/api/simulator/progress?scenario_id=${scenario.id}`);
           if (res.ok) {
             const data = await res.json();
             if (data.session) {
@@ -70,7 +71,7 @@ export default function SimulatorPage() {
   const handleSelectScenario = async (scenario: SimulatorScenario) => {
     setIsLoading(true);
     try {
-      const res = await fetch('/api/simulator/progress', {
+      const res = await apiFetch('/api/simulator/progress', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'start', scenario_id: scenario.id }),
@@ -147,9 +148,9 @@ export default function SimulatorPage() {
               >
                 <div className="mb-3 flex items-center gap-2">
                   <span className="text-2xl">{scenario.icon}</span>
-                  <span className={`rounded-lg px-2 py-0.5 text-[10px] font-medium ${diff.color}`}>{diff.label}</span>
+                  <span className={`rounded-lg px-2 py-0.5 text-xs font-medium ${diff.color}`}>{diff.label}</span>
                   {completedCount > 0 && (
-                    <span className="ml-auto rounded-full bg-teal-100 px-2 py-0.5 text-[10px] font-medium text-teal-700">
+                    <span className="ml-auto rounded-full bg-teal-100 px-2 py-0.5 text-xs font-medium text-teal-700">
                       {completedCount}/{totalStages}
                     </span>
                   )}
@@ -158,10 +159,10 @@ export default function SimulatorPage() {
                 <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{scenario.description}</p>
                 <div className="mt-3 flex flex-wrap gap-1">
                   {scenario.tags.map((tag) => (
-                    <span key={tag} className="rounded-md bg-secondary px-1.5 py-0.5 text-[10px] text-muted-foreground">{tag}</span>
+                    <span key={tag} className="rounded-md bg-secondary px-1.5 py-0.5 text-xs text-muted-foreground">{tag}</span>
                   ))}
                 </div>
-                <div className="mt-3 flex items-center gap-1 text-[10px] text-muted-foreground">
+                <div className="mt-3 flex items-center gap-1 text-xs text-muted-foreground">
                   <span>{totalStages} 个阶段</span>
                   <span>·</span>
                   {scenario.stages.slice(0, 3).map((s, i) => (

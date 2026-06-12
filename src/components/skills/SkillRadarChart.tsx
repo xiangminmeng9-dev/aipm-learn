@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import ReactECharts from '@/components/ui/EChartsWrapper';
+import ReactECharts from '@/components/ui/LazyECharts';
 
 interface ModuleData {
   id: string;

@@ -189,7 +189,7 @@ export default function TodosPage() {
             onChange={(e) => setQuickAdd(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') handleQuickAdd(); }}
             placeholder="添加待办事项，按 Enter 创建..."
-            className="flex-1 rounded-xl border-2 border-border bg-card px-4 py-2.5 text-sm text-foreground placeholder-muted-foreground transition-colors focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-[#4F46E5]/20"
+            className="flex-1 rounded-xl border-2 border-border bg-card px-4 py-2.5 text-sm text-foreground placeholder-muted-foreground transition-colors focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
           <button
             onClick={handleQuickAdd}
@@ -275,20 +275,20 @@ export default function TodosPage() {
                     {/* Priority badge */}
                     <button
                       onClick={() => handleCyclePriority(todo)}
-                      className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${pri.bg} ${pri.text} transition-colors`}
+                      className={`shrink-0 rounded-md px-1.5 py-0.5 text-xs font-semibold ${pri.bg} ${pri.text} transition-colors`}
                     >
                       {PRIORITY_LABELS[todo.priority]}
                     </button>
 
                     {/* Due date */}
                     {todo.due_date && (
-                      <span className="shrink-0 text-[10px] text-muted-foreground">
+                      <span className="shrink-0 text-xs text-muted-foreground">
                         {new Date(todo.due_date).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })}
                       </span>
                     )}
 
                     {/* Timestamp */}
-                    <span className="shrink-0 text-[10px] text-muted-foreground">
+                    <span className="shrink-0 text-xs text-muted-foreground">
                       {isCompleted ? `完成于 ${formatTime(todo.completed_at)}` : formatTime(todo.created_at)}
                     </span>
 
@@ -348,7 +348,7 @@ export default function TodosPage() {
                       </div>
 
                       {/* Timestamps */}
-                      <div className="flex items-center gap-4 text-[10px] text-muted-foreground">
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
                         <span>创建: {new Date(todo.created_at).toLocaleString('zh-CN')}</span>
                         {todo.completed_at && <span>完成: {new Date(todo.completed_at).toLocaleString('zh-CN')}</span>}
                       </div>

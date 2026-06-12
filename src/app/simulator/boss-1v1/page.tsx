@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { BOSS_TYPES, BossType } from '@/lib/boss-1v1-config';
 import GradientBackground from '@/components/ui/gradient-background';
+import { apiFetch } from '@/lib/api/fetch';
 
 interface Session {
   id: string;
@@ -24,7 +25,7 @@ export default function Boss1v1Page() {
   const [selectedScenario, setSelectedScenario] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch('/api/simulator/boss-1v1')
+    apiFetch('/api/simulator/boss-1v1')
       .then((r) => r.ok ? r.json() : null)
       .then((data) => {
         if (data) setSessions(data.sessions ?? []);
@@ -37,7 +38,7 @@ export default function Boss1v1Page() {
     if (!selectedBoss || !selectedScenario || isCreating) return;
     setIsCreating(true);
     try {
-      const res = await fetch('/api/simulator/boss-1v1', {
+      const res = await apiFetch('/api/simulator/boss-1v1', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ boss_type: selectedBoss, scenario_id: selectedScenario }),

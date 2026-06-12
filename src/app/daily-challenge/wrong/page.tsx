@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import GradientBackground from '@/components/ui/gradient-background';
+import { apiFetch } from '@/lib/api/fetch';
 
 interface WrongQuestion {
   submission_id: string;
@@ -32,7 +33,7 @@ export default function WrongQuestionsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    fetch('/api/daily-challenge/wrong')
+    apiFetch('/api/daily-challenge/wrong')
       .then((r) => r.ok ? r.json() : null)
       .then((data) => {
         if (data) {
@@ -48,7 +49,7 @@ export default function WrongQuestionsPage() {
     if (!redoAnswer.trim() || isSubmitting) return;
     setIsSubmitting(true);
     try {
-      const res = await fetch('/api/daily-challenge/submit', {
+      const res = await apiFetch('/api/daily-challenge/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ challenge_id: challengeId, answer: redoAnswer.trim() }),
@@ -108,7 +109,7 @@ export default function WrongQuestionsPage() {
                           <div className="flex items-center gap-2 mb-1">
                             <span className={`text-xs font-medium ${diff.color}`}>{diff.label}</span>
                             <span className="text-xs text-rose-500 font-medium">{q.score} 分</span>
-                            <span className="text-[10px] text-muted-foreground">{new Date(q.created_at).toLocaleDateString('zh-CN')}</span>
+                            <span className="text-xs text-muted-foreground">{new Date(q.created_at).toLocaleDateString('zh-CN')}</span>
                           </div>
                           <p className="text-sm font-medium text-foreground">{q.question}</p>
                         </div>

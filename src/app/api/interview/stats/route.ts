@@ -107,33 +107,56 @@ export async function GET() {
       .sort((a, b) => a.average_score - b.average_score)
       .slice(0, 5);
 
-    // 为弱项领域推荐题目
-    const weakAreasWithRecommendations = await Promise.all(
-      weakAreas.map(async (area) => {
-        const { data: recommendedQuestions } = await supabase
+    // 为弱项领域推荐题目 — batch queries instead of N+1
+    const weakTypeIds = weakAreas.map(a => a.type_id);
+
+    // Single query for all recommended questions across weak types
+    const { data: allRecommendedQuestions } = weakTypeIds.length > 0
+      ? await supabase
           .from('interview_questions')
-          .select('id, text')
-          .eq('type_id', area.type_id)
-          .limit(3);
+          .select('id, text, type_id')
+          .in('type_id', weakTypeIds)
+          .limit(3 * weakTypeIds.length)
+      : { data: [] };
 
-        // 查询关联技能模块
-        const { data: moduleMappings } = await supabase
+    // Single query for all module mappings across weak types
+    const { data: allModuleMappings } = weakTypeIds.length > 0
+      ? await supabase
           .from('type_skill_mappings')
-          .select('skill_modules(id, name, slug)')
-          .eq('type_id', area.type_id);
+          .select('type_id, skill_modules(id, name, slug)')
+          .in('type_id', weakTypeIds)
+      : { data: [] };
 
-        const relatedModules = (moduleMappings ?? [])
-          .map((m) => m.skill_modules as unknown as { id: string; name: string; slug: string })
-          .filter(Boolean);
+    // Group results by type_id in JS
+    const questionsByType: Record<string, { id: string; text: string }[]> = {};
+    for (const q of (allRecommendedQuestions ?? []) as (typeof allRecommendedQuestions extends (infer T)[] | null ? T : never)[]) {
+      if (!q) continue;
+      const tid = (q as { type_id?: string }).type_id;
+      if (tid) {
+        if (!questionsByType[tid]) questionsByType[tid] = [];
+        if (questionsByType[tid].length < 3) {
+          questionsByType[tid].push({ id: (q as { id: string }).id, text: (q as { text: string }).text });
+        }
+      }
+    }
 
-        return {
-          type_name: area.type_name,
-          average_score: area.average_score,
-          recommended_questions: recommendedQuestions ?? [],
-          related_modules: relatedModules,
-        };
-      })
-    );
+    const modulesByType: Record<string, { id: string; name: string; slug: string }[]> = {};
+    for (const m of (allModuleMappings ?? []) as Record<string, unknown>[]) {
+      if (!m) continue;
+      const tid = m.type_id as string;
+      const mod = m.skill_modules as unknown as { id: string; name: string; slug: string } | null;
+      if (tid && mod) {
+        if (!modulesByType[tid]) modulesByType[tid] = [];
+        modulesByType[tid].push(mod);
+      }
+    }
+
+    const weakAreasWithRecommendations = weakAreas.map(area => ({
+      type_name: area.type_name,
+      average_score: area.average_score,
+      recommended_questions: questionsByType[area.type_id] ?? [],
+      related_modules: modulesByType[area.type_id] ?? [],
+    }));
 
     return NextResponse.json({
       total_questions: totalQuestions ?? 0,

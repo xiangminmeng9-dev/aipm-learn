@@ -56,6 +56,14 @@ export const specPracticeSchema = z.object({
   question_category: z.string().max(50).optional(),
 });
 
+// -- Prompt Practice --
+export const promptPracticeSchema = z.object({
+  question: z.string().min(1, '请输入问题').max(2000),
+  question_category: z.string().max(50).optional(),
+  difficulty: z.enum(['入门', '进阶', '实战']).optional(),
+  user_prompt: z.string().min(20, 'Prompt 至少 20 字').max(10000),
+});
+
 // -- Settings --
 export const aiConfigSchema = z.object({
   protocol: z.enum(['anthropic', 'openai']),

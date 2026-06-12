@@ -1,6 +1,6 @@
 'use client';
 
-import ReactECharts from '@/components/ui/EChartsWrapper';
+import ReactECharts from '@/components/ui/LazyECharts';
 import type { GraphData } from './SkillTreeLayout';
 
 interface SkillTreeChartProps {
@@ -133,14 +133,16 @@ export default function SkillTreeChart({ data, onNodeClick, onNodeDelete }: Skil
         option={option}
         style={{ height: '100%', width: '100%' }}
         onEvents={{
-          click: (params: { dataType?: string; data?: { id?: string; moduleData?: ModuleData } }) => {
-            if (params.dataType === 'node' && params.data?.id && onNodeClick) {
-              onNodeClick(params.data.id, params.data.moduleData?.is_custom ?? false);
+          click: (params?: unknown) => {
+            const p = params as { dataType?: string; data?: { id?: string; moduleData?: ModuleData } } | undefined;
+            if (p?.dataType === 'node' && p.data?.id && onNodeClick) {
+              onNodeClick(p.data.id, p.data.moduleData?.is_custom ?? false);
             }
           },
-          contextmenu: (params: { dataType?: string; data?: { id?: string; moduleData?: ModuleData } }) => {
-            if (params.dataType === 'node' && params.data?.id && params.data.moduleData?.is_custom && onNodeDelete) {
-              onNodeDelete(params.data.id);
+          contextmenu: (params?: unknown) => {
+            const p = params as { dataType?: string; data?: { id?: string; moduleData?: ModuleData } } | undefined;
+            if (p?.dataType === 'node' && p.data?.id && p.data.moduleData?.is_custom && onNodeDelete) {
+              onNodeDelete(p.data.id);
             }
           },
         }}
