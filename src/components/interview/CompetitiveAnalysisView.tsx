@@ -24,6 +24,7 @@ export default function CompetitiveAnalysisView() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [streamingText, setStreamingText] = useState('');
   const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [saved, setSaved] = useState<boolean | null>(null);
   const [error, setError] = useState('');
   const abortRef = useRef<AbortController | null>(null);
 
@@ -35,6 +36,7 @@ export default function CompetitiveAnalysisView() {
     setIsGenerating(true);
     setError('');
     setResult(null);
+    setSaved(null);
     setStreamingText('');
 
     const abortController = new AbortController();
@@ -79,6 +81,7 @@ export default function CompetitiveAnalysisView() {
             }
 
             if (event.done) {
+              setSaved(event.saved !== false);
               const markdownContent = fullText.replace(/\{[\s\S]*"dimensionScores"[\s\S]*\}/, '').trim();
               const marketPosition = markdownContent.match(/##\s*[🏢📊📈🎯].*?市场定位[\s\S]*?(?=##\s*[⚡💪🆚🔧].*?(?:功能对比|核心功能|优劣势|差异化)|$)/i)?.[0]?.trim()
                 || markdownContent.match(/##\s*.*?市场定位[\s\S]*?(?=##|$)/i)?.[0]?.trim() || '';
@@ -126,6 +129,7 @@ export default function CompetitiveAnalysisView() {
   const handleRetry = () => {
     if (abortRef.current) abortRef.current.abort();
     setResult(null);
+    setSaved(null);
     setError('');
     setStreamingText('');
   };
@@ -183,12 +187,22 @@ export default function CompetitiveAnalysisView() {
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-bold text-foreground">「{result.productName}」竞品分析</h3>
-            <button
-              onClick={handleRetry}
-              className="rounded-lg border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent"
-            >
-              重新分析
-            </button>
+            <div className="flex items-center gap-3">
+              {saved === false && (
+                <span className="text-xs text-rose-500">⚠️ 保存失败，结果未记录到历史</span>
+              )}
+              {saved && (
+                <a href="/interview/comp-history" className="text-xs text-purple-600 hover:underline dark:text-purple-400">
+                  查看历史记录 →
+                </a>
+              )}
+              <button
+                onClick={handleRetry}
+                className="rounded-lg border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent"
+              >
+                重新分析
+              </button>
+            </div>
           </div>
 
           <div className="space-y-4">

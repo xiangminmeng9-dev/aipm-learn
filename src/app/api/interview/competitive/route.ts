@@ -65,28 +65,35 @@ export async function POST(request: NextRequest) {
           const totalScore = scoring?.totalScore ?? 0;
 
           // Save to database
-          const serviceClient = createServiceClient();
-          const { data, error } = await serviceClient
-            .from('competitive_analyses')
-            .insert({
-              user_id: user.id,
-              product_name: productName.trim(),
-              market_position: marketPosition || fallbackContent,
-              feature_comparison: featureComparison,
-              strengths_weaknesses: strengthsWeaknesses,
-              differentiation_strategy: differentiationStrategy,
-              total_score: totalScore,
-              dimension_scores: dimensionScores,
-            })
-            .select()
-            .single();
+          let savedRecordId: string | null = null;
+          try {
+            const serviceClient = createServiceClient();
+            const { data, error } = await serviceClient
+              .from('competitive_analyses')
+              .insert({
+                user_id: user.id,
+                product_name: productName.trim(),
+                market_position: marketPosition || fallbackContent,
+                feature_comparison: featureComparison,
+                strengths_weaknesses: strengthsWeaknesses,
+                differentiation_strategy: differentiationStrategy,
+                total_score: totalScore,
+                dimension_scores: dimensionScores,
+              })
+              .select()
+              .single();
 
-          if (error) {
-            console.error('Competitive analysis save error:', JSON.stringify(error));
+            if (error) {
+              console.error('Competitive analysis save error:', JSON.stringify(error));
+            } else {
+              savedRecordId = data?.id || null;
+            }
+          } catch (saveErr) {
+            console.error('Competitive analysis save exception:', saveErr);
           }
 
           // Trigger competitive methodology generation (non-blocking)
-          if (data) {
+          if (savedRecordId) {
             try {
               const { generateOrUpdateCompetitiveMethodology } = await import('@/lib/ai/competitive-methodology');
               generateOrUpdateCompetitiveMethodology(supabase, user.id).catch(() => {});
@@ -97,7 +104,8 @@ export async function POST(request: NextRequest) {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({
             done: true,
             scoring: { totalScore, dimensionScores },
-            recordId: data?.id || null,
+            recordId: savedRecordId,
+            saved: !!savedRecordId,
           })}\n\n`));
         } catch (err) {
           console.error('Competitive analysis stream error:', err);
