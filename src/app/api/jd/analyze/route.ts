@@ -3,9 +3,9 @@ import { createClient } from '@/lib/supabase/server';
 import { generateText } from '@/lib/ai/claude';
 import { buildCombinedJdAnalysisPrompt, COMBINED_JD_ANALYSIS_SYSTEM_PROMPT } from '@/lib/ai/prompts';
 import { computeResumeMatch, type AiResumeJudgment } from '@/lib/ai/jd-scoring';
-import { withTimeout, AI_TIMEOUT_MS } from '@/lib/ai/with-timeout';
+import { withTimeout, AI_TIMEOUT_EXTENDED_MS } from '@/lib/ai/with-timeout';
 
-export const maxDuration = 60;
+export const maxDuration = 180;
 
 export async function GET() {
   try {
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
 
     let aiResponse: string;
     try {
-      aiResponse = await withTimeout(generateText(prompt, { system: COMBINED_JD_ANALYSIS_SYSTEM_PROMPT, maxTokens: 8192 }), AI_TIMEOUT_MS);
+      aiResponse = await withTimeout(generateText(prompt, { system: COMBINED_JD_ANALYSIS_SYSTEM_PROMPT, maxTokens: 8192 }), AI_TIMEOUT_EXTENDED_MS);
     } catch (aiError) {
       console.error('JD analyze AI call error:', aiError);
       return NextResponse.json(

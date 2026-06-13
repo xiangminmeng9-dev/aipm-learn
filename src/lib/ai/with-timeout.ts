@@ -25,3 +25,6 @@ export function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<
 
 /** Default timeout for AI calls: 90 seconds */
 export const AI_TIMEOUT_MS = 90_000;
+
+/** Extended timeout for complex AI calls (large prompts, high maxTokens): 180 seconds */
+export const AI_TIMEOUT_EXTENDED_MS = 180_000;

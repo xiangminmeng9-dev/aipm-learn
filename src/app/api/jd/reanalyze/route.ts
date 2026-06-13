@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { generateText } from '@/lib/ai/claude';
 import { buildCombinedJdAnalysisPrompt, COMBINED_JD_ANALYSIS_SYSTEM_PROMPT } from '@/lib/ai/prompts';
+import { withTimeout, AI_TIMEOUT_EXTENDED_MS } from '@/lib/ai/with-timeout';
 import { computeResumeMatch, type AiResumeJudgment } from '@/lib/ai/jd-scoring';
 
 /**
@@ -67,10 +68,10 @@ export async function POST(request: NextRequest) {
     for (const record of records) {
       try {
         const prompt = buildCombinedJdAnalysisPrompt(record.jd_text, defaultModules, record.resume_text);
-        const aiResponse = await generateText(prompt, {
+        const aiResponse = await withTimeout(generateText(prompt, {
           system: COMBINED_JD_ANALYSIS_SYSTEM_PROMPT,
           maxTokens: 8192,
-        });
+        }), AI_TIMEOUT_EXTENDED_MS);
 
         // 解析 AI 响应
         const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);

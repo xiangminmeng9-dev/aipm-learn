@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { generateText } from '@/lib/ai/claude';
 import { buildResumeGeneratePrompt, RESUME_GENERATE_SYSTEM_PROMPT } from '@/lib/ai/prompts';
-import { withTimeout, AI_TIMEOUT_MS } from '@/lib/ai/with-timeout';
+import { withTimeout, AI_TIMEOUT_EXTENDED_MS } from '@/lib/ai/with-timeout';
 
 export const maxDuration = 60;
 
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
       model: 'sonnet',
       system: RESUME_GENERATE_SYSTEM_PROMPT,
       maxTokens: 8192,
-    }), AI_TIMEOUT_MS);
+    }), AI_TIMEOUT_EXTENDED_MS);
 
     // Parse JSON response
     let modifiedResume = '';
