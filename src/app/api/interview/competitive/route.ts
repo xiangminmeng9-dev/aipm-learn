@@ -61,8 +61,11 @@ export async function POST(request: NextRequest) {
             || markdownContent.match(/##\s*.*?(?:差异化|策略建议|竞争策略)[\s\S]*?(?=##|$)/i)?.[0]?.trim() || '';
           const fallbackContent = (!marketPosition && !featureComparison && !strengthsWeaknesses && !differentiationStrategy) ? markdownContent : '';
 
-          const dimensionScores = scoring?.dimensionScores || [];
-          const totalScore = scoring?.totalScore ?? 0;
+          const dimensionScores = (scoring?.dimensionScores || []).map((d: { dimension: string; score: number; comment: string }) => ({
+            ...d,
+            score: Math.round(d.score),
+          }));
+          const totalScore = Math.round(scoring?.totalScore ?? 0);
 
           // Save to database — use user client (respects RLS), fallback to service client if available
           let savedRecordId: string | null = null;

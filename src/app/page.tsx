@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { useState, useRef, useCallback } from 'react';
 import { useInView } from 'framer-motion';
 import { MotionDiv, MotionButton, AnimatePresence } from '@/components/ui/lazy-motion';
@@ -436,7 +437,7 @@ function DetailModal({ book, onClose }: { book: BookItem; onClose: () => void })
 
 /* ---------------------------- Edition Card (Shopify-style) ---------------------------- */
 
-const CARD_SIZE = 260;
+const CARD_SIZE = '260px';
 
 function EditionCard({
   book,
@@ -703,7 +704,7 @@ export default function HomePage() {
         </MotionDiv>
 
         {/* Shelves */}
-        <div className="flex w-full flex-col items-center gap-24 md:gap-28">
+        <div className="flex w-full flex-col items-center gap-24 md:gap-28" suppressHydrationWarning>
           <FloatingShelf books={topShelf} shelfIndex={0} highlightedId={highlightedId} bouncingId={bouncingId} onDetails={setDetailBook} />
           <FloatingShelf books={bottomShelf} shelfIndex={1} highlightedId={highlightedId} bouncingId={bouncingId} onDetails={setDetailBook} />
         </div>

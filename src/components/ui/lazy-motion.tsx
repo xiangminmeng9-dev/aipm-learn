@@ -35,7 +35,17 @@ export const MotionDiv = forwardRef<any, any>(function MotionDiv(props, ref) {
   const mod = useFramerMotion();
   if (mod) return createElement(mod.motion.div, { ...props, ref });
   const { initial, animate, exit, transition, whileHover, whileTap, layout, layoutId, variants, custom, ...rest } = props;
-  return createElement('div', { ...rest, ref });
+  // Apply initial styles during SSR so server and client render the same content
+  // This prevents hydration mismatch when framer-motion applies initial on mount
+  const ssrStyle = { ...rest.style };
+  if (typeof initial === 'object' && initial !== null) {
+    if (initial.opacity !== undefined) ssrStyle.opacity = initial.opacity;
+    if (initial.y !== undefined) ssrStyle.transform = ssrStyle.transform || `translateY(${initial.y}px)`;
+    if (initial.x !== undefined) ssrStyle.transform = `translateX(${initial.x}px)${ssrStyle.transform ? ' ' + ssrStyle.transform : ''}`;
+    if (initial.scale !== undefined) ssrStyle.transform = `${ssrStyle.transform || ''} scale(${initial.scale})`.trim();
+    if (initial.scaleX !== undefined) ssrStyle.transformOrigin = ssrStyle.transformOrigin || 'center';
+  }
+  return createElement('div', { ...rest, ref, style: ssrStyle });
 });
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -43,7 +53,12 @@ export const MotionP = forwardRef<any, any>(function MotionP(props, ref) {
   const mod = useFramerMotion();
   if (mod) return createElement(mod.motion.p, { ...props, ref });
   const { initial, animate, exit, transition, ...rest } = props;
-  return createElement('p', { ...rest, ref });
+  const ssrStyle = { ...rest.style };
+  if (typeof initial === 'object' && initial !== null) {
+    if (initial.opacity !== undefined) ssrStyle.opacity = initial.opacity;
+    if (initial.y !== undefined) ssrStyle.transform = `translateY(${initial.y}px)`;
+  }
+  return createElement('p', { ...rest, ref, style: ssrStyle });
 });
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -51,5 +66,10 @@ export const MotionButton = forwardRef<any, any>(function MotionButton(props, re
   const mod = useFramerMotion();
   if (mod) return createElement(mod.motion.button, { ...props, ref });
   const { initial, animate, exit, transition, whileHover, whileTap, ...rest } = props;
-  return createElement('button', { ...rest, ref });
+  const ssrStyle = { ...rest.style };
+  if (typeof initial === 'object' && initial !== null) {
+    if (initial.opacity !== undefined) ssrStyle.opacity = initial.opacity;
+    if (initial.y !== undefined) ssrStyle.transform = `translateY(${initial.y}px)`;
+  }
+  return createElement('button', { ...rest, ref, style: ssrStyle });
 });
