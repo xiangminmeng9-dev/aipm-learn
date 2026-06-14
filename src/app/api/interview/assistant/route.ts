@@ -8,7 +8,7 @@ import {
 } from '@/lib/ai/prompts';
 import { searchKnowledgeBase } from '@/lib/ai/knowledge-base';
 import { getRealQuestionsContext } from '@/lib/ai/real-questions';
-import { searchWithTavily, formatSearchContext } from '@/lib/ai/tavily-search';
+import { searchWithTavily, formatSearchForUserMessage } from '@/lib/ai/tavily-search';
 
 export const maxDuration = 60;
 
@@ -105,10 +105,10 @@ export async function POST(request: NextRequest) {
     ? '\n\n【知识库参考】\n' + kbResults.map((entry, i) => `${i + 1}. ${entry.title}\n${entry.content}`).join('\n\n')
     : '';
 
-  // 2. Tavily search for up-to-date information
-  const searchResults = await searchWithTavily(question);
-  const searchContext = formatSearchContext(searchResults);
-  console.log(`[Assistant] Tavily search: ${searchResults.length} results, context length: ${searchContext.length}`);
+  // 2. Tavily search for up-to-date information (注入 user message，不是 system prompt)
+  const searchResponse = await searchWithTavily(question);
+  const searchUserContext = formatSearchForUserMessage(searchResponse);
+  console.log(`[Assistant] Tavily search: ${searchResponse.results.length} results, answer: ${searchResponse.answer ? 'yes' : 'no'}`);
 
   // 3. Real questions context
   const realQuestionsContext = getRealQuestionsContext(category || '', 3);
@@ -131,8 +131,8 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const systemPrompt = ASSISTANT_SYSTEM_PROMPT + knowledgeContext + searchContext + realQuestionsContext + memoryContext;
-  console.log(`[Assistant] System prompt total length: ${systemPrompt.length}, has search context: ${searchContext.length > 0}`);
+  const systemPrompt = ASSISTANT_SYSTEM_PROMPT + knowledgeContext + realQuestionsContext + memoryContext;
+  console.log(`[Assistant] System prompt length: ${systemPrompt.length}, has search user context: ${searchUserContext.length > 0}`);
 
   // Create assistant_qa_record FIRST (before streaming)
   const { data: newRecord, error: insertError } = await serviceClient
@@ -163,15 +163,18 @@ export async function POST(request: NextRequest) {
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'record_id', record_id: recordId })}\n\n`));
 
         // Send search results if available
-        if (searchResults.length > 0) {
+        if (searchResponse.results.length > 0) {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({
             type: 'search_results',
-            results: searchResults.map(r => ({ title: r.title, url: r.url })),
+            results: searchResponse.results.map(r => ({ title: r.title, url: r.url })),
           })}\n\n`));
         }
 
+        // 用户消息 = 原问题 + 搜索结果（放在 user message 里确保 AI 必须处理）
+        const userMessage = question + searchUserContext;
+
         for await (const chunk of streamChatResponse(
-          [{ role: 'user', content: question }],
+          [{ role: 'user', content: userMessage }],
           { system: systemPrompt },
         )) {
           fullAnswer += chunk;
