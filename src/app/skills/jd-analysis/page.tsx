@@ -23,6 +23,8 @@ export { importanceColors, importanceLabels };
 
 export default function JdAnalysisPage() {
   const [jdText, setJdText] = useState('');
+  const [jdUrl, setJdUrl] = useState('');
+  const [urlFetching, setUrlFetching] = useState(false);
   const [companyName, setCompanyName] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<JdAnalysis | null>(null);
@@ -42,6 +44,31 @@ export default function JdAnalysisPage() {
   const [resumeText, setResumeText] = useState<string | null>(null);
   const [resumeParsing, setResumeParsing] = useState(false);
   const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
+
+  // 从招聘网站 URL 自动提取 JD
+  const handleFetchJdUrl = async () => {
+    if (!jdUrl.trim() || urlFetching) return;
+    setUrlFetching(true);
+    setError(null);
+    try {
+      const res = await apiFetch('/api/jd/fetch-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: jdUrl.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || '链接提取失败');
+      } else if (data.text) {
+        setJdText(data.text);
+        setJdUrl('');
+      }
+    } catch {
+      setError('网络错误，请重试');
+    } finally {
+      setUrlFetching(false);
+    }
+  };
   const [expandedCompanies, setExpandedCompanies] = useState<Set<string>>(new Set());
   const [hydrated, setHydrated] = useState(false);
 
@@ -546,6 +573,34 @@ export default function JdAnalysisPage() {
               placeholder="输入公司名称，用于数据看板按公司统计"
               className="w-full rounded-xl border-2 border-border bg-muted px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus:border-primary focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
+          </div>
+          <label className="mb-2 block text-sm font-medium text-foreground">从链接提取（BOSS直聘等）</label>
+          <div className="flex gap-2">
+            <input
+              type="url"
+              value={jdUrl}
+              onChange={(e) => setJdUrl(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleFetchJdUrl(); }}
+              placeholder="粘贴招聘链接，如 https://www.zhipin.com/job_detail/..."
+              className="flex-1 rounded-xl border-2 border-border bg-muted px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus:border-primary focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/20"
+            />
+            <button
+              onClick={handleFetchJdUrl}
+              disabled={urlFetching || !jdUrl.trim()}
+              className="shrink-0 rounded-xl bg-primary/10 px-4 py-2.5 text-sm font-medium text-primary transition-all hover:bg-primary/20 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {urlFetching ? (
+                <span className="flex items-center gap-1">
+                  <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                  提取中
+                </span>
+              ) : '提取'}
+            </button>
+          </div>
+          <div className="relative my-3 flex items-center">
+            <div className="flex-grow border-t border-border"></div>
+            <span className="mx-3 shrink-0 text-xs text-muted-foreground">或手动粘贴</span>
+            <div className="flex-grow border-t border-border"></div>
           </div>
           <label className="mb-2 block text-sm font-medium text-foreground">粘贴岗位描述（JD）</label>
           <textarea
