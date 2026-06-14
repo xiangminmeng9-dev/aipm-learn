@@ -77,6 +77,7 @@ export async function searchWithTavily(
 
 /**
  * 将搜索结果格式化为可注入 prompt 的文本
+ * 包含明确的引用指令，确保 AI 优先使用搜索结果中的最新信息
  */
 export function formatSearchContext(results: TavilyResult[]): string {
   if (results.length === 0) return '';
@@ -85,5 +86,8 @@ export function formatSearchContext(results: TavilyResult[]): string {
     .map((r, i) => `${i + 1}. ${r.title}\n来源：${r.url}\n${r.content}`)
     .join('\n\n');
 
-  return `\n\n【最新资讯参考】\n${formatted}`;
+  return `\n\n【最新资讯参考 — 必须优先使用以下搜索结果中的最新数据和信息】
+以下是刚刚从互联网搜索到的最新资讯，你的回答必须优先引用这些最新数据，而不是依赖你的训练数据中的旧信息。如果搜索结果中包含具体数字、日期、价格等时效性数据，必须直接引用并注明来源。
+
+${formatted}`;
 }
