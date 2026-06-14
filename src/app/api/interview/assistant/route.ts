@@ -108,6 +108,7 @@ export async function POST(request: NextRequest) {
   // 2. Tavily search for up-to-date information
   const searchResults = await searchWithTavily(question);
   const searchContext = formatSearchContext(searchResults);
+  console.log(`[Assistant] Tavily search: ${searchResults.length} results, context length: ${searchContext.length}`);
 
   // 3. Real questions context
   const realQuestionsContext = getRealQuestionsContext(category || '', 3);
@@ -131,6 +132,7 @@ export async function POST(request: NextRequest) {
   }
 
   const systemPrompt = ASSISTANT_SYSTEM_PROMPT + knowledgeContext + searchContext + realQuestionsContext + memoryContext;
+  console.log(`[Assistant] System prompt total length: ${systemPrompt.length}, has search context: ${searchContext.length > 0}`);
 
   // Create assistant_qa_record FIRST (before streaming)
   const { data: newRecord, error: insertError } = await serviceClient

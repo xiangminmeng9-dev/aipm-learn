@@ -23,7 +23,10 @@ export async function searchWithTavily(
   options: TavilySearchOptions = {}
 ): Promise<TavilyResult[]> {
   const apiKey = process.env.TAVILY_API_KEY;
-  if (!apiKey) return [];
+  if (!apiKey) {
+    console.warn('[Tavily] No API key found in env');
+    return [];
+  }
 
   const { maxResults = 3, topic = 'general' } = options;
 
@@ -31,24 +34,29 @@ export async function searchWithTavily(
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 8000);
 
+    const requestBody = {
+      api_key: apiKey,
+      query,
+      max_results: maxResults,
+      topic,
+      include_answer: true,
+      include_raw_content: false,
+    };
+
+    console.log(`[Tavily] Searching: "${query}" (topic=${topic}, max=${maxResults})`);
+
     const response = await fetch('https://api.tavily.com/search', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        api_key: apiKey,
-        query,
-        max_results: maxResults,
-        topic,
-        include_answer: false,
-        include_raw_content: false,
-      }),
+      body: JSON.stringify(requestBody),
       signal: controller.signal,
     });
 
     clearTimeout(timeout);
 
     if (!response.ok) {
-      console.warn(`[Tavily] Search failed: ${response.status} ${response.statusText}`);
+      const errText = await response.text().catch(() => '');
+      console.warn(`[Tavily] Search failed: ${response.status} ${response.statusText} ${errText.substring(0, 200)}`);
       return [];
     }
 
@@ -57,14 +65,18 @@ export async function searchWithTavily(
       (r: { title?: string; url?: string; content?: string; score?: number }) => ({
         title: r.title || '',
         url: r.url || '',
-        content: (r.content || '').substring(0, 500), // 截断过长内容
+        content: (r.content || '').substring(0, 500),
         score: r.score || 0,
       })
     );
 
+    console.log(`[Tavily] Got ${results.length} results for "${query}"`);
+    if (data.answer) {
+      console.log(`[Tavily] Answer snippet: ${String(data.answer).substring(0, 200)}`);
+    }
+
     return results;
   } catch (err) {
-    // 静默降级：超时/网络错误/API 错误都不阻塞主流程
     const msg = err instanceof Error ? err.message : String(err);
     if (msg.includes('abort')) {
       console.warn('[Tavily] Search timed out (8s)');
