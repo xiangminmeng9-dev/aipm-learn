@@ -10,7 +10,7 @@ const TYPE_LABELS: Record<string, string> = {
   company: '公司',
   skill: '技能',
   position: '职位',
-  category: '类别',
+  category: '来源技能',
   module: '模块',
 };
 
@@ -319,6 +319,16 @@ export default function CompanySkillGraph() {
                   <div>
                     <span className="text-muted-foreground">所属类别：</span>
                     <span className="text-foreground">{(selectedNode.data.categories as string[]).join('、')}</span>
+                  </div>
+                )}
+                {Array.isArray(selectedNode.data.sources) && (selectedNode.data.sources as string[]).length > 0 && (
+                  <div className="mt-1">
+                    <div className="text-muted-foreground mb-1">来源技能（{(selectedNode.data.sources as string[]).length}个）：</div>
+                    <div className="flex flex-wrap gap-1">
+                      {(selectedNode.data.sources as string[]).map((src, i) => (
+                        <span key={i} className="inline-block px-1.5 py-0.5 text-xs rounded bg-muted text-foreground">{src}</span>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>

@@ -362,8 +362,8 @@ function SkillModuleGroups({ skills, matches, gaps }: { skills: ExtractedSkill[]
             <span className="rounded bg-indigo-100 px-1.5 py-0.5 text-xs font-medium text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">{group.skills.length} 项技能</span>
           </div>
           <div className="space-y-2">
-            {group.skills.map(({ skill, match, isGap }) => (
-              <div key={skill.skill_name} className="flex items-center gap-2 rounded-xl border border-border px-3 py-2">
+            {group.skills.map(({ skill, match, isGap }, i) => (
+              <div key={`${skill.skill_name}-${i}`} className="flex items-center gap-2 rounded-xl border border-border px-3 py-2">
                 <span className="text-sm font-medium text-foreground">{skill.skill_name}</span>
                 <span className={`rounded px-1.5 py-0.5 text-xs font-medium ${importanceColors[skill.importance] || importanceColors.medium}`}>
                   {importanceLabels[skill.importance] || '中'}
@@ -394,8 +394,8 @@ function SkillModuleGroups({ skills, matches, gaps }: { skills: ExtractedSkill[]
             <span className="rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">{unmatchedSkills.length} 项技能</span>
           </div>
           <div className="space-y-2">
-            {unmatchedSkills.map(({ skill, isGap }) => (
-              <div key={skill.skill_name} className="flex items-center gap-2 rounded-xl border border-border px-3 py-2">
+            {unmatchedSkills.map(({ skill, isGap }, i) => (
+              <div key={`${skill.skill_name}-${i}`} className="flex items-center gap-2 rounded-xl border border-border px-3 py-2">
                 <span className="text-sm font-medium text-foreground">{skill.skill_name}</span>
                 <span className={`rounded px-1.5 py-0.5 text-xs font-medium ${importanceColors[skill.importance] || importanceColors.medium}`}>
                   {importanceLabels[skill.importance] || '中'}

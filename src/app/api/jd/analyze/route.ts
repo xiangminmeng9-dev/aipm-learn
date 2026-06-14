@@ -4,6 +4,7 @@ import { generateText } from '@/lib/ai/claude';
 import { buildCombinedJdAnalysisPrompt, COMBINED_JD_ANALYSIS_SYSTEM_PROMPT } from '@/lib/ai/prompts';
 import { computeResumeMatch, type AiResumeJudgment } from '@/lib/ai/jd-scoring';
 import { withTimeout, AI_TIMEOUT_EXTENDED_MS } from '@/lib/ai/with-timeout';
+import { normalizeSkill } from '@/lib/ai/skill-normalizer';
 
 export const maxDuration = 180;
 
@@ -157,21 +158,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 标准化技能数据
+    // 标准化技能数据（归一化技能名称）
     const skills: { skill_name: string; category: string; importance: string }[] = (parsed.extracted_skills || []).map((s: unknown) => {
       if (typeof s === 'string') {
-        return { skill_name: s, category: '未分类', importance: 'medium' };
+        return { skill_name: normalizeSkill(s), category: '未分类', importance: 'medium' };
       }
       const obj = s as Record<string, unknown>;
       return {
-        skill_name: String(obj.skill_name || obj.name || s),
+        skill_name: normalizeSkill(String(obj.skill_name || obj.name || s)),
         category: String(obj.category || '未分类'),
         importance: String(obj.importance || 'medium'),
       };
     });
 
     const skillModuleMatches = (parsed.matches || []).map((m: Record<string, unknown>) => ({
-      skill_name: String(m.skill_name || m.skill || ''),
+      skill_name: normalizeSkill(String(m.skill_name || m.skill || '')),
       module_id: m.module_id ? String(m.module_id) : null,
       module_name: String(m.module_name || ''),
       match_score: typeof m.match_score === 'number' ? m.match_score : 50,
@@ -179,11 +180,11 @@ export async function POST(request: NextRequest) {
 
     const gaps = (parsed.gaps || []).map((g: unknown) => {
       if (typeof g === 'string') {
-        return { skill_name: g, category: '未分类', suggestion: '建议深入学习', related_module_id: null, related_module_name: null };
+        return { skill_name: normalizeSkill(g), category: '未分类', suggestion: '建议深入学习', related_module_id: null, related_module_name: null };
       }
       const obj = g as Record<string, unknown>;
       return {
-        skill_name: String(obj.skill_name || ''),
+        skill_name: normalizeSkill(String(obj.skill_name || '')),
         category: String(obj.category || '未分类'),
         suggestion: String(obj.suggestion || ''),
         related_module_id: obj.related_module_id ? String(obj.related_module_id) : null,

@@ -8,5 +8,16 @@
       "path": "/api/cron/daily-refresh",
       "schedule": "0 0 * * *"
     }
-  ]
+  ],
+  "functions": {
+    "src/app/api/resume/parse/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/resume/analyze/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/resume/generate/route.ts": {
+      "maxDuration": 60
+    }
+  }
 }

@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server';
 import { generateText } from '@/lib/ai/claude';
 import { buildResumeAnalysisPrompt, RESUME_ANALYSIS_SYSTEM_PROMPT } from '@/lib/ai/prompts';
 
+export const maxDuration = 60;
+
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { normalizeSkill } from '@/lib/ai/skill-normalizer';
+import { normalizeSkill, normalizeSkillMulti } from '@/lib/ai/skill-normalizer';
+import { normalizeCompanyName, extractCompanyFromText } from '@/lib/ai/company-normalizer';
+import { getSkillCategory } from '@/lib/ai/skill-categories';
 
 function getPositionCategory(positionName: string): string {
   const pos = (positionName || '').toLowerCase();
@@ -75,7 +77,7 @@ export async function GET(request: NextRequest) {
     const range = searchParams.get('range') || '30d';
     const minFrequency = parseInt(searchParams.get('minFrequency') || '1');
     const maxCompanies = parseInt(searchParams.get('maxCompanies') || '0');
-    const maxSkills = parseInt(searchParams.get('maxSkills') || '200');
+    const maxSkills = parseInt(searchParams.get('maxSkills') || '300');
 
     const now = new Date();
     const cutoffDate = range === '7d' ? new Date(now.getTime() - 7 * 86400000).toISOString()
@@ -85,7 +87,7 @@ export async function GET(request: NextRequest) {
     // Parallel data fetch
     const [jdAnalysesRes, skillModulesRes, jdSkillsRes] = await Promise.all([
       supabase.from('jd_analyses')
-        .select('id, company_name, position_name, extracted_skills, skill_module_matches, created_at')
+        .select('id, company_name, position_name, extracted_skills, skill_module_matches, created_at, jd_text')
         .eq('user_id', user.id)
         .gte('created_at', cutoffDate)
         .order('created_at', { ascending: false }),
@@ -102,16 +104,20 @@ export async function GET(request: NextRequest) {
 
     // --- Aggregate skill data per company and position ---
     // Map: normalizedSkill -> { count, companies: Set, categories: Set, importance: {high,medium,low}, covered: bool, moduleMatches: [] }
+    // Map: normalizedSkill -> { count, companies, categories, importance, covered, originalNames, rawSkillFreq }
     const skillMap = new Map<string, {
       rawName: string;
       count: number;
       companies: Set<string>;
       categories: Set<string>;
+      normalizedCategory: string;
       importance: { high: number; medium: number; low: number };
       covered: boolean;
       bestMatchScore: number;
       matchedModuleId: string | null;
       matchedModuleName: string | null;
+      originalNames: Set<string>;
+      rawSkillFreq: Map<string, number>; // rawName -> frequency for each original skill
     }>();
 
     // Map: company -> { jdCount, positions: Set, skills: Map<normalizedSkill, { count, importance }> }
@@ -127,9 +133,26 @@ export async function GET(request: NextRequest) {
       skills: Map<string, number>;
     }>();
 
+    // Map: rawSkillName -> { frequency, normalizedSkills: Set<string> }
+    // Supports 1-to-many: one raw skill can map to multiple normalized skills
+    const rawSkillMap = new Map<string, {
+      frequency: number;
+      normalizedSkills: Set<string>;
+    }>();
+
     // Process each JD analysis
+    let nullCompanyCount = 0;
     for (const jd of jdAnalyses) {
-      const company = jd.company_name?.trim() || '未提及公司';
+      const rawCompany = jd.company_name?.trim() || '';
+      let company: string;
+      if (!rawCompany || /^(未|无|没有|暂无|未提及|未明确|未提供|未注明|未填写|none|null|n\/a|—|-)$/i.test(rawCompany)) {
+        nullCompanyCount++;
+        // Try to extract company from JD text
+        const extracted = extractCompanyFromText(jd.jd_text || '');
+        company = extracted || '未提及公司';
+      } else {
+        company = normalizeCompanyName(rawCompany);
+      }
       const position = getPositionCategory(jd.position_name || '');
       const extractedSkills = (jd.extracted_skills || []) as Array<{ skill_name: string; category: string; importance: string }>;
       const moduleMatches = (jd.skill_module_matches || []) as Array<{ skill_name: string; module_id: string; module_name: string; match_score: number }>;
@@ -162,17 +185,36 @@ export async function GET(request: NextRequest) {
             count: 0,
             companies: new Set(),
             categories: new Set(),
+            normalizedCategory: '未分类',
             importance: { high: 0, medium: 0, low: 0 },
             covered: false,
             bestMatchScore: 0,
             matchedModuleId: null,
             matchedModuleName: null,
+            originalNames: new Set(),
+            rawSkillFreq: new Map(),
           });
         }
         const skillData = skillMap.get(normalized)!;
         skillData.count++;
+        skillData.originalNames.add(s.skill_name);
+        // Track raw skill frequency
+        skillData.rawSkillFreq.set(s.skill_name, (skillData.rawSkillFreq.get(s.skill_name) || 0) + 1);
         skillData.companies.add(company);
+
+        // Update rawSkillMap (1-to-many: raw skill -> multiple normalized skills)
+        const allNormalized = normalizeSkillMulti(s.skill_name);
+        if (!rawSkillMap.has(s.skill_name)) {
+          rawSkillMap.set(s.skill_name, { frequency: 0, normalizedSkills: new Set() });
+        }
+        const rawData = rawSkillMap.get(s.skill_name)!;
+        rawData.frequency++;
+        for (const norm of allNormalized) {
+          rawData.normalizedSkills.add(norm);
+        }
+        // 保留AI打的原始category，同时添加归一化分类
         if (s.category) skillData.categories.add(s.category);
+        skillData.normalizedCategory = getSkillCategory(normalized);
         const imp = (s.importance || 'medium').toLowerCase();
         if (imp === 'high') skillData.importance.high++;
         else if (imp === 'low') skillData.importance.low++;
@@ -247,12 +289,8 @@ export async function GET(request: NextRequest) {
 
     const includedCompanies = new Set(filteredCompanies.map(([c]) => c));
 
-    // Collect positions and categories that have included skills
+    // Collect positions that have included skills
     const includedPositions = new Set<string>();
-    const includedCategories = new Set<string>();
-    for (const [_, skillData] of filteredSkills) {
-      for (const cat of skillData.categories) includedCategories.add(cat);
-    }
     for (const [_, companyData] of filteredCompanies) {
       for (const pos of companyData.positions) includedPositions.add(pos);
     }
@@ -301,7 +339,9 @@ export async function GET(request: NextRequest) {
           importance_mode: impMode,
           companies: [...data.companies].filter(c => includedCompanies.has(c)),
           categories: [...data.categories],
+          normalized_category: data.normalizedCategory,
           matched_module: data.matchedModuleName,
+          sources: [...data.originalNames],
         },
       });
     }
@@ -322,19 +362,26 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Category nodes
-    for (const cat of includedCategories) {
-      const id = `cat:${cat}`;
+    // Category nodes = raw source skill names (original names before normalization)
+    // Only include raw skills that appear >= minRawFrequency (default 2) to avoid too many nodes
+    const minRawFrequency = parseInt(searchParams.get('minRawFrequency') || '2');
+    const includedRawSkills = new Set<string>();
+    for (const [rawName, rawData] of rawSkillMap) {
+      if (rawData.frequency < minRawFrequency) continue;
+      // Only include if at least one of its normalized skills is included
+      const hasIncluded = [...rawData.normalizedSkills].some(n => includedSkills.has(n));
+      if (!hasIncluded) continue;
+      const id = `cat:${rawName}`;
       if (nodeIds.has(id)) continue;
       nodeIds.add(id);
-      const catSkillCount = filteredSkills.filter(([_, s]) => s.categories.has(cat)).length;
+      includedRawSkills.add(rawName);
       nodes.push({
         id,
-        name: cat,
+        name: rawName,
         type: 'category',
-        symbolSize: 16 + Math.min(catSkillCount * 2, 20),
-        itemStyle: { color: COLORS.category, borderWidth: 2, borderColor: '#059669' },
-        data: { skill_count: catSkillCount },
+        symbolSize: 10 + Math.min(rawData.frequency * 2, 15),
+        itemStyle: { color: COLORS.category, borderWidth: 1, borderColor: '#059669', opacity: 0.7 },
+        data: { frequency: rawData.frequency, normalized_skills: [...rawData.normalizedSkills] },
       });
     }
 
@@ -427,20 +474,21 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Skill -> Category edges ("属于")
-    for (const [skillName, skillData] of filteredSkills) {
-      const sourceId = `s:${skillName}`;
+    // Raw Skill -> Normalized Skill edges ("属于" — 1-to-many: raw skill can map to multiple normalized skills)
+    for (const [rawName, rawData] of rawSkillMap) {
+      if (!includedRawSkills.has(rawName)) continue;
+      const sourceId = `cat:${rawName}`;
       if (!nodeIds.has(sourceId)) continue;
-      for (const cat of skillData.categories) {
-        if (!includedCategories.has(cat)) continue;
-        const targetId = `cat:${cat}`;
+      for (const normSkill of rawData.normalizedSkills) {
+        if (!includedSkills.has(normSkill)) continue;
+        const targetId = `s:${normSkill}`;
         if (!nodeIds.has(targetId)) continue;
         edges.push({
           source: sourceId,
           target: targetId,
           relation: '属于',
           lineStyle: { width: 1, color: COLORS.edge.属于, type: 'dashed', opacity: 0.3 },
-          data: {},
+          data: { frequency: rawData.frequency },
         });
       }
     }
@@ -463,13 +511,18 @@ export async function GET(request: NextRequest) {
     // --- Meta ---
     const coveredCount = filteredSkills.filter(([_, s]) => s.covered).length;
     const meta = {
+      total_jd_analyses: jdAnalyses.length,
+      null_company_count: nullCompanyCount,
       total_companies: filteredCompanies.length,
       total_skills: filteredSkills.length,
       total_positions: includedPositions.size,
-      total_categories: includedCategories.size,
+      total_categories: includedRawSkills.size,
       total_modules: addedModules.size,
       covered_count: coveredCount,
       gap_count: filteredSkills.length - coveredCount,
+      company_jd_counts: Object.fromEntries(
+        filteredCompanies.map(([name, data]) => [name, data.jdCount])
+      ),
     };
 
     return NextResponse.json({ nodes, edges, meta });

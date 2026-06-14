@@ -8,6 +8,7 @@ import {
 } from '@/lib/ai/prompts';
 import { searchKnowledgeBase } from '@/lib/ai/knowledge-base';
 import { getRealQuestionsContext } from '@/lib/ai/real-questions';
+import { searchWithTavily, formatSearchContext } from '@/lib/ai/tavily-search';
 
 export const maxDuration = 60;
 
@@ -104,10 +105,14 @@ export async function POST(request: NextRequest) {
     ? '\n\n【知识库参考】\n' + kbResults.map((entry, i) => `${i + 1}. ${entry.title}\n${entry.content}`).join('\n\n')
     : '';
 
-  // 2. Real questions context
+  // 2. Tavily search for up-to-date information
+  const searchResults = await searchWithTavily(question);
+  const searchContext = formatSearchContext(searchResults);
+
+  // 3. Real questions context
   const realQuestionsContext = getRealQuestionsContext(category || '', 3);
 
-  // 3. Memory context from assistant_qa_records
+  // 4. Memory context from assistant_qa_records
   let memoryContext = '';
   {
     const { data: recentRecords } = await supabase
@@ -125,7 +130,7 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const systemPrompt = ASSISTANT_SYSTEM_PROMPT + knowledgeContext + realQuestionsContext + memoryContext;
+  const systemPrompt = ASSISTANT_SYSTEM_PROMPT + knowledgeContext + searchContext + realQuestionsContext + memoryContext;
 
   // Create assistant_qa_record FIRST (before streaming)
   const { data: newRecord, error: insertError } = await serviceClient
@@ -154,6 +159,14 @@ export async function POST(request: NextRequest) {
       try {
         // Send record_id first
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'record_id', record_id: recordId })}\n\n`));
+
+        // Send search results if available
+        if (searchResults.length > 0) {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+            type: 'search_results',
+            results: searchResults.map(r => ({ title: r.title, url: r.url })),
+          })}\n\n`));
+        }
 
         for await (const chunk of streamChatResponse(
           [{ role: 'user', content: question }],

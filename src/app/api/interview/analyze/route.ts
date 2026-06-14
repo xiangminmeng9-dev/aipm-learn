@@ -3,6 +3,7 @@ import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { generateText, streamChatResponse } from '@/lib/ai/claude';
 import { classifyQuestion } from '@/lib/ai/classifier';
 import { buildAnalysisPrompt, ANALYSIS_SYSTEM_PROMPT } from '@/lib/ai/prompts';
+import { searchWithTavily, formatSearchContext } from '@/lib/ai/tavily-search';
 import { validateBody, analyzeSchema } from '@/lib/validations';
 
 export const maxDuration = 60;
@@ -82,7 +83,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: '保存问题失败' }, { status: 500 });
   }
 
-  // 3. Stream the analysis via SSE
+  // 3. Tavily search for up-to-date information (non-blocking)
+  const searchResults = await searchWithTavily(question);
+  const searchContext = formatSearchContext(searchResults);
+  const systemPrompt = ANALYSIS_SYSTEM_PROMPT + searchContext;
+
+  // 4. Stream the analysis via SSE
   const analysisPrompt = buildAnalysisPrompt(question);
   const encoder = new TextEncoder();
 
@@ -97,9 +103,17 @@ export async function POST(request: NextRequest) {
           question_type: { id: typeId, name: typeName, is_new: isNew },
         })}\n\n`));
 
+        // Send search results if available
+        if (searchResults.length > 0) {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+            type: 'search_results',
+            results: searchResults.map(r => ({ title: r.title, url: r.url })),
+          })}\n\n`));
+        }
+
         for await (const chunk of streamChatResponse(
           [{ role: 'user', content: analysisPrompt }],
-          { system: ANALYSIS_SYSTEM_PROMPT, maxTokens: 4096 },
+          { system: systemPrompt, maxTokens: 4096 },
         )) {
           fullAnswer += chunk;
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'chunk', content: chunk })}\n\n`));

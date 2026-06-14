@@ -3,6 +3,7 @@ import * as multipart from 'parse-multipart-data';
 import { createClient } from '@/lib/supabase/server';
 
 export const runtime = 'nodejs';
+export const maxDuration = 60;
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
@@ -129,12 +130,44 @@ export async function POST(request: NextRequest) {
 
     if (fileName.endsWith('.pdf')) {
       // PDF: extract text, then convert to structured Markdown
-      const pdfParse = await import('pdf-parse');
-      const uint8 = new Uint8Array(fileData.data);
-      const parser = new pdfParse.PDFParse({ data: uint8, useWorker: false } as Record<string, unknown>);
-      const result = await parser.getText();
-      await parser.destroy();
-      const rawText = typeof result === 'string' ? result : result.text ?? String(result);
+      // 降级策略：优先用 pdf-parse，失败则用更简单的文本提取
+      let rawText = '';
+      try {
+        const pdfParse = await import('pdf-parse');
+        const uint8 = new Uint8Array(fileData.data);
+        const parser = new pdfParse.PDFParse({ data: uint8 } as Record<string, unknown>);
+        const result = await parser.getText();
+        try { await parser.destroy(); } catch { /* non-blocking */ }
+        rawText = typeof result === 'string' ? result : result.text ?? String(result);
+      } catch (pdfError) {
+        console.error('pdf-parse failed, trying fallback:', pdfError);
+        // Fallback: 尝试直接从 PDF 提取可读文本（基础方法，不需要 pdf.js worker）
+        try {
+          const pdfParse = await import('pdf-parse');
+          const uint8 = new Uint8Array(fileData.data);
+          // 使用简单的默认导出方式（旧版 pdf-parse 兼容）
+          const fn = (pdfParse as Record<string, unknown>).default || pdfParse;
+          if (typeof fn === 'function') {
+            const result = await (fn as (data: Buffer) => Promise<{ text: string }>)(fileData.data);
+            rawText = result.text || '';
+          }
+        } catch (fallbackError) {
+          console.error('PDF fallback also failed:', fallbackError);
+          // 最后降级：尝试提取 PDF 中的纯文本片段
+          const textChunks: string[] = [];
+          const binaryStr = fileData.data.toString('latin1');
+          const streamRegex = /stream\r?\n([\s\S]*?)\r?\nendstream/g;
+          let match;
+          while ((match = streamRegex.exec(binaryStr)) !== null) {
+            const chunk = match[1].replace(/[^\x20-\x7E一-鿿　-〿＀-￯\r\n]/g, '');
+            if (chunk.trim().length > 5) textChunks.push(chunk.trim());
+          }
+          rawText = textChunks.join('\n');
+          if (!rawText.trim()) {
+            return NextResponse.json({ error: 'PDF 解析失败，请尝试上传 DOCX 格式', code: 'PDF_PARSE_ERROR' }, { status: 500 });
+          }
+        }
+      }
       const markdown = pdfTextToMarkdown(rawText);
       return NextResponse.json({ text: markdown });
     }

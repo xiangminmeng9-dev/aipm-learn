@@ -20,8 +20,8 @@ interface SkillsStats {
   company_distribution: { company: string; count: number }[];
   company_by_category: Record<string, { company: string; count: number }[]>;
   plan_progress: { id: string; title: string; status: string; progress: number }[];
-  common_skills: { skill: string; count: number; category?: string; companies?: string[] }[];
-  skills_by_category: Record<string, { skill: string; count: number; category?: string; companies?: string[] }[]>;
+  common_skills: { skill: string; count: number; category?: string; companies?: string[]; sources?: string[] }[];
+  skills_by_category: Record<string, { skill: string; count: number; category?: string; companies?: string[]; sources?: string[] }[]>;
   category_distribution: { category: string; count: number }[];
   funnel_stages: { stage: string; count: number }[];
   coverage_rate: number;
@@ -47,7 +47,7 @@ export default function SkillsDashboardPage() {
   const [companyPreference, setCompanyPreference] = useState<Record<string, unknown> | null>(null);
   const [fixedPersona, setFixedPersona] = useState<string | null>(null);
   const [preferenceLoading, setPreferenceLoading] = useState(false);
-  const [commonSkillsData, setCommonSkillsData] = useState<{ skill: string; count: number; category?: string; companies?: string[] }[]>([]);
+  const [commonSkillsData, setCommonSkillsData] = useState<{ skill: string; count: number; category?: string; companies?: string[]; sources?: string[] }[]>([]);
   const [resourceStats, setResourceStats] = useState<{ type_distribution: { type: string; count: number }[]; total: number } | null>(null);
 
   // 加载数据
@@ -505,7 +505,10 @@ export default function SkillsDashboardPage() {
                     formatter: (params: any) => {
                       const i = params[0].dataIndex;
                       const skillInfo = commonSkillsData[i];
-                      return `<strong>${skillInfo?.skill || ''}</strong><br/>出现次数: ${params[0].value}`;
+                      const sourcesHtml = skillInfo?.sources?.length
+                        ? `<br/><span style="color:#999">来源: ${skillInfo.sources.slice(0, 5).join('、')}${skillInfo.sources.length > 5 ? ` 等${skillInfo.sources.length}个` : ''}</span>`
+                        : '';
+                      return `<strong>${skillInfo?.skill || ''}</strong><br/>出现次数: ${params[0].value}${sourcesHtml}`;
                     }
                   },
                   legend: {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { normalizeSkill } from '@/lib/ai/skill-normalizer';
+import { getSkillCategory } from '@/lib/ai/skill-categories';
 
 
 
@@ -234,7 +235,7 @@ export async function GET(request: NextRequest) {
         const canonical = normalizeSkill(skillName);
         if (seenInThisJd.has(canonical)) continue;
         seenInThisJd.add(canonical);
-        const existing = allSkillsMap.get(canonical) || { count: 0, category: s.category || '未分类', companies: [], originalNames: new Set<string>() };
+        const existing = allSkillsMap.get(canonical) || { count: 0, category: getSkillCategory(canonical), companies: [], originalNames: new Set<string>() };
         existing.count += 1;
         existing.originalNames.add(skillName);
         if (j.company_name && !existing.companies.includes(j.company_name)) {
@@ -245,9 +246,9 @@ export async function GET(request: NextRequest) {
     }
 
     const commonSkills = Array.from(allSkillsMap.entries())
-      .map(([skill, data]) => ({ skill, count: data.count, category: data.category, companies: data.companies.slice(0, 3) }))
+      .map(([skill, data]) => ({ skill, count: data.count, category: data.category, companies: data.companies.slice(0, 3), sources: [...data.originalNames] }))
       .sort((a, b) => b.count - a.count)
-      .slice(0, 30);
+      .slice(0, 50);
 
     // 按职位类别分组技能（每个类别独立统计频次）
     const categorySkillMaps: Record<string, Map<string, { count: number; category: string; companies: string[] }>> = {};
@@ -265,7 +266,7 @@ export async function GET(request: NextRequest) {
         if (seenInThisJd.has(canonical)) continue;
         seenInThisJd.add(canonical);
         const catMap = categorySkillMaps[category];
-        const existing = catMap.get(canonical) || { count: 0, category: s.category || '未分类', companies: [] };
+        const existing = catMap.get(canonical) || { count: 0, category: getSkillCategory(canonical), companies: [] };
         existing.count += 1;
         if (j.company_name && !existing.companies.includes(j.company_name)) {
           existing.companies.push(j.company_name);
@@ -280,9 +281,9 @@ export async function GET(request: NextRequest) {
     };
     for (const [cat, catMap] of Object.entries(categorySkillMaps)) {
       skillsByCategory[cat] = Array.from(catMap.entries())
-        .map(([skill, data]) => ({ skill, count: data.count, category: data.category, companies: data.companies.slice(0, 3) }))
+        .map(([skill, data]) => ({ skill, count: data.count, category: data.category, companies: data.companies.slice(0, 3), sources: [] as string[] }))
         .sort((a, b) => b.count - a.count)
-        .slice(0, 30);
+        .slice(0, 50);
     }
 
     // 覆盖度

@@ -1,6 +1,7 @@
 /**
  * Knowledge Graph Q&A Engine — local pattern matching + graph traversal.
  * No LLM calls — answers are derived purely from the graph data.
+ * Provides instant feedback while AI generates a richer answer.
  */
 
 import type { KGNode, KGEdge } from '@/app/api/skills/knowledge-graph/route';
@@ -25,10 +26,8 @@ function findNode(nodes: KGNode[], type: string, name: string): KGNode | undefin
 }
 
 function findNodeFuzzy(nodes: KGNode[], type: string, query: string): KGNode | undefined {
-  // Exact match first
   const exact = findNode(nodes, type, query);
   if (exact) return exact;
-  // Then contains
   return nodes.find(n => n.type === type && n.name.includes(query));
 }
 
@@ -46,7 +45,7 @@ function getConnectedNodes(nodeId: string, edges: KGEdge[], direction: 'out' | '
   return results;
 }
 
-function formatSkillList(nodes: KGNode[], ids: string[]): string {
+function formatSkillRich(nodes: KGNode[], ids: string[]): string {
   return ids.map(id => {
     const n = nodes.find(x => x.id === id);
     if (!n) return '';
@@ -54,7 +53,8 @@ function formatSkillList(nodes: KGNode[], ids: string[]): string {
     const freq = n.data.frequency as number;
     const gap = n.data.gap as boolean;
     const impLabel = imp === 'high' ? '高' : imp === 'low' ? '低' : '中';
-    return `${n.name}(${impLabel},${freq}次)${gap ? ' ⚠️未覆盖' : ''}`;
+    const suffix = gap ? '⚠️' : '';
+    return `${n.name}(${freq}次,${impLabel})${suffix}`;
   }).filter(Boolean).join('、');
 }
 
@@ -73,9 +73,22 @@ const patterns: Pattern[] = [
 
       if (skillIds.length === 0) return { answer: `${companyName}暂无技能数据`, highlights: { nodeIds: new Set([companyNode.id]), edgeIndices: new Set() } };
 
-      const skillNames = formatSkillList(nodes, skillIds);
+      // Analyze: split into high importance vs others, find gaps
+      const skillNodes = skillIds.map(id => nodes.find(n => n.id === id)!).filter(Boolean);
+      const highSkills = skillNodes.filter(n => n.data.importance_mode === 'high');
+      const gapSkills = skillNodes.filter(n => n.data.gap);
+      const skillList = formatSkillRich(nodes, skillIds);
+
+      let answer = `${companyName}看重的技能有：${skillList}`;
+      if (highSkills.length > 0) {
+        answer += `\n\n其中核心要求（重要性高）：${highSkills.map(n => n.name).join('、')}`;
+      }
+      if (gapSkills.length > 0) {
+        answer += `\n\n尚未覆盖的技能：${gapSkills.map(n => n.name).join('、')}`;
+      }
+
       return {
-        answer: `${companyName}看重的技能有：${skillNames}`,
+        answer,
         highlights: { nodeIds: new Set([companyNode.id, ...skillIds]), edgeIndices: new Set(edgeIdxs) },
       };
     },
@@ -96,10 +109,15 @@ const patterns: Pattern[] = [
 
       const companyNames = companyIds.map(id => {
         const n = nodes.find(x => x.id === id);
-        return n ? `${n.name}(${(n.data as Record<string, unknown>).jd_count || ''}个JD)` : '';
+        return n ? `${n.name}` : '';
       }).filter(Boolean).join('、');
+
+      const freq = skillNode.data.frequency as number;
+      const imp = (skillNode.data.importance_mode as string) === 'high' ? '高' : '中';
+      const covered = skillNode.data.covered ? '已覆盖' : '⚠️未覆盖';
+
       return {
-        answer: `看重${skillName}的公司有：${companyNames}`,
+        answer: `看重${skillName}的公司有${companyIds.length}家：${companyNames}\n\n该技能共出现${freq}次，重要性${imp}，${covered}`,
         highlights: { nodeIds: new Set([skillNode.id, ...companyIds]), edgeIndices: new Set(edgeIdxs) },
       };
     },
@@ -118,9 +136,17 @@ const patterns: Pattern[] = [
 
       if (skillIds.length === 0) return { answer: `${posName}暂无技能数据`, highlights: { nodeIds: new Set([posNode.id]), edgeIndices: new Set() } };
 
-      const skillNames = formatSkillList(nodes, skillIds);
+      const skillNodes = skillIds.map(id => nodes.find(n => n.id === id)!).filter(Boolean);
+      const gapSkills = skillNodes.filter(n => n.data.gap);
+      const skillList = formatSkillRich(nodes, skillIds);
+
+      let answer = `${posName}要求的技能有：${skillList}`;
+      if (gapSkills.length > 0) {
+        answer += `\n\n需要补足的技能：${gapSkills.map(n => n.name).join('、')}`;
+      }
+
       return {
-        answer: `${posName}要求的技能有：${skillNames}`,
+        answer,
         highlights: { nodeIds: new Set([posNode.id, ...skillIds]), edgeIndices: new Set(edgeIdxs) },
       };
     },
@@ -132,9 +158,20 @@ const patterns: Pattern[] = [
       const gapNodes = nodes.filter(n => n.type === 'skill' && n.data.gap);
       if (gapNodes.length === 0) return { answer: '所有技能都已被技能树覆盖！🎉', highlights: { nodeIds: new Set(), edgeIndices: new Set() } };
 
-      const names = gapNodes.map(n => `${n.name}(${n.data.frequency}次)`).join('、');
+      // Group by importance
+      const highGaps = gapNodes.filter(n => n.data.importance_mode === 'high');
+      const otherGaps = gapNodes.filter(n => n.data.importance_mode !== 'high');
+
+      let answer = `尚未覆盖的技能有${gapNodes.length}个：${gapNodes.map(n => `${n.name}(${n.data.frequency}次)`).join('、')}`;
+      if (highGaps.length > 0) {
+        answer += `\n\n优先需要补的（重要性高）：${highGaps.map(n => n.name).join('、')}`;
+      }
+      if (otherGaps.length > 0 && highGaps.length > 0) {
+        answer += `\n其他可后续补足：${otherGaps.map(n => n.name).join('、')}`;
+      }
+
       return {
-        answer: `尚未覆盖的技能有：${names}`,
+        answer,
         highlights: { nodeIds: new Set(gapNodes.map(n => n.id)), edgeIndices: new Set() },
       };
     },
@@ -149,15 +186,27 @@ const patterns: Pattern[] = [
       const c2 = findNodeFuzzy(nodes, 'company', c2Name);
       if (!c1 || !c2) return { answer: `未找到公司数据`, highlights: { nodeIds: new Set(), edgeIndices: new Set() } };
 
-      const c1Skills = new Set(getConnectedNodes(c1.id, edges, 'out', '看重').map(c => c.nodeId));
+      const c1Connected = getConnectedNodes(c1.id, edges, 'out', '看重');
       const c2Connected = getConnectedNodes(c2.id, edges, 'out', '看重');
+      const c1Skills = new Set(c1Connected.map(c => c.nodeId));
+      const c2Skills = new Set(c2Connected.map(c => c.nodeId));
+
       const common = c2Connected.filter(c => c1Skills.has(c.nodeId));
+      const c1Only = c1Connected.filter(c => !c2Skills.has(c.nodeId));
+      const c2Only = c2Connected.filter(c => !c1Skills.has(c.nodeId));
 
       if (common.length === 0) return { answer: `${c1Name}和${c2Name}没有共同看重的技能`, highlights: { nodeIds: new Set([c1.id, c2.id]), edgeIndices: new Set() } };
 
-      const names = formatSkillList(nodes, common.map(c => c.nodeId));
+      let answer = `${c1Name}和${c2Name}共同看重的${common.length}个技能：${formatSkillRich(nodes, common.map(c => c.nodeId))}`;
+      if (c1Only.length > 0) {
+        answer += `\n\n${c1Name}独有：${formatSkillRich(nodes, c1Only.map(c => c.nodeId))}`;
+      }
+      if (c2Only.length > 0) {
+        answer += `\n${c2Name}独有：${formatSkillRich(nodes, c2Only.map(c => c.nodeId))}`;
+      }
+
       return {
-        answer: `${c1Name}和${c2Name}共同看重的技能有：${names}`,
+        answer,
         highlights: { nodeIds: new Set([c1.id, c2.id, ...common.map(c => c.nodeId)]), edgeIndices: new Set(common.map(c => c.edgeIdx)) },
       };
     },
@@ -180,8 +229,9 @@ const patterns: Pattern[] = [
         const n = nodes.find(x => x.id === id);
         return n?.name || '';
       }).filter(Boolean).join('、');
+
       return {
-        answer: `${companyName}招聘的岗位有：${names}`,
+        answer: `${companyName}招聘的${posIds.length}个职位方向：${names}`,
         highlights: { nodeIds: new Set([companyNode.id, ...posIds]), edgeIndices: new Set(edgeIdxs) },
       };
     },
@@ -192,20 +242,22 @@ const patterns: Pattern[] = [
     handler: (match, nodes, edges) => {
       const catName = match[1].trim();
       const catNode = findNodeFuzzy(nodes, 'category', catName);
-      if (!catNode) return { answer: `未找到类别"${catName}"的数据`, highlights: { nodeIds: new Set(), edgeIndices: new Set() } };
+      if (!catNode) return { answer: `未找到"${catName}"的数据`, highlights: { nodeIds: new Set(), edgeIndices: new Set() } };
 
-      const connected = getConnectedNodes(catNode.id, edges, 'in', '属于');
+      // For category/source skill nodes, show what they normalize to
+      const connected = getConnectedNodes(catNode.id, edges, 'out', '属于');
       const skillIds = connected.map(c => c.nodeId);
       const edgeIdxs = connected.map(c => c.edgeIdx);
 
-      if (skillIds.length === 0) return { answer: `${catName}暂无技能数据`, highlights: { nodeIds: new Set([catNode.id]), edgeIndices: new Set() } };
+      if (skillIds.length === 0) return { answer: `"${catName}"暂无关联技能`, highlights: { nodeIds: new Set([catNode.id]), edgeIndices: new Set() } };
 
       const names = skillIds.map(id => {
         const n = nodes.find(x => x.id === id);
-        return n ? `${n.name}(${n.data.frequency}次)` : '';
+        return n?.name || '';
       }).filter(Boolean).join('、');
+
       return {
-        answer: `${catName}类别包括：${names}`,
+        answer: `"${catName}"归一化到以下技能：${names}`,
         highlights: { nodeIds: new Set([catNode.id, ...skillIds]), edgeIndices: new Set(edgeIdxs) },
       };
     },
@@ -229,7 +281,7 @@ export function queryKnowledgeGraph(query: string, nodes: KGNode[], edges: KGEdg
   // Fallback: keyword search across all nodes
   const matched = nodes.filter(n => n.name.includes(trimmed) || (n.data.companies as string[] | undefined)?.some(c => c.includes(trimmed)));
   if (matched.length > 0) {
-    const names = matched.map(n => `${n.name}(${n.type === 'company' ? '公司' : n.type === 'skill' ? '技能' : n.type === 'position' ? '职位' : n.type === 'category' ? '类别' : '模块'})`).join('、');
+    const names = matched.map(n => `${n.name}(${n.type === 'company' ? '公司' : n.type === 'skill' ? '技能' : n.type === 'position' ? '职位' : n.type === 'category' ? '来源技能' : '模块'})`).join('、');
     return {
       answer: `找到 ${matched.length} 个相关实体：${names}`,
       highlights: { nodeIds: new Set(matched.map(n => n.id)), edgeIndices: new Set() },
