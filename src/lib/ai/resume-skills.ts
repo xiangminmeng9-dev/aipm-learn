@@ -309,11 +309,11 @@ export function buildSkillInstructions(hasJd: boolean, hasProfile: boolean, prof
       return `| ${s.id} | ${s.name} | ${firstLine.replace(/^【.+?】/, '').trim().slice(0, 60)} |`;
     }).join('\n');
 
-    sections.push(`【收尾优化技能库——逐一判断是否需要，不得偷懒跳过！】
-以下收尾优化技能，你需要对简历的**每个板块**逐一检查是否存在该问题：
-- 如果该板块存在这个问题 → 必须修复，并在changes_summary中记录
-- 如果该板块确实不存在该问题 → 在changes_summary中标注"该板块无此问题"
-- ❌ 不允许笼统跳过！你必须逐个板块过一遍，证明你检查过了
+    sections.push(`【收尾优化技能库——有改动才记录】
+以下收尾优化技能，检查简历是否存在该问题：
+- 如果存在该问题 → 修复，并在changes_summary中记录
+- 如果不存在该问题 → 不需要记录，直接跳过
+- 只记录有实际改动的项，不要列出"无变更"
 
 | 技能ID | 技能名 | 检查什么 |
 |--------|--------|----------|

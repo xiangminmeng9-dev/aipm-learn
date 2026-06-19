@@ -19,6 +19,26 @@ interface TavilySearchOptions {
   topic?: 'general' | 'news';  // 默认 general
 }
 
+// ─── In-memory cache for Tavily search results ─────────────────────
+// NOTE: This is an in-memory cache, NOT shared across serverless instances.
+// That's acceptable for query-result caching: worst case a few cold instances
+// re-query Tavily for the same question, but hot instances serve repeat
+// questions instantly for 5 minutes.
+const searchCache = new Map<string, { data: TavilySearchResponse; expires: number }>();
+const SEARCH_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+function getCachedSearch(query: string): TavilySearchResponse | null {
+  const key = query.trim().toLowerCase();
+  const entry = searchCache.get(key);
+  if (entry && entry.expires > Date.now()) return entry.data;
+  searchCache.delete(key);
+  return null;
+}
+
+function setCachedSearch(query: string, data: TavilySearchResponse) {
+  searchCache.set(query.trim().toLowerCase(), { data, expires: Date.now() + SEARCH_CACHE_TTL });
+}
+
 /**
  * 调用 Tavily Search API 获取最新资讯
  * 失败时静默返回空结果，不阻塞主流程
@@ -34,6 +54,16 @@ export async function searchWithTavily(
   }
 
   const { maxResults = 3, topic = 'general' } = options;
+
+  // Cache key includes options so the same query with a different topic or
+  // maxResults doesn't collide. Query is normalized (trim + lowercase) so
+  // different users asking the same question share the cache.
+  const cacheKey = `${query.trim().toLowerCase()}|${topic}|${maxResults}`;
+  const cached = getCachedSearch(cacheKey);
+  if (cached) {
+    console.log(`[Tavily] Cache hit for "${query}" (topic=${topic}, max=${maxResults})`);
+    return cached;
+  }
 
   try {
     const controller = new AbortController();
@@ -76,10 +106,17 @@ export async function searchWithTavily(
     );
 
     const answer = data.answer ? String(data.answer) : null;
+    const result: TavilySearchResponse = { results, answer };
+
+    // Only cache successful, non-empty responses. Don't pollute the cache
+    // with empty results (e.g. transient API hiccups) so retries can reach Tavily.
+    if (results.length > 0 || answer) {
+      setCachedSearch(cacheKey, result);
+    }
 
     console.log(`[Tavily] Got ${results.length} results for "${query}", answer: ${answer ? 'yes' : 'no'}`);
 
-    return { results, answer };
+    return result;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     if (msg.includes('abort')) {

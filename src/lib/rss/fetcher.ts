@@ -35,7 +35,7 @@ async function fetchXml(url: string): Promise<string> {
       headers: {
         'User-Agent': 'Mozilla/5.0 (compatible; AIPMBot/1.0; +https://example.com/bot)',
       },
-      next: { revalidate: 0 },
+      next: { revalidate: 1800 },
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.text();
