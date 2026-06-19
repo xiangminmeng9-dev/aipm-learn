@@ -2,11 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/daily-refresh",
-      "schedule": "5 16 * * *"
-    },
-    {
-      "path": "/api/cron/daily-refresh",
-      "schedule": "0 0 * * *"
+      "schedule": "0 1 * * *"
     }
   ],
   "functions": {
@@ -18,6 +14,12 @@
     },
     "src/app/api/resume/generate/route.ts": {
       "maxDuration": 60
+    },
+    "src/app/api/jd/fetch-url/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/cron/daily-refresh/route.ts": {
+      "maxDuration": 120
     }
   }
 }
