@@ -5,6 +5,8 @@ import { refreshDailyNews } from '@/lib/daily-ai-news/pipeline';
 
 export const maxDuration = 120;
 
+export const dynamic = 'force-dynamic';
+
 function getToday(): string {
   return new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Shanghai' });
 }

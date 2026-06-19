@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 
+export const dynamic = 'force-dynamic';
+export const maxDuration = 30;
+
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
@@ -18,16 +21,111 @@ export async function GET(request: NextRequest) {
 
     const sevenDaysAgo = rangeAgo;
 
+    // Precompute weekStart (needed for the weekly-sessions query)
+    const weekStart = new Date();
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+
+    // ===================================================================
+    // Phase 1: Fire all independent queries in parallel
+    // ===================================================================
+    const [
+      devFlowsRes, devModesRes, specPracticesRes, compAnalysesRes, aiPathsRes,
+      sysModulesRes, sysTasksRes, sysProgressRes, userModulesRes, userTasksRes,
+      notebookNotesCountRes, notebookTasksCountRes, notesByCatRes, recentNotesRes, recentTasksRes,
+      simSessionsRes, qaRes, mockCountRes, sessionCountRes, mockIdsRes,
+      resumeDataRes, jobCountRes, rCountRes, readDataRes, resWithCatRes, userReadsRes,
+      challengesRes, aiLogsRes, durationLogsRes, progressDataRes, goalsRes, weeklySessionsRes
+    ] = await Promise.allSettled([
+      // Coding (dev_flows + dev_modes)
+      serviceClient.from('dev_flows').select('id, created_at, mode_id').eq('user_id', user.id).order('created_at', { ascending: false }),
+      serviceClient.from('dev_modes').select('id, name'),
+      // Spec Practice
+      serviceClient.from('spec_practices').select('id, total_score, dimension_scores, created_at').eq('user_id', user.id).order('created_at', { ascending: true }),
+      // Competitive Analysis
+      serviceClient.from('competitive_analyses').select('id, total_score, created_at').eq('user_id', user.id).order('created_at', { ascending: true }),
+      // AI Learning Path
+      serviceClient.from('ai_learning_paths').select('id, recommended_modules, created_at').eq('user_id', user.id).order('created_at', { ascending: false }),
+      // Skills (system + user)
+      serviceClient.from('skill_modules').select('id, name, level, level_name'),
+      serviceClient.from('learning_tasks').select('id, module_id'),
+      serviceClient.from('learning_progress').select('id, task_id, status, completed_at').eq('user_id', user.id),
+      serviceClient.from('user_skill_modules').select('id, user_id, name, level, level_name').eq('user_id', user.id),
+      serviceClient.from('user_module_tasks').select('id, module_id, status, completed_at'),
+      // Notebook
+      serviceClient.from('notebook_notes').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+      serviceClient.from('notebook_tasks').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+      serviceClient.from('notebook_notes').select('category').eq('user_id', user.id),
+      serviceClient.from('notebook_notes').select('created_at').eq('user_id', user.id).gte('created_at', sevenDaysAgo.toISOString()),
+      serviceClient.from('notebook_tasks').select('created_at').eq('user_id', user.id).gte('created_at', sevenDaysAgo.toISOString()),
+      // Simulator
+      serviceClient.from('simulator_sessions').select('id, stage_scores, status, scenario_id, created_at').eq('user_id', user.id),
+      // Interview (full qa + mock count + session count + mock ids)
+      serviceClient.from('assistant_qa_records').select('evaluation, created_at, category').eq('user_id', user.id).order('created_at', { ascending: true }),
+      serviceClient.from('mock_interviews').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+      serviceClient.from('chat_sessions').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+      serviceClient.from('mock_interviews').select('id').eq('user_id', user.id),
+      // Resume
+      serviceClient.from('resume_versions').select('id, created_at').eq('user_id', user.id).order('created_at', { ascending: true }),
+      serviceClient.from('resume_jobs').select('id', { count: 'exact', head: true }),
+      // Resources (count + reading pace + by category + read set)
+      serviceClient.from('external_resources').select('id', { count: 'exact', head: true }),
+      serviceClient.from('user_task_resources').select('id, created_at, resource_id').eq('user_id', user.id),
+      serviceClient.from('external_resources').select('id, category'),
+      serviceClient.from('user_task_resources').select('resource_id').eq('user_id', user.id),
+      // Daily Challenge
+      serviceClient.from('daily_challenge_submissions').select('id, score, submitted_at').eq('user_id', user.id).order('submitted_at', { ascending: true }),
+      // AI Usage Analytics (ai_call)
+      serviceClient.from('user_activity_logs').select('module, input_tokens, output_tokens, created_at').eq('user_id', user.id).eq('action', 'ai_call').gte('created_at', rangeAgo.toISOString()).order('created_at', { ascending: true }),
+      // Real Learning Duration (page_view)
+      serviceClient.from('user_activity_logs').select('module, duration_seconds, created_at').eq('user_id', user.id).eq('action', 'page_view').gte('created_at', rangeAgo.toISOString()).order('created_at', { ascending: true }),
+      // Skill Growth Over Time (learning_progress, completed, gte)
+      serviceClient.from('learning_progress').select('completed_at, status').eq('user_id', user.id).eq('status', 'completed').gte('completed_at', rangeAgo.toISOString()).order('completed_at', { ascending: true }),
+      // User Goals
+      serviceClient.from('user_daily_goals').select('daily_minutes_target, weekly_sessions_target, monthly_score_target').eq('user_id', user.id).maybeSingle(),
+      // Weekly sessions count (assistant_qa_records count, gte weekStart)
+      serviceClient.from('assistant_qa_records').select('id', { count: 'exact', head: true }).eq('user_id', user.id).gte('created_at', weekStart.toISOString()),
+    ]);
+
+    // ===================================================================
+    // Phase 2: Mock score distribution depends on mock_interviews ids
+    // ===================================================================
+    let mockAnswersRes: { status: 'fulfilled'; value: { data: { score: number | null }[] | null } | null } = { status: 'fulfilled', value: null };
+    if (mockIdsRes.status === 'fulfilled') {
+      const mockIds = (mockIdsRes.value?.data ?? []).map((m) => m.id);
+      if (mockIds.length > 0) {
+        try {
+          const value = await serviceClient.from('interview_answers').select('score').in('mock_interview_id', mockIds);
+          mockAnswersRes = { status: 'fulfilled', value };
+        } catch (e) {
+          console.warn('[learning-dashboard] mock-answers failed:', e);
+        }
+      }
+    }
+
+    // ===================================================================
+    // Phase 3: Helpers to extract data/count from allSettled results
+    // ===================================================================
+    type Settled<T> = PromiseSettledResult<T>;
+    const d = <T>(r: Settled<T>): T extends { data: infer D } ? D : never => {
+      // @ts-expect-error - runtime helper narrowing supabase result shape
+      return r.status === 'fulfilled' ? r.value?.data : undefined;
+    };
+    const c = (r: Settled<unknown>): number | undefined => {
+      // @ts-expect-error - runtime helper narrowing supabase result shape
+      return r.status === 'fulfilled' ? r.value?.count : undefined;
+    };
+
+    // ===================================================================
+    // Phase 4: ALL the original computation logic, unchanged
+    // (only data sourcing changes: inline awaits -> d()/c() helpers)
+    // ===================================================================
+
     // -- Coding (dev_flows) --
     let codingFlowCount = 0, codingRecent = 0;
     let codingDaily: { date: string; count: number }[] = [];
     let codingByStage: { name: string; value: number }[] = [];
     try {
-      const { data: devFlows } = await serviceClient
-        .from('dev_flows')
-        .select('id, created_at, mode_id')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+      const devFlows = d(devFlowsRes) as { id: string; created_at: string; mode_id: string | null }[] | undefined;
       codingFlowCount = devFlows?.length ?? 0;
       codingRecent = (devFlows ?? []).filter((f) => new Date(f.created_at) >= sevenDaysAgo).length;
       // 7-day daily
@@ -40,25 +138,22 @@ export async function GET(request: NextRequest) {
       for (const f of devFlows ?? []) { const m = f.mode_id || '未分类'; modeMap[m] = (modeMap[m] || 0) + 1; }
       // Try to resolve mode names
       try {
-        const { data: modes } = await serviceClient.from('dev_modes').select('id, name');
+        const modes = d(devModesRes) as { id: string; name: string }[] | undefined;
         const modeNameMap: Record<string, string> = {};
         for (const m of modes ?? []) modeNameMap[m.id] = m.name;
         codingByStage = Object.entries(modeMap).map(([id, value]) => ({ name: modeNameMap[id] || id.slice(0, 6), value }));
-      } catch {
+      } catch (e) {
+        console.warn('[learning-dashboard] coding-mode-names failed:', e);
         codingByStage = Object.entries(modeMap).map(([name, value]) => ({ name: name.slice(0, 6), value }));
       }
-    } catch {}
+    } catch (e) { console.warn('[learning-dashboard] coding failed:', e); }
 
     // -- Spec Practice --
     let specPracticeCount = 0, specPracticeAvgScore = 0;
     let specPracticeScoreTrend: { date: string; score: number }[] = [];
     let specPracticeDimensionDist: { dimension: string; avgScore: number }[] = [];
     try {
-      const { data: specPractices } = await serviceClient
-        .from('spec_practices')
-        .select('id, total_score, dimension_scores, created_at')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: true });
+      const specPractices = d(specPracticesRes) as { id: string; total_score: number; dimension_scores: { dimension: string; score: number }[] | null; created_at: string }[] | undefined;
       specPracticeCount = specPractices?.length ?? 0;
       if (specPractices && specPractices.length > 0) {
         const scores = specPractices.map((s) => s.total_score);
@@ -82,17 +177,13 @@ export async function GET(request: NextRequest) {
         }
         specPracticeDimensionDist = Object.entries(dimMap).map(([dimension, v]) => ({ dimension, avgScore: Math.round(v.total / v.count) }));
       }
-    } catch {}
+    } catch (e) { console.warn('[learning-dashboard] spec-practice failed:', e); }
 
     // -- Competitive Analysis --
     let competitiveAnalysisCount = 0, competitiveAnalysisAvgScore = 0;
     let competitiveAnalysisScoreTrend: { date: string; score: number }[] = [];
     try {
-      const { data: compAnalyses } = await serviceClient
-        .from('competitive_analyses')
-        .select('id, total_score, created_at')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: true });
+      const compAnalyses = d(compAnalysesRes) as { id: string; total_score: number; created_at: string }[] | undefined;
       competitiveAnalysisCount = compAnalyses?.length ?? 0;
       if (compAnalyses && compAnalyses.length > 0) {
         const scores = compAnalyses.map((c) => c.total_score);
@@ -102,17 +193,13 @@ export async function GET(request: NextRequest) {
         for (const c of compAnalyses) { const date = new Date(c.created_at).toISOString().split('T')[0]; if (date in trendMap) { trendMap[date].total += c.total_score; trendMap[date].count++; } }
         competitiveAnalysisScoreTrend = Object.entries(trendMap).sort(([a], [b]) => a.localeCompare(b)).map(([date, v]) => ({ date: date.slice(5), score: v.count > 0 ? Math.round(v.total / v.count) : 0 }));
       }
-    } catch {}
+    } catch (e) { console.warn('[learning-dashboard] competitive-analysis failed:', e); }
 
     // -- AI Learning Path --
     let learningPathCount = 0, learningPathTotalModules = 0;
     let learningPathModuleCategoryDist: { category: string; count: number }[] = [];
     try {
-      const { data: aiPaths } = await serviceClient
-        .from('ai_learning_paths')
-        .select('id, recommended_modules, created_at')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+      const aiPaths = d(aiPathsRes) as { id: string; recommended_modules: { priority: string }[] | null; created_at: string }[] | undefined;
       learningPathCount = aiPaths?.length ?? 0;
       if (aiPaths && aiPaths.length > 0) {
         const priorityMap: Record<string, number> = {};
@@ -128,7 +215,7 @@ export async function GET(request: NextRequest) {
         }
         learningPathModuleCategoryDist = Object.entries(priorityMap).map(([category, count]) => ({ category, count }));
       }
-    } catch {}
+    } catch (e) { console.warn('[learning-dashboard] learning-path failed:', e); }
 
     // -- Skills --
     // Two sources: system modules (skill_modules + learning_tasks + learning_progress)
@@ -139,16 +226,16 @@ export async function GET(request: NextRequest) {
     let customModuleCount = 0;
     try {
       // System modules
-      const { data: sysModules } = await serviceClient.from('skill_modules').select('id, name, level, level_name');
+      const sysModules = d(sysModulesRes) as { id: string; name: string; level: number | null; level_name: string | null }[] | undefined;
       // System tasks
-      const { data: sysTasks } = await serviceClient.from('learning_tasks').select('id, module_id');
+      const sysTasks = d(sysTasksRes) as { id: string; module_id: string }[] | undefined;
       // System progress (learning_progress)
-      const { data: sysProgress } = await serviceClient.from('learning_progress').select('id, task_id, status, completed_at').eq('user_id', user.id);
+      const sysProgress = d(sysProgressRes) as { id: string; task_id: string; status: string; completed_at: string | null }[] | undefined;
 
       // User modules
-      const { data: userModules } = await serviceClient.from('user_skill_modules').select('id, user_id, name, level, level_name').eq('user_id', user.id);
+      const userModules = d(userModulesRes) as { id: string; user_id: string; name: string; level: number | null; level_name: string | null }[] | undefined;
       // User tasks
-      const { data: userTasks } = await serviceClient.from('user_module_tasks').select('id, module_id, status, completed_at');
+      const userTasks = d(userTasksRes) as { id: string; module_id: string; status: string; completed_at: string | null }[] | undefined;
 
       customModuleCount = userModules?.length ?? 0;
 
@@ -209,35 +296,35 @@ export async function GET(request: NextRequest) {
         }
       }
       skillByLevel = Object.entries(levelMap).map(([level, v]) => ({ level, ...v }));
-    } catch {}
+    } catch (e) { console.warn('[learning-dashboard] skills failed:', e); }
 
     // -- Notebook --
     let notebookNotes = 0, notebookTasks = 0, notebookAiAnalysis = 0;
     let notebookDaily: { date: string; notes: number; tasks: number }[] = [];
     let notebookByType: { name: string; value: number }[] = [];
     try {
-      const { count: nCount } = await serviceClient.from('notebook_notes').select('id', { count: 'exact', head: true }).eq('user_id', user.id);
+      const nCount = c(notebookNotesCountRes);
       notebookNotes = nCount ?? 0;
-      const { count: tCount } = await serviceClient.from('notebook_tasks').select('id', { count: 'exact', head: true }).eq('user_id', user.id);
+      const tCount = c(notebookTasksCountRes);
       notebookTasks = tCount ?? 0;
       // By category (column is 'category', not 'type')
       try {
-        const { data: notesByCat } = await serviceClient.from('notebook_notes').select('category').eq('user_id', user.id);
+        const notesByCat = d(notesByCatRes) as { category: string | null }[] | undefined;
         const catMap: Record<string, number> = {};
         for (const n of notesByCat ?? []) { const c = n.category || '未分类'; catMap[c] = (catMap[c] || 0) + 1; }
         notebookByType = Object.entries(catMap).map(([name, value]) => ({ name, value }));
-      } catch {}
+      } catch (e) { console.warn('[learning-dashboard] notebook-by-type failed:', e); }
       // 7-day daily
       try {
-        const { data: recentNotes } = await serviceClient.from('notebook_notes').select('created_at').eq('user_id', user.id).gte('created_at', sevenDaysAgo.toISOString());
-        const { data: recentTasks } = await serviceClient.from('notebook_tasks').select('created_at').eq('user_id', user.id).gte('created_at', sevenDaysAgo.toISOString());
+        const recentNotes = d(recentNotesRes) as { created_at: string }[] | undefined;
+        const recentTasks = d(recentTasksRes) as { created_at: string }[] | undefined;
         const noteMap: Record<string, number> = {}, taskMap: Record<string, number> = {};
         for (let i = 6; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); const k = d.toISOString().split('T')[0]; noteMap[k] = 0; taskMap[k] = 0; }
         for (const n of recentNotes ?? []) { const date = new Date(n.created_at).toISOString().split('T')[0]; if (date in noteMap) noteMap[date]++; }
         for (const t of recentTasks ?? []) { const date = new Date(t.created_at).toISOString().split('T')[0]; if (date in taskMap) taskMap[date]++; }
         notebookDaily = Object.keys(noteMap).sort().map((date) => ({ date, notes: noteMap[date] ?? 0, tasks: taskMap[date] ?? 0 }));
-      } catch {}
-    } catch {}
+      } catch (e) { console.warn('[learning-dashboard] notebook-daily failed:', e); }
+    } catch (e) { console.warn('[learning-dashboard] notebook failed:', e); }
 
     // -- Simulator --
     // simulator_sessions has: stage_scores (jsonb), status, scenario_id, current_stage
@@ -245,7 +332,7 @@ export async function GET(request: NextRequest) {
     let simulatorByScenario: { name: string; count: number; avgScore: number }[] = [];
     let simulatorScoreDist: { range: string; count: number }[] = [];
     try {
-      const { data: simSessions } = await serviceClient.from('simulator_sessions').select('id, stage_scores, status, scenario_id, created_at').eq('user_id', user.id);
+      const simSessions = d(simSessionsRes) as { id: string; stage_scores: Record<string, number> | null; status: string; scenario_id: string | null; created_at: string }[] | undefined;
       simulatorSessions = simSessions?.length ?? 0;
       if (simSessions && simSessions.length > 0) {
         // Extract scores from stage_scores jsonb
@@ -275,7 +362,7 @@ export async function GET(request: NextRequest) {
         for (const s of scores) { if (s <= 20) dist['0-20']++; else if (s <= 40) dist['21-40']++; else if (s <= 60) dist['41-60']++; else if (s <= 80) dist['61-80']++; else dist['81-100']++; }
         simulatorScoreDist = Object.entries(dist).map(([range, count]) => ({ range, count }));
       }
-    } catch {}
+    } catch (e) { console.warn('[learning-dashboard] simulator failed:', e); }
 
     // -- Interview --
     let interviewCount = 0, avgScore = 0, mockCount = 0, sessionCount = 0;
@@ -285,7 +372,7 @@ export async function GET(request: NextRequest) {
     let interviewMethodStats: { method: string; count: number; avgScore: number }[] = [];
     let qaRecords: { evaluation: unknown; created_at: string; category?: string }[] = [];
     try {
-      const { data: qa } = await serviceClient.from('assistant_qa_records').select('evaluation, created_at, category').eq('user_id', user.id).order('created_at', { ascending: true });
+      const qa = d(qaRes) as { evaluation: unknown; created_at: string; category?: string }[] | undefined;
       qaRecords = qa ?? [];
       interviewCount = qaRecords.length;
       let totalScore = 0, scoredCount = 0;
@@ -321,17 +408,17 @@ export async function GET(request: NextRequest) {
         }
       }
       interviewMethodStats = Object.entries(methodMap).map(([method, v]) => ({ method, count: v.count, avgScore: v.count > 0 ? Math.round(v.totalScore / v.count) : 0 }));
-    } catch {}
-    try { const { count: mCount } = await serviceClient.from('mock_interviews').select('id', { count: 'exact', head: true }).eq('user_id', user.id); mockCount = mCount ?? 0; } catch {}
+    } catch (e) { console.warn('[learning-dashboard] interview failed:', e); }
+    try { const mCount = c(mockCountRes); mockCount = mCount ?? 0; } catch (e) { console.warn('[learning-dashboard] interview-mock-count failed:', e); }
     // Chat sessions count
-    try { const { count: sCount } = await serviceClient.from('chat_sessions').select('id', { count: 'exact', head: true }).eq('user_id', user.id); sessionCount = sCount ?? 0; } catch {}
+    try { const sCount = c(sessionCountRes); sessionCount = sCount ?? 0; } catch (e) { console.warn('[learning-dashboard] interview-session-count failed:', e); }
     // Mock score distribution
     try {
-      const { data: mockAnswers } = await serviceClient.from('interview_answers').select('score').in('mock_interview_id', (await serviceClient.from('mock_interviews').select('id').eq('user_id', user.id)).data?.map((m) => m.id) ?? []);
+      const mockAnswers = mockAnswersRes.value?.data ?? [];
       const dist = { '0-20': 0, '21-40': 0, '41-60': 0, '61-80': 0, '81-100': 0 };
       for (const a of mockAnswers ?? []) { if (a.score == null) continue; const s = Number(a.score); if (s <= 20) dist['0-20']++; else if (s <= 40) dist['21-40']++; else if (s <= 60) dist['41-60']++; else if (s <= 80) dist['61-80']++; else dist['81-100']++; }
       mockScoreDistribution = Object.entries(dist).map(([range, count]) => ({ range, count }));
-    } catch {}
+    } catch (e) { console.warn('[learning-dashboard] interview-mock-score-dist failed:', e); }
 
     // -- Resume --
     let resumeVersions = 0, resumeMatchScore = 0;
@@ -339,40 +426,40 @@ export async function GET(request: NextRequest) {
     let resumeJobStats: { status: string; count: number }[] = [];
     try {
       // resume_versions has no match_score, just count versions
-      const { data: resumeData } = await serviceClient.from('resume_versions').select('id, created_at').eq('user_id', user.id).order('created_at', { ascending: true });
+      const resumeData = d(resumeDataRes) as { id: string; created_at: string }[] | undefined;
       resumeVersions = resumeData?.length ?? 0;
-    } catch {}
+    } catch (e) { console.warn('[learning-dashboard] resume-versions failed:', e); }
     try {
       // resume_jobs has no status column, it's a cached RSS listing
-      const { count: jobCount } = await serviceClient.from('resume_jobs').select('id', { count: 'exact', head: true });
+      const jobCount = c(jobCountRes);
       resumeJobStats = jobCount ? [{ status: '已缓存', count: jobCount }] : [];
-    } catch {}
+    } catch (e) { console.warn('[learning-dashboard] resume-jobs failed:', e); }
 
     // -- Resources --
     let resourcesCount = 0, articlesRead = 0;
     let resourcesByCategory: { name: string; total: number; read: number }[] = [];
     let readingPace: { date: string; count: number }[] = [];
     try {
-      const { count: rCount } = await serviceClient.from('external_resources').select('id', { count: 'exact', head: true });
+      const rCount = c(rCountRes);
       resourcesCount = rCount ?? 0;
-    } catch {}
+    } catch (e) { console.warn('[learning-dashboard] resources-count failed:', e); }
     try {
-      const { data: readData } = await serviceClient.from('user_task_resources').select('id, created_at, resource_id').eq('user_id', user.id);
+      const readData = d(readDataRes) as { id: string; created_at: string; resource_id: string | null }[] | undefined;
       articlesRead = readData?.length ?? 0;
       // Reading pace (7-day)
       const paceMap: Record<string, number> = {};
       for (let i = 6; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); paceMap[d.toISOString().split('T')[0]] = 0; }
       for (const r of readData ?? []) { const date = new Date(r.created_at).toISOString().split('T')[0]; if (date in paceMap) paceMap[date]++; }
       readingPace = Object.entries(paceMap).sort(([a], [b]) => a.localeCompare(b)).map(([date, count]) => ({ date: date.slice(5), count }));
-    } catch {}
+    } catch (e) { console.warn('[learning-dashboard] resources-reading-pace failed:', e); }
     try {
-      const { data: resWithCat } = await serviceClient.from('external_resources').select('id, category');
-      const { data: userReads } = await serviceClient.from('user_task_resources').select('resource_id').eq('user_id', user.id);
+      const resWithCat = d(resWithCatRes) as { id: string; category: string | null }[] | undefined;
+      const userReads = d(userReadsRes) as { resource_id: string | null }[] | undefined;
       const readSet = new Set((userReads ?? []).map((r) => r.resource_id));
       const catMap: Record<string, { total: number; read: number }> = {};
       for (const r of resWithCat ?? []) { const c = (r as Record<string, unknown>).category as string || '未分类'; if (!catMap[c]) catMap[c] = { total: 0, read: 0 }; catMap[c].total++; if (readSet.has(r.id)) catMap[c].read++; }
       resourcesByCategory = Object.entries(catMap).map(([name, v]) => ({ name, ...v }));
-    } catch {}
+    } catch (e) { console.warn('[learning-dashboard] resources-by-category failed:', e); }
 
     // -- Daily Challenge --
     let challengeCount = 0, dailyStreak = 0, challengeAvgScore = 0;
@@ -381,7 +468,7 @@ export async function GET(request: NextRequest) {
     let challengeStreakCalendar: { date: string; hasSubmission: boolean }[] = [];
     try {
       // Column is submitted_at, not created_at
-      const { data: challenges } = await serviceClient.from('daily_challenge_submissions').select('id, score, submitted_at').eq('user_id', user.id).order('submitted_at', { ascending: true });
+      const challenges = d(challengesRes) as { id: string; score: number | null; submitted_at: string }[] | undefined;
       challengeCount = challenges?.length ?? 0;
       if (challenges && challenges.length > 0) {
         const scores = challenges.map((c) => c.score ?? 0).filter((s) => s > 0);
@@ -399,7 +486,7 @@ export async function GET(request: NextRequest) {
         // 30-day streak calendar
         for (let i = 29; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); const ds = d.toISOString().split('T')[0]; challengeStreakCalendar.push({ date: ds, hasSubmission: dates.includes(ds) }); }
       }
-    } catch {}
+    } catch (e) { console.warn('[learning-dashboard] daily-challenge failed:', e); }
 
     // -- Progress curve --
     const thirtyDaysAgo = new Date();
@@ -423,13 +510,7 @@ export async function GET(request: NextRequest) {
     let aiUsageDaily: { date: string; calls: number; tokens: number }[] = [];
     let totalAiCalls = 0, totalTokens = 0;
     try {
-      const { data: aiLogs } = await serviceClient
-        .from('user_activity_logs')
-        .select('module, input_tokens, output_tokens, created_at')
-        .eq('user_id', user.id)
-        .eq('action', 'ai_call')
-        .gte('created_at', rangeAgo.toISOString())
-        .order('created_at', { ascending: true });
+      const aiLogs = d(aiLogsRes) as { module: string | null; input_tokens: number | null; output_tokens: number | null; created_at: string }[] | undefined;
       if (aiLogs && aiLogs.length > 0) {
         const moduleMap: Record<string, { calls: number; inputTokens: number; outputTokens: number }> = {};
         const dailyMap: Record<string, { calls: number; tokens: number }> = {};
@@ -455,19 +536,13 @@ export async function GET(request: NextRequest) {
         totalTokens = aiLogs.reduce((s, l) => s + (l.input_tokens || 0) + (l.output_tokens || 0), 0);
         aiUsageDaily = Object.entries(dailyMap).sort(([a], [b]) => a.localeCompare(b)).map(([date, v]) => ({ date: date.slice(5), ...v }));
       }
-    } catch {}
+    } catch (e) { console.warn('[learning-dashboard] ai-usage failed:', e); }
 
     // -- Real Learning Duration --
     let durationDaily: { date: string; minutes: number; byModule: Record<string, number> }[] = [];
     let totalDurationMinutes = 0, avgDailyMinutes = 0;
     try {
-      const { data: durationLogs } = await serviceClient
-        .from('user_activity_logs')
-        .select('module, duration_seconds, created_at')
-        .eq('user_id', user.id)
-        .eq('action', 'page_view')
-        .gte('created_at', rangeAgo.toISOString())
-        .order('created_at', { ascending: true });
+      const durationLogs = d(durationLogsRes) as { module: string | null; duration_seconds: number | null; created_at: string }[] | undefined;
       if (durationLogs && durationLogs.length > 0) {
         const dailyMap: Record<string, { seconds: number; byModule: Record<string, number> }> = {};
         for (let i = rangeDays - 1; i >= 0; i--) {
@@ -491,18 +566,12 @@ export async function GET(request: NextRequest) {
         totalDurationMinutes = Math.round(durationLogs.reduce((s, l) => s + (l.duration_seconds || 0), 0) / 60);
         avgDailyMinutes = durationDaily.length > 0 ? Math.round(totalDurationMinutes / durationDaily.filter((d) => d.minutes > 0).length) : 0;
       }
-    } catch {}
+    } catch (e) { console.warn('[learning-dashboard] learning-duration failed:', e); }
 
     // -- Skill Growth Over Time --
     let skillGrowthCurve: { date: string; coverage: number; tasksCompleted: number }[] = [];
     try {
-      const { data: progressData } = await serviceClient
-        .from('learning_progress')
-        .select('completed_at, status')
-        .eq('user_id', user.id)
-        .eq('status', 'completed')
-        .gte('completed_at', rangeAgo.toISOString())
-        .order('completed_at', { ascending: true });
+      const progressData = d(progressDataRes) as { completed_at: string; status: string }[] | undefined;
       if (progressData && progressData.length > 0) {
         let cumulative = 0;
         const map: Record<string, number> = {};
@@ -518,18 +587,14 @@ export async function GET(request: NextRequest) {
           tasksCompleted: baseCompleted + tasks,
         }));
       }
-    } catch {}
+    } catch (e) { console.warn('[learning-dashboard] skill-growth failed:', e); }
 
     // -- User Goals --
     let userGoals = { dailyMinutesTarget: 30, weeklySessionsTarget: 5, monthlyScoreTarget: 75 };
     try {
-      const { data: goals } = await serviceClient
-        .from('user_daily_goals')
-        .select('daily_minutes_target, weekly_sessions_target, monthly_score_target')
-        .eq('user_id', user.id)
-        .maybeSingle();
+      const goals = d(goalsRes) as { daily_minutes_target: number; weekly_sessions_target: number; monthly_score_target: number } | null | undefined;
       if (goals) userGoals = { dailyMinutesTarget: goals.daily_minutes_target, weeklySessionsTarget: goals.weekly_sessions_target, monthlyScoreTarget: goals.monthly_score_target };
-    } catch {}
+    } catch (e) { console.warn('[learning-dashboard] user-goals failed:', e); }
 
     // Calculate goal progress
     const todayStr = new Date().toISOString().split('T')[0];
@@ -539,17 +604,11 @@ export async function GET(request: NextRequest) {
       return fullDate.toISOString().split('T')[0] === todayStr;
     })?.minutes || 0;
 
-    const weekStart = new Date();
-    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
     let weeklySessions = 0;
     try {
-      const { count: wCount } = await serviceClient
-        .from('assistant_qa_records')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .gte('created_at', weekStart.toISOString());
+      const wCount = c(weeklySessionsRes);
       weeklySessions = wCount ?? 0;
-    } catch {}
+    } catch (e) { console.warn('[learning-dashboard] weekly-sessions failed:', e); }
 
     return NextResponse.json({
       totalLearningMinutes: totalDurationMinutes || totalLearningMinutes, interviewCount, avgScore, challengeCount, skillCoverage,

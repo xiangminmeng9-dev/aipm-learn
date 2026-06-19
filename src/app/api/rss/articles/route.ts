@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
 
   const { data, error } = await supabase
     .from('daily_ai_news_articles')
-    .select('*')
+    .select('id, title, url, source, published_at, summary')
     .in('source', sourceNames)
     .order('published_at', { ascending: false })
     .range((page - 1) * page_size, page * page_size - 1);
@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
     return {
       id: article.id,
       title: article.title,
-      link: article.url || article.link,
+      link: article.url,
       source: article.source,
       publishedAt: article.published_at,
       summary: plainExplanation || article.summary,

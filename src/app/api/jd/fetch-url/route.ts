@@ -1,11 +1,12 @@
 // ─── JD URL Fetch API ──────────────────────────────────────────
 // 从招聘网站 URL（BOSS直聘等）抓取岗位描述
-// 解决 BOSS直聘等网站禁止右键复制的问题
+// 三层提取策略：Tavily Extract → plain fetch → bookmarklet fallback
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { extractWithTavily } from '@/lib/ai/tavily-extract';
 
-export const maxDuration = 30;
+export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
@@ -50,17 +51,100 @@ export async function POST(request: NextRequest) {
     }, { status: 400 });
   }
 
+  const isZhipin = host.includes('zhipin.com');
+
   try {
-    const jdText = await fetchJdFromUrl(url);
-    if (!jdText) {
-      return NextResponse.json({ error: '无法从该链接提取岗位描述，请手动复制粘贴' }, { status: 404 });
+    // ── Tier 1: Tavily Extract ──
+    // advanced 模式可处理 JS 渲染页面（如 BOSS直聘）
+    const tavilyResult = await extractWithTavily(url, {
+      extract_depth: isZhipin ? 'advanced' : 'basic',
+      query: 'job description responsibilities requirements 岗位职责 职位描述 任职要求',
+      format: 'text',
+      timeout: isZhipin ? 30 : 15,
+    });
+
+    if (tavilyResult?.results?.length) {
+      const rawContent = tavilyResult.results[0].raw_content;
+      if (rawContent && rawContent.length > 50) {
+        const jdText = cleanTavilyContent(rawContent, url);
+        if (jdText && jdText.length > 50) {
+          return NextResponse.json({ text: jdText, source: 'tavily' });
+        }
+      }
     }
-    return NextResponse.json({ text: jdText });
+
+    // ── Tier 2: Plain fetch + regex ──
+    // zhipin.com 跳过（已知 plain fetch 不行）
+    if (!isZhipin) {
+      const jdText = await fetchJdFromUrl(url);
+      if (jdText) {
+        return NextResponse.json({ text: jdText, source: 'fetch' });
+      }
+    }
+
+    // ── Tier 3: Bookmarklet fallback ──
+    return NextResponse.json({
+      error: '自动提取失败，请使用书签小工具手动提取',
+      fallback: 'bookmarklet',
+    }, { status: 404 });
+
   } catch (err) {
     console.error('[JD Fetch] Error:', err);
-    return NextResponse.json({ error: '抓取失败，请手动复制粘贴' }, { status: 500 });
+    return NextResponse.json({
+      error: '抓取失败，请使用书签小工具手动提取',
+      fallback: 'bookmarklet',
+    }, { status: 500 });
   }
 }
+
+// ─── Tavily 内容清洗 ──────────────────────────────────────────
+
+function cleanTavilyContent(rawContent: string, url: string): string | null {
+  if (url.includes('zhipin.com')) {
+    return extractJdFromTavilyText(rawContent);
+  }
+  // 其他站点的 Tavily 提取内容通常比较干净
+  return rawContent.length > 100 ? rawContent.substring(0, 5000).trim() : null;
+}
+
+/**
+ * 从 Tavily 提取的文本中截取 JD 相关内容
+ * Tavily 可能返回整个页面的文本，需要用关键词定位 JD 段落
+ */
+function extractJdFromTavilyText(text: string): string | null {
+  const jdStartMarkers = ['岗位职责', '职位描述', '工作职责', '职责描述', 'Job Description', 'Responsibilities'];
+  const jdEndMarkers = ['公司信息', '公司介绍', '公司地址', '上班地址', '热门推荐', '相似职位', '看了又看', '更多职位', '推荐职位'];
+
+  // 尝试找到 JD 开始位置
+  let startIdx = -1;
+  for (const marker of jdStartMarkers) {
+    const idx = text.indexOf(marker);
+    if (idx !== -1) {
+      startIdx = idx;
+      break;
+    }
+  }
+
+  // 如果找不到 JD 标记，尝试从"薪资"或职位名开始
+  if (startIdx === -1) {
+    // 可能 Tavily 返回的内容已经比较精简，直接返回
+    return text.length > 100 ? text.substring(0, 5000).trim() : null;
+  }
+
+  // 找到 JD 结束位置
+  let endIdx = text.length;
+  for (const marker of jdEndMarkers) {
+    const idx = text.indexOf(marker, startIdx + 10);
+    if (idx !== -1 && idx < endIdx) {
+      endIdx = idx;
+    }
+  }
+
+  const jdSection = text.substring(startIdx, Math.min(endIdx, startIdx + 5000)).trim();
+  return jdSection.length > 50 ? jdSection : null;
+}
+
+// ─── Plain fetch + regex（Tier 2） ────────────────────────────
 
 async function fetchJdFromUrl(url: string): Promise<string | null> {
   const controller = new AbortController();
@@ -82,8 +166,6 @@ async function fetchJdFromUrl(url: string): Promise<string | null> {
     if (!response.ok) return null;
 
     const html = await response.text();
-
-    // 尝试从 HTML 中提取 JD 内容
     return extractJdFromHtml(html, url);
   } catch {
     clearTimeout(timer);
