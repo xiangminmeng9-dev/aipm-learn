@@ -8,24 +8,30 @@ import { createClient } from '@/lib/supabase/server';
 
 // ── City/region variants for expanding search coverage ──────────────
 
-const SEARCH_CITIES = [
-  '',          // no city filter (nationwide)
+const SEARCH_CITY_VARIANTS = [
+  '',          // nationwide (most results)
   '北京',
   '上海',
   '深圳',
-  '广州',
   '杭州',
+  '广州',
   '成都',
-  '南京',
-  '武汉',
-  '苏州',
 ];
 
-const SEARCH_EXPRIENCE = [
-  '',                          // no experience filter
-  '1-3年',
-  '3-5年',
-  '5-10年',
+// ── Search query templates ──────────────────────────────────────────
+// Tavily doesn't support "site:" operator, so use natural language queries
+// that naturally surface zhipin.com results (BOSS直聘 is the dominant result)
+
+const SEARCH_QUERY_TEMPLATES = [
+  // Template 1: Simple keyword + BOSS直聘 (best results)
+  (keyword: string, city: string) =>
+    city ? `${city} ${keyword} BOSS直聘 招聘` : `${keyword} BOSS直聘 招聘 岗位`,
+  // Template 2: Keyword + zhipin keyword
+  (keyword: string, city: string) =>
+    city ? `${city} ${keyword} zhipin 职位描述` : `${keyword} zhipin 职位 岗位`,
+  // Template 3: Broader search
+  (keyword: string, city: string) =>
+    city ? `${city} ${keyword} 招聘 岗位要求` : `${keyword} 招聘 岗位 薪资`,
 ];
 
 // ── Public interface ────────────────────────────────────────────────
@@ -184,25 +190,27 @@ async function discoverJdUrls(
   targetCount: number
 ): Promise<string[]> {
   const urlSet = new Set<string>();
-  const maxSearches = Math.min(Math.ceil(targetCount / 10), 50); // Cap at 50 searches
 
-  // Build search queries with city and experience variants
+  // Build diverse search queries
   const queries: string[] = [];
-  for (const city of SEARCH_CITIES) {
-    for (const exp of SEARCH_EXPRIENCE) {
-      if (queries.length >= maxSearches) break;
-      const parts = [keyword, 'BOSS直聘', '招聘', 'site:zhipin.com'];
-      if (city) parts.unshift(city);
-      if (exp) parts.push(exp);
-      queries.push(parts.join(' '));
+  for (const template of SEARCH_QUERY_TEMPLATES) {
+    for (const city of SEARCH_CITY_VARIANTS) {
+      queries.push(template(keyword, city));
     }
-    if (queries.length >= maxSearches) break;
   }
 
-  // Execute searches with concurrency limit
+  // Deduplicate queries (some may be identical)
+  const uniqueQueries = [...new Set(queries)];
+
+  // Limit searches based on target count (each search yields ~5-10 zhipin URLs)
+  const maxSearches = Math.min(Math.ceil(targetCount / 5), uniqueQueries.length);
+
+  console.log(`[crawler] Will execute ${maxSearches} searches for "${keyword}" (target: ${targetCount} JDs)`);
+
+  // Execute searches with concurrency limit of 3
   const concurrencyLimit = 3;
-  for (let i = 0; i < queries.length; i += concurrencyLimit) {
-    const batch = queries.slice(i, i + concurrencyLimit);
+  for (let i = 0; i < maxSearches; i += concurrencyLimit) {
+    const batch = uniqueQueries.slice(i, i + concurrencyLimit);
     const results = await Promise.allSettled(
       batch.map((q) =>
         searchWithTavily(q, { maxResults: 10, topic: 'general' })
@@ -212,18 +220,24 @@ async function discoverJdUrls(
     for (const r of results) {
       if (r.status === 'fulfilled' && r.value.results) {
         for (const item of r.value.results) {
-          const url = item.url;
-          if (isZhipinJobUrl(url)) {
-            urlSet.add(normalizeUrl(url));
+          if (isZhipinJobUrl(item.url)) {
+            urlSet.add(normalizeUrl(item.url));
           }
         }
       }
     }
 
+    // Log progress
+    console.log(`[crawler] Search batch ${Math.floor(i / concurrencyLimit) + 1}: found ${urlSet.size} unique zhipin URLs so far`);
+
+    // Stop early if we have enough URLs
+    if (urlSet.size >= targetCount * 2) break; // 2x buffer for extraction failures
+
     // Rate limit between batches
     await sleep(1500);
   }
 
+  console.log(`[crawler] Discovered ${urlSet.size} unique zhipin.com URLs from ${maxSearches} searches`);
   return Array.from(urlSet);
 }
 
@@ -232,10 +246,14 @@ async function discoverJdUrls(
 function isZhipinJobUrl(url: string): boolean {
   try {
     const u = new URL(url);
-    // BOSS直聘 job detail URLs: zhipin.com/job_detail/... or zhipin.com/gongsi/...
+    // BOSS直聘 job detail URLs:
+    //   zhipin.com/zhaopin/{hash} (most common)
+    //   zhipin.com/job_detail/... (older format)
+    //   zhipin.com/gongsi/... (company pages)
+    //   bosszhipin.com/... (alternate domain)
     return (
-      u.hostname.includes('zhipin.com') &&
-      (u.pathname.includes('/job_detail/') || u.pathname.includes('/gongsi/'))
+      (u.hostname.includes('zhipin.com') || u.hostname.includes('bosszhipin.com')) &&
+      (u.pathname.includes('/zhaopin/') || u.pathname.includes('/job_detail/') || u.pathname.includes('/gongsi/'))
     );
   } catch {
     return false;
