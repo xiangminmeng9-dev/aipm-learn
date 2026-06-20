@@ -36,27 +36,6 @@ export default function MarketInsightPage() {
   const [diff, setDiff] = useState<MarketAnalysisDiff | null>(null);
   const [previousSnapshot, setPreviousSnapshot] = useState<MarketAnalysisSnapshot | null>(null);
 
-  // Load existing report on mount
-  useEffect(() => {
-    if (keyword) {
-      loadReport(keyword);
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Load latest crawl status
-  useEffect(() => {
-    loadCrawlStatus();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Poll crawl status when running
-  useEffect(() => {
-    if (crawlJob?.status !== 'running') return;
-    const interval = setInterval(() => {
-      loadCrawlStatus();
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [crawlJob?.status]); // eslint-disable-line react-hooks/exhaustive-deps
-
   const loadReport = useCallback(async (kw: string) => {
     try {
       const res = await apiFetch(`/api/market-insight/report?keyword=${encodeURIComponent(kw)}`);
@@ -86,6 +65,24 @@ export default function MarketInsightPage() {
     }
   }, []);
 
+  // Load existing report and reset crawl state when keyword changes
+  useEffect(() => {
+    if (keyword.trim()) {
+      loadReport(keyword.trim());
+      setCrawlJob(null);
+      loadCrawlStatus();
+    }
+  }, [keyword, loadReport, loadCrawlStatus]);
+
+  // Poll crawl status when running
+  useEffect(() => {
+    if (crawlJob?.status !== 'running') return;
+    const interval = setInterval(() => {
+      loadCrawlStatus();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [crawlJob?.status, loadCrawlStatus]);
+
   const handleCrawl = useCallback(async () => {
     if (!keyword.trim()) return;
     setCrawlLoading(true);
@@ -108,9 +105,7 @@ export default function MarketInsightPage() {
         throw new Error(errData.error || `HTTP ${res.status}`);
       }
 
-      const result = await res.json();
-
-      // Start polling for status
+      // Crawl request accepted — start polling for status
       loadCrawlStatus();
     } catch (err) {
       setCrawlError(err instanceof Error ? err.message : '爬取失败');

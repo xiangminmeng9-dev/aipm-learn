@@ -1,7 +1,7 @@
 // ── Market Insight AI Prompts ───────────────────────────────────────
 // Prompts for market analysis report generation and diff narrative.
 
-import type { MarketAnalysisReport } from './types';
+// Market Insight AI Prompts — see functions below for type constraints
 
 // ── Market Analysis Report Prompt ───────────────────────────────────
 

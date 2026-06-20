@@ -5,7 +5,6 @@
 import { searchWithTavily } from '@/lib/ai/tavily-search';
 import { extractWithTavily } from '@/lib/ai/tavily-extract';
 import { createClient } from '@/lib/supabase/server';
-import type { MarketCrawlJob, MarketCrawledJd } from './types';
 
 // ── City/region variants for expanding search coverage ──────────────
 
@@ -116,7 +115,7 @@ export async function crawlBossJds(options: CrawlOptions): Promise<CrawlResult> 
           for (const item of extractResult.results) {
             if (!item.raw_content) continue;
 
-            const parsed = parseJdFromText(item.raw_content, item.url);
+            const parsed = parseJdFromText(item.raw_content);
             if (!parsed.jd_text || parsed.jd_text.length < 50) continue;
 
             // Save to DB
@@ -277,7 +276,7 @@ interface ParsedJd {
   published_date: string | null;
 }
 
-function parseJdFromText(rawText: string, _sourceUrl: string): ParsedJd {
+function parseJdFromText(rawText: string): ParsedJd {
   // Extract structured fields from the raw text
   const lines = rawText.split('\n').map((l) => l.trim()).filter(Boolean);
 

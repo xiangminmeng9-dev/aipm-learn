@@ -1,6 +1,8 @@
 'use client';
 
+import { useMemo } from 'react';
 import LazyECharts from '@/components/ui/LazyECharts';
+import { getSkillCategory } from '@/lib/ai/skill-categories';
 
 interface SkillTrendChartProps {
   skillFrequency: Record<string, number>;
@@ -8,34 +10,30 @@ interface SkillTrendChartProps {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  '编程语言': '#6366f1',
-  '框架/库': '#8b5cf6',
-  '工具/平台': '#06b6d4',
-  '软技能': '#f59e0b',
-  '领域知识': '#10b981',
-  '数据/分析': '#ec4899',
-  '设计': '#f97316',
-  '管理': '#14b8a6',
-  '云/基础设施': '#3b82f6',
-  '安全': '#ef4444',
+  'AI核心技术': '#6366f1',
+  'AI产品': '#8b5cf6',
+  '产品核心': '#06b6d4',
+  '数据与评估': '#ec4899',
+  '技术理解': '#3b82f6',
+  '用户与商业': '#f59e0b',
+  '软技能': '#10b981',
+  '未分类': '#94a3b8',
 };
-
-function getCategoryForSkill(
-  skill: string,
-  categoryDistribution: Record<string, number>,
-): string {
-  // Try to match from the category keys
-  const categories = Object.keys(categoryDistribution);
-  return categories.length > 0 ? categories[0] : '其他';
-}
 
 export default function SkillTrendChart({
   skillFrequency,
   categoryDistribution,
 }: SkillTrendChartProps) {
-  const sorted = Object.entries(skillFrequency)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 20);
+  const sorted = useMemo(
+    () => Object.entries(skillFrequency).sort((a, b) => b[1] - a[1]).slice(0, 20),
+    [skillFrequency]
+  );
+
+  // Build skill→category map using the actual getSkillCategory function
+  const skillCategories = useMemo(
+    () => Object.fromEntries(sorted.map(([skill]) => [skill, getSkillCategory(skill)])),
+    [sorted]
+  );
 
   if (sorted.length === 0) {
     return (
@@ -75,7 +73,7 @@ export default function SkillTrendChart({
           .map(([name, value]) => ({
             value,
             itemStyle: {
-              color: CATEGORY_COLORS[getCategoryForSkill(name, { ...categoryDistribution })] ?? '#6366f1',
+              color: CATEGORY_COLORS[skillCategories[name]] ?? '#94a3b8',
               borderRadius: [0, 4, 4, 0],
             },
           }))
@@ -103,7 +101,7 @@ export default function SkillTrendChart({
             <span key={cat} className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <span
                 className="inline-block h-2.5 w-2.5 rounded-sm"
-                style={{ backgroundColor: CATEGORY_COLORS[cat] ?? '#6366f1' }}
+                style={{ backgroundColor: CATEGORY_COLORS[cat] ?? '#94a3b8' }}
               />
               {cat}
             </span>

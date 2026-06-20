@@ -38,12 +38,26 @@ export async function analyzeMarket(options: AnalyzeOptions): Promise<AnalyzeRes
   const { keyword, userId, dateFrom, dateTo } = options;
   const supabase = await createClient();
 
-  // 1. Fetch unanalyzed JDs for this keyword
+  // 1. Find crawl job IDs for this keyword (to avoid cross-keyword contamination)
+  const { data: crawlJobs } = await supabase
+    .from('market_crawl_jobs')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('query_keyword', keyword);
+
+  const jobIds = (crawlJobs || []).map((j: { id: string }) => j.id);
+
+  if (jobIds.length === 0) {
+    throw new Error('没有此关键词的爬取数据，请先爬取 JD');
+  }
+
+  // 2. Fetch unanalyzed JDs for this keyword's crawl jobs only
   let query = supabase
     .from('market_crawled_jds')
-    .select('id, job_title, jd_text, salary_range, location, company_name')
+    .select('id, job_title, jd_text, salary_range, location, company_name, crawl_job_id')
     .eq('user_id', userId)
-    .eq('is_analyzed', false);
+    .eq('is_analyzed', false)
+    .in('crawl_job_id', jobIds);
 
   // Filter by date range if provided (via published_date or created_at)
   if (dateFrom) {
@@ -99,7 +113,7 @@ export async function analyzeMarket(options: AnalyzeOptions): Promise<AnalyzeRes
 
         const skills: ExtractedSkill[] = result.skills.map((s: string) => ({
           name: s,
-          category: getSkillCategory(s) || '其他',
+          category: getSkillCategory(s),
           frequency: 1,
         }));
 

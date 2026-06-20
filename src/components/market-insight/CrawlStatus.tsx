@@ -11,9 +11,11 @@ interface CrawlStatusProps {
 export default function CrawlStatus({ job, crawledJdsCount, error }: CrawlStatusProps) {
   if (!job && !error) return null;
 
+  // Use per-job crawled_count for progress, not global count
+  const jobCrawledCount = job?.crawled_count || 0;
   const targetCount = job?.target_count || 100;
   const progress = job && targetCount > 0
-    ? Math.min(100, Math.round((crawledJdsCount / targetCount) * 100))
+    ? Math.min(100, Math.round((jobCrawledCount / targetCount) * 100))
     : 0;
 
   const status = job?.status || 'pending';
@@ -38,9 +40,9 @@ export default function CrawlStatus({ job, crawledJdsCount, error }: CrawlStatus
       case 'pending':
         return '等待中...';
       case 'running':
-        return `正在爬取... ${crawledJdsCount}/${targetCount} JD`;
+        return `正在爬取... ${jobCrawledCount}/${targetCount} JD`;
       case 'completed':
-        return `爬取完成！共获取 ${crawledJdsCount} 条 JD`;
+        return `爬取完成！共获取 ${jobCrawledCount} 条 JD`;
       case 'failed':
         return `爬取失败: ${job?.error_message || '未知错误'}`;
     }
@@ -73,6 +75,7 @@ export default function CrawlStatus({ job, crawledJdsCount, error }: CrawlStatus
       {job && (
         <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
           <span>关键词: {job.query_keyword}</span>
+          <span>总 JD 库: {crawledJdsCount} 条</span>
           {job.started_at && (
             <span>开始: {new Date(job.started_at).toLocaleString('zh-CN')}</span>
           )}
