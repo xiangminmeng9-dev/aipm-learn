@@ -22,6 +22,7 @@ const NAV_ITEMS = [
   { href: '/daily-challenge/flashcards', label: '知识闪卡', exact: false, icon: icon('M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5') },
   { href: '/daily-challenge/wrong', label: '错题本', exact: false, icon: icon('M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z') },
   { href: '/daily-challenge/tech', label: '每日 AI 技术', exact: false, icon: icon('M11.42 15.17l-4.273-4.273a1.875 1.875 0 012.653-2.653l1.62 1.62m0 0l1.62-1.62a1.875 1.875 0 012.653 2.653l-4.273 4.273m-2.653-2.653l2.653 2.653m0 0L15.17 11.42m-2.653 2.653l-2.653-2.653') },
+  { href: '/daily-challenge/market-insight', label: 'JD 市场洞察', exact: false, icon: icon('M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941') },
 ];
 
 export default function DailyChallengeLayoutClient({ children }: { children: React.ReactNode }) {
