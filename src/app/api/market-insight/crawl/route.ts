@@ -33,9 +33,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '关键词至少2个字符' }, { status: 400 });
     }
 
-    if (!date_from || !date_to) {
-      return NextResponse.json({ error: '请指定开始日期和结束日期' }, { status: 400 });
-    }
+    // Date range is optional — default to last 6 months if not provided
+    const finalDateFrom = date_from || new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const finalDateTo = date_to || new Date().toISOString().split('T')[0];
 
     const cappedCount = Math.min(Math.max(target_count, 10), 500);
 
@@ -47,8 +47,8 @@ export async function POST(request: NextRequest) {
         user_id: userId,
         query_keyword: keyword.trim(),
         target_count: cappedCount,
-        date_from,
-        date_to,
+        date_from: finalDateFrom,
+        date_to: finalDateTo,
         status: 'pending',
       })
       .select()
@@ -63,8 +63,8 @@ export async function POST(request: NextRequest) {
     crawlBossJds({
       keyword: keyword.trim(),
       targetCount: cappedCount,
-      dateFrom: date_from,
-      dateTo: date_to,
+      dateFrom: finalDateFrom,
+      dateTo: finalDateTo,
       userId,
       jobId: job.id,
     }).catch((err) => {
