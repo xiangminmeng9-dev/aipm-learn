@@ -17,7 +17,7 @@ import type {
 export default function MarketInsightPage() {
   // Filter state
   const [keyword, setKeyword] = useState('AI产品经理');
-  const [targetCount] = useState(100);
+  const [targetCount, setTargetCount] = useState(100);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
@@ -95,8 +95,8 @@ export default function MarketInsightPage() {
         body: JSON.stringify({
           keyword: keyword.trim(),
           target_count: targetCount,
-          date_from: dateFrom,
-          date_to: dateTo,
+          date_from: dateFrom || undefined,
+          date_to: dateTo || undefined,
         }),
       });
 
@@ -105,7 +105,27 @@ export default function MarketInsightPage() {
         throw new Error(errData.error || `HTTP ${res.status}`);
       }
 
-      // Crawl request accepted — start polling for status
+      const data = await res.json();
+
+      // Immediately set a running job so the UI shows progress
+      if (data.jobId) {
+        setCrawlJob({
+          id: data.jobId,
+          user_id: '',
+          query_keyword: keyword.trim(),
+          target_count: targetCount,
+          date_from: dateFrom || '',
+          date_to: dateTo || '',
+          crawled_count: 0,
+          status: 'running' as const,
+          error_message: null,
+          started_at: new Date().toISOString(),
+          completed_at: null,
+          created_at: new Date().toISOString(),
+        });
+      }
+
+      // Also refresh full status
       loadCrawlStatus();
     } catch (err) {
       setCrawlError(err instanceof Error ? err.message : '爬取失败');
@@ -164,6 +184,7 @@ export default function MarketInsightPage() {
         keyword={keyword}
         setKeyword={setKeyword}
         targetCount={targetCount}
+        setTargetCount={setTargetCount}
         dateFrom={dateFrom}
         dateTo={dateTo}
         setDateFrom={setDateFrom}

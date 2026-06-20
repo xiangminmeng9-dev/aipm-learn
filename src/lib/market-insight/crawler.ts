@@ -36,6 +36,7 @@ export interface CrawlOptions {
   dateFrom: string;    // "2025-01-01"
   dateTo: string;      // "2025-06-20"
   userId: string;
+  jobId: string;       // Pre-created job ID from API
 }
 
 export interface CrawlResult {
@@ -49,29 +50,15 @@ export interface CrawlResult {
 // ── Main crawl function ─────────────────────────────────────────────
 
 export async function crawlBossJds(options: CrawlOptions): Promise<CrawlResult> {
-  const { keyword, targetCount, dateFrom, dateTo, userId } = options;
+  const { keyword, targetCount, dateFrom, dateTo, userId, jobId } = options;
   const supabase = await createClient();
 
-  // 1. Create crawl job
-  const { data: job, error: jobErr } = await supabase
+  // Mark the pre-created job as running
+  await supabase
     .from('market_crawl_jobs')
-    .insert({
-      user_id: userId,
-      query_keyword: keyword,
-      target_count: targetCount,
-      date_from: dateFrom,
-      date_to: dateTo,
-      status: 'running',
-      started_at: new Date().toISOString(),
-    })
-    .select()
-    .single();
+    .update({ status: 'running', started_at: new Date().toISOString() })
+    .eq('id', jobId);
 
-  if (jobErr || !job) {
-    throw new Error(`Failed to create crawl job: ${jobErr?.message}`);
-  }
-
-  const jobId = job.id;
   const result: CrawlResult = {
     jobId,
     discoveredUrls: 0,

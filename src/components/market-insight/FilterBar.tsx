@@ -10,6 +10,7 @@ interface FilterBarProps {
   keyword: string;
   setKeyword: (v: string) => void;
   targetCount: number;
+  setTargetCount: (v: number) => void;
   dateFrom: string;
   dateTo: string;
   setDateFrom: (v: string) => void;
@@ -23,6 +24,7 @@ export default function FilterBar({
   keyword,
   setKeyword,
   targetCount,
+  setTargetCount,
   dateFrom,
   dateTo,
   setDateFrom,
@@ -36,11 +38,11 @@ export default function FilterBar({
 
   return (
     <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
         {/* Keyword */}
-        <div className="sm:col-span-2 lg:col-span-1">
+        <div className="sm:col-span-2">
           <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-            关键词
+            岗位关键词
           </label>
           <Input
             placeholder="如：AI产品经理"
@@ -51,14 +53,22 @@ export default function FilterBar({
           />
         </div>
 
-        {/* Target count (display only) */}
+        {/* Target count */}
         <div>
           <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-            目标数量
+            目标数量 (10-500)
           </label>
-          <div className="flex h-9 items-center rounded-md border border-input bg-muted px-3 text-sm">
-            {targetCount} 条
-          </div>
+          <Input
+            type="number"
+            min={10}
+            max={500}
+            value={targetCount}
+            onChange={(e) => {
+              const v = parseInt(e.target.value, 10);
+              if (!isNaN(v)) setTargetCount(Math.min(500, Math.max(10, v)));
+            }}
+            disabled={loading}
+          />
         </div>
 
         {/* Date from */}
@@ -91,7 +101,7 @@ export default function FilterBar({
         <div className="flex items-end gap-2">
           <Button
             onClick={onCrawl}
-            disabled={loading || !keyword.trim() || !dateFrom || !dateTo}
+            disabled={loading || !keyword.trim()}
           >
             {loading ? '处理中...' : '开始爬取'}
           </Button>
@@ -100,9 +110,36 @@ export default function FilterBar({
             onClick={onAnalyze}
             disabled={loading}
           >
-            重新分析
+            分析
           </Button>
         </div>
+      </div>
+
+      {/* Quick date presets */}
+      <div className="mt-3 flex flex-wrap gap-2">
+        <span className="text-xs text-muted-foreground">快捷:</span>
+        {[
+          { label: '近1个月', months: 1 },
+          { label: '近3个月', months: 3 },
+          { label: '近6个月', months: 6 },
+          { label: '近1年', months: 12 },
+        ].map((preset) => (
+          <button
+            key={preset.months}
+            type="button"
+            className="rounded-md border border-border px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:border-indigo-400 hover:text-indigo-600 dark:hover:border-indigo-500 dark:hover:text-indigo-400"
+            onClick={() => {
+              const to = new Date();
+              const from = new Date();
+              from.setMonth(from.getMonth() - preset.months);
+              setDateTo(to.toISOString().split('T')[0]);
+              setDateFrom(from.toISOString().split('T')[0]);
+            }}
+            disabled={loading}
+          >
+            {preset.label}
+          </button>
+        ))}
       </div>
     </div>
   );

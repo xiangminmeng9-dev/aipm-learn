@@ -66,6 +66,7 @@ export async function POST(request: NextRequest) {
       dateFrom: date_from,
       dateTo: date_to,
       userId,
+      jobId: job.id,
     }).catch((err) => {
       console.error('[market-insight/crawl] Background crawl failed:', err);
     });
