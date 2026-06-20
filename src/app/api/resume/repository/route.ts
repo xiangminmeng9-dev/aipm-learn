@@ -12,9 +12,12 @@ export async function GET(request: NextRequest) {
 
     let query = supabase
       .from('resume_repository')
-      .select('*')
+      // List view: load summary columns only. Large text (resume_text, jd_text)
+      // is fetched on the single-item GET (/api/resume/repository/[id]).
+      .select('id, user_id, company_name, position_name, jd_link, file_name, file_url, resume_version_id, created_at, updated_at')
       .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(200);
 
     if (search) {
       query = query.or(`company_name.ilike.%${search}%,position_name.ilike.%${search}%`);

@@ -95,6 +95,7 @@ export default function CompanySkillGraph() {
     return {
       tooltip: {
         trigger: 'item',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         formatter: (params: any) => {
           if (params.dataType === 'node') {
             const d = params.data?.value || {};
@@ -190,6 +191,7 @@ export default function CompanySkillGraph() {
   }, [qaInput, qaLoading, nodes, edges, qaHistory.length]);
 
   // Handle node click
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleNodeClick = useCallback((params: any) => {
     const nodeId = params.data?.id;
     if (!nodeId) return;
@@ -262,7 +264,7 @@ export default function CompanySkillGraph() {
           <ReactECharts
             option={chartOption}
             style={{ height: '100%', width: '100%' }}
-            onEvents={{ click: (params?: unknown) => handleNodeClick(params) }}
+            onEvents={{ click: (params: unknown) => handleNodeClick(params) }}
           />
         </div>
 

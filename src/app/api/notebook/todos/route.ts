@@ -12,7 +12,8 @@ export async function GET() {
       .select('*')
       .eq('user_id', user.id)
       .eq('category', 'todo')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(100);
 
     if (error) {
       console.error('Todos GET error:', error);

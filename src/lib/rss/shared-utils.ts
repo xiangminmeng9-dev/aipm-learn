@@ -37,7 +37,7 @@ export async function fetchWithTimeout(
 }
 
 // Comprehensive AI keyword regex — covers zh and en terms
-export const AI_KEYWORDS_REGEX = /(AI|人工智能|大模型|LLM|GPT|生成式|智能体|Agent|机器学习|深度学习|多模态|RAG|Claude|Gemini|DeepSeek|通义|文心|Kimi|智谱|Sora|Copilot|AutoGPT|NLP|CV|AIGC|ChatGPT|Midjourney|Stable Diffusion|开源模型|基座模型|推理优化|向量数据库|知识图谱|prompt|token|embedding|fine-tuning|微调|Machine Learning|Foundation Model|Generative)/i;
+export const AI_KEYWORDS_REGEX = /(AI|人工智能|大模型|LLM|GPT|生成式|智能体|Agent|机器学习|深度学习|多模态|RAG|Claude|Gemini|DeepSeek|通义|文心|Kimi|智谱|Sora|Copilot|AutoGPT|NLP|CV|AIGC|ChatGPT|Midjourney|Stable Diffusion|开源模型|基座模型|推理优化|向量数据库|知识图谱|prompt|token|embedding|fine-tuning|微调|Machine Learning|Foundation Model|Generative|OpenAI|Anthropic|Mistral|Llama|NVIDIA|transformer|finetuning|RLHF|MoE|machine learning|deep learning|neural network|computer vision|natural language)/i;
 
 export function isAiRelated(text: string): boolean {
   return AI_KEYWORDS_REGEX.test(text);

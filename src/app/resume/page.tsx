@@ -216,17 +216,39 @@ export default function ResumePage() {
         return;
       }
       setAnalysis(data);
-    } catch {
-      setAnalysisError('网络错误，请重试');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '';
+      if (msg.includes('abort') || msg.includes('timeout') || msg.includes('超时')) {
+        setAnalysisError('AI 调用超时，请重试');
+      } else {
+        setAnalysisError('分析失败: ' + (msg || '未知错误，请重试'));
+      }
     } finally {
       setIsAnalyzing(false);
     }
   }, [resumeText, jdText, companyName, companyType, companyPreference, canAnalyze]);
 
+  const [agentSteps, setAgentSteps] = useState<Array<{ step: number; tool: string; input?: Record<string, unknown>; done?: boolean }>>([]);
+  const [currentStep, setCurrentStep] = useState('');
+
+  const getStepLabel = (tool: string, input?: Record<string, unknown>): string => {
+    switch (tool) {
+      case 'read_section': return `读取${input?.section === 'full' ? '完整简历' : (input?.section || '简历')}...`;
+      case 'apply_changes': return `优化${(input?.changes as Array<{section: string}>)?.[0]?.section || '简历'}...`;
+      case 'check_jd_alignment': return '检查JD关键词覆盖...';
+      case 'check_profile_alignment': return '检查公司画像匹配...';
+      case 'validate_constraints': return '验证约束条件...';
+      case 'finish': return '完成优化';
+      default: return '处理中...';
+    }
+  };
+
   const handleGenerate = useCallback(async () => {
     if (!canGenerate) return;
     setIsGenerating(true);
     setGenerateError('');
+    setAgentSteps([]);
+    setCurrentStep('正在AI优化简历，预计30-60秒...');
 
     try {
       const res = await apiFetch('/api/resume/generate', {
@@ -245,17 +267,72 @@ export default function ResumePage() {
           analysis_strengths: analysis?.strengths || [],
         }),
       });
-      const data = await res.json();
-      if (!res.ok) {
-        setGenerateError(data.error || '生成失败');
-        return;
+
+      // Check if response is SSE or JSON (backward compat)
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('text/event-stream')) {
+        // SSE stream — consume agent events
+        const reader = res.body?.getReader();
+        if (!reader) { setGenerateError('网络错误'); setIsGenerating(false); return; }
+
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            try {
+              const event = JSON.parse(line.slice(6));
+              switch (event.type) {
+                case 'start':
+                  setCurrentStep(event.message || '分析中...');
+                  break;
+                case 'tool_call':
+                  setCurrentStep(getStepLabel(event.tool, event.input));
+                  setAgentSteps(prev => [...prev, { step: event.step, tool: event.tool, input: event.input }]);
+                  break;
+                case 'tool_result':
+                  setAgentSteps(prev => prev.map(s => s.step === event.step && s.tool === event.tool ? { ...s, done: true } : s));
+                  break;
+                case 'done':
+                  setModifiedResume(event.modifiedResume || '');
+                  setChangesSummary(typeof event.changesSummary === 'string' ? event.changesSummary : JSON.stringify(event.changesSummary || []));
+                  break;
+                case 'error':
+                  setGenerateError(event.error || '优化失败');
+                  break;
+              }
+            } catch { /* skip malformed */ }
+          }
+        }
+      } else {
+        // JSON response (fallback)
+        const data = await res.json();
+        if (!res.ok) {
+          setGenerateError(data.error || '生成失败');
+          return;
+        }
+        setModifiedResume(data.modified_resume || '');
+        setChangesSummary(data.changes_summary || '');
       }
-      setModifiedResume(data.modified_resume || '');
-      setChangesSummary(data.changes_summary || '');
-    } catch {
-      setGenerateError('网络错误，请重试');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '';
+      if (msg.includes('abort') || msg.includes('timeout') || msg.includes('超时')) {
+        setGenerateError('AI 调用超时，请重试');
+      } else if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
+        setGenerateError('网络连接失败，请重试');
+      } else {
+        setGenerateError('生成失败: ' + (msg || '未知错误'));
+      }
     } finally {
       setIsGenerating(false);
+      setCurrentStep('');
     }
   }, [resumeText, jdText, style, analysis, companyName, positionName, companyType, companyPreference, canGenerate]);
 
@@ -640,17 +717,36 @@ export default function ResumePage() {
 
         {/* Right column: Result */}
         <div className="space-y-6">
-          {/* Generate loading */}
+          {/* Generate loading / Agent progress */}
           <AnimatePresence>
             {isGenerating && (
               <MotionDiv
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="flex items-center justify-center rounded-xl border border-border bg-card py-16"
+                className="rounded-xl border border-border bg-card p-5 space-y-3"
               >
-                <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
-                <span className="ml-3 text-sm text-muted-foreground">AI 正在生成修改版简历...</span>
+                <div className="flex items-center gap-3">
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+                  <span className="text-sm text-foreground font-medium">{currentStep || 'AI 正在优化简历...'}</span>
+                </div>
+                {agentSteps.length > 0 && (
+                  <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                    {agentSteps.filter(s => s.tool !== 'read_section' || s.step === 1).map((step, i) => (
+                      <div key={i} className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-[10px] text-indigo-600">
+                          {i + 1}
+                        </span>
+                        <span>{getStepLabel(step.tool, step.input)}</span>
+                        {step.done && (
+                          <svg className="h-3 w-3 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </MotionDiv>
             )}
           </AnimatePresence>

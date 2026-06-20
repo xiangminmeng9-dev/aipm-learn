@@ -128,7 +128,7 @@ async function parseFeed(url: string, source: string): Promise<Job[]> {
 async function fetchHackerNewsHiring(): Promise<Job[]> {
   const HN_USER = 'whoishiring';
   const userRes = await fetch(`https://hacker-news.firebaseio.com/v0/user/${HN_USER}.json`, {
-    next: { revalidate: 0 },
+    next: { revalidate: 1800 },
   });
   if (!userRes.ok) return [];
   const userData = (await userRes.json()) as { submitted?: number[] };
@@ -137,7 +137,7 @@ async function fetchHackerNewsHiring(): Promise<Job[]> {
   const candidateThreads: Array<{ id: number; kids: number[]; time: number }> = [];
   for (const id of submitted.slice(0, 30)) {
     const itemRes = await fetch(`https://hacker-news.firebaseio.com/v0/item/${id}.json`, {
-      next: { revalidate: 0 },
+      next: { revalidate: 1800 },
     });
     if (!itemRes.ok) continue;
     const item = (await itemRes.json()) as { title?: string; kids?: number[]; time?: number };
@@ -152,7 +152,7 @@ async function fetchHackerNewsHiring(): Promise<Job[]> {
     const commentIds = thread.kids.slice(0, 80);
     const settled = await Promise.allSettled(
       commentIds.map((cid) =>
-        fetch(`https://hacker-news.firebaseio.com/v0/item/${cid}.json`, { next: { revalidate: 0 } })
+        fetch(`https://hacker-news.firebaseio.com/v0/item/${cid}.json`, { next: { revalidate: 1800 } })
           .then((r) => (r.ok ? r.json() : null))
       )
     );

@@ -5,7 +5,7 @@ export type { RawNewsArticle };
 
 const FETCH_TIMEOUT_MS = 8000;
 
-async function parseNewsFeed(url: string, source: string): Promise<RawNewsArticle[]> {
+async function parseNewsFeed(url: string, source: string, lang: string): Promise<RawNewsArticle[]> {
   const xml = await fetchWithTimeout(url, FETCH_TIMEOUT_MS);
   const { XMLParser } = await import('fast-xml-parser');
   const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '@_' });
@@ -21,7 +21,8 @@ async function parseNewsFeed(url: string, source: string): Promise<RawNewsArticl
     const description = stripHtml(rawDesc).slice(0, 500);
     const combined = `${title} ${description}`;
 
-    if (!isAiRelated(combined)) continue;
+    // Skip AI keyword filter for English sources — they are already curated AI feeds
+    if (lang === 'zh' && !isAiRelated(combined)) continue;
 
     const pub = String(item.pubDate ?? item.published ?? item.isoDate ?? item.updated ?? '');
     const published_at = pub ? new Date(pub).toISOString() : new Date().toISOString();
@@ -45,7 +46,7 @@ function deduplicateArticles(articles: RawNewsArticle[]): RawNewsArticle[] {
 
 export async function fetchArticlesFromRSS(): Promise<RawNewsArticle[]> {
   const results = await Promise.allSettled(
-    AI_NEWS_RSS_FEEDS.map((f) => parseNewsFeed(f.url, f.source))
+    AI_NEWS_RSS_FEEDS.map((f) => parseNewsFeed(f.url, f.source, f.lang || 'zh'))
   );
   const articles: RawNewsArticle[] = [];
   for (const r of results) {

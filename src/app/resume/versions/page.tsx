@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { MotionDiv, AnimatePresence } from '@/components/ui/lazy-motion';
 import dynamic from 'next/dynamic';
 const Markdown = dynamic(() => import('@/components/ui/markdown'), { ssr: false });
+import ChangesSummaryCard from '@/components/resume/ChangesSummaryCard';
 import { apiFetch } from '@/lib/api/fetch';
 
 interface ResumeVersion {
@@ -42,6 +43,11 @@ export default function ResumeVersionsPage() {
   const [error, setError] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  // Full content cache (lazy-loaded when a card is expanded). The list endpoint
+  // only returns summary columns; modified_resume/original_resume_text/jd_text
+  // are fetched on demand via ?id= to keep the list payload small.
+  const [fullContent, setFullContent] = useState<Record<string, ResumeVersion>>({});
+  const [loadingContentId, setLoadingContentId] = useState<string | null>(null);
 
   const fetchVersions = useCallback(async () => {
     setIsLoading(true);
@@ -77,26 +83,46 @@ export default function ResumeVersionsPage() {
     }
   };
 
-  const toggleExpand = (id: string) => {
+  const toggleExpand = (version: ResumeVersion) => {
+    const id = version.id;
     setExpandedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+        // Lazy-load full content if not yet fetched
+        if (version.modified_resume === undefined && !fullContent[id]) {
+          setLoadingContentId(id);
+          apiFetch(`/api/resume/versions?id=${id}`)
+            .then((res) => (res.ok ? res.json() : null))
+            .then((data) => {
+              if (data?.version) {
+                setFullContent((prev) => ({ ...prev, [id]: data.version as ResumeVersion }));
+              }
+            })
+            .catch(() => { /* ignore */ })
+            .finally(() => setLoadingContentId(null));
+        }
+      }
       return next;
     });
   };
 
   const handleRestore = (version: ResumeVersion) => {
+    // Merge lazy-loaded full content if available
+    const full = fullContent[version.id];
+    const merged = full ? { ...version, ...full } : version;
     try {
       localStorage.setItem('resume-editor-state', JSON.stringify({
-        resumeText: version.original_resume_text || '',
-        jdText: version.jd_text || '',
-        style: version.style_type,
+        resumeText: merged.original_resume_text || '',
+        jdText: merged.jd_text || '',
+        style: merged.style_type,
         analysis: null,
-        modifiedResume: version.modified_resume || '',
-        changesSummary: version.changes_summary || '',
-        companyName: version.company_name || '',
-        positionName: version.position_name || '',
+        modifiedResume: merged.modified_resume || '',
+        changesSummary: merged.changes_summary || '',
+        companyName: merged.company_name || '',
+        positionName: merged.position_name || '',
         savedAt: Date.now(),
       }));
     } catch { /* ignore */ }
@@ -162,7 +188,7 @@ export default function ResumeVersionsPage() {
                 {/* Header row - clickable to toggle */}
                 <div
                   className="flex items-center justify-between border-b border-border px-5 py-4 cursor-pointer select-none hover:bg-muted/30 transition-colors"
-                  onClick={() => toggleExpand(version.id)}
+                  onClick={() => toggleExpand(version)}
                 >
                   <div className="flex items-center gap-3">
                     <svg
@@ -217,19 +243,34 @@ export default function ResumeVersionsPage() {
                       className="overflow-hidden"
                     >
                       <div className="p-5">
-                        {/* Changes summary */}
+                        {/* Changes summary — structured card view */}
                         {version.changes_summary && (
-                          <div className="mb-4 rounded-lg border border-indigo-100 bg-indigo-50/30 p-3">
-                            <h4 className="mb-1 text-xs font-semibold text-indigo-700">修改摘要</h4>
-                            <Markdown content={version.changes_summary} />
+                          <div className="mb-4">
+                            <ChangesSummaryCard
+                              summary={version.changes_summary}
+                              compact
+                              collapsible
+                              defaultExpanded={false}
+                            />
                           </div>
                         )}
 
-                        {/* Modified resume content */}
-                        {version.modified_resume
-                          ? <Markdown content={version.modified_resume} />
-                          : <p className="text-sm text-muted-foreground">（简历内容为空，可能是生成时 AI 返回格式异常）</p>
-                        }
+                        {/* Modified resume content — lazy-loaded from detail endpoint */}
+                        {(() => {
+                          const full = fullContent[version.id];
+                          if (loadingContentId === version.id && !full) {
+                            return (
+                              <div className="flex items-center justify-center py-8">
+                                <div className="h-6 w-6 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+                              </div>
+                            );
+                          }
+                          const resume = full?.modified_resume ?? version.modified_resume;
+                          if (resume) {
+                            return <Markdown content={resume} />;
+                          }
+                          return <p className="text-sm text-muted-foreground">（简历内容为空，可能是生成时 AI 返回格式异常）</p>;
+                        })()}
                       </div>
                     </MotionDiv>
                   )}

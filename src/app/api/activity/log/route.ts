@@ -33,6 +33,7 @@ export async function POST(request: NextRequest) {
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ success: true });
   } catch (err) {
+    console.error('[activity/log] Error:', err instanceof Error ? err.message : String(err));
     return NextResponse.json({ error: '服务器错误' }, { status: 500 });
   }
 }

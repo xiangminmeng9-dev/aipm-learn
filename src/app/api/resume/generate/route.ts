@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { generateText } from '@/lib/ai/claude';
 import { buildResumeGeneratePrompt, RESUME_GENERATE_SYSTEM_PROMPT } from '@/lib/ai/prompts';
 import { withTimeout, AI_TIMEOUT_EXTENDED_MS } from '@/lib/ai/with-timeout';
+import { normalizeResumeMarkdown } from '@/lib/resume/markdown-normalizer';
+import { parseResumeStructure } from '@/lib/ai/resume-agent';
 
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 const VALID_STYLE_TYPES = ['standard', 'big_company', 'industry_tech', 'industry_finance', 'industry_internet'];
 
@@ -17,11 +19,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '未登录', code: 'UNAUTHORIZED' }, { status: 401 });
     }
 
-    const body = await request.json();
+    let body: Record<string, unknown>;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: '请求格式错误', code: 'BAD_REQUEST' }, { status: 400 });
+    }
+
     const { resume_text, jd_text, style_type, company_name, position_name, company_type, company_preference, profile_weight, analysis_gaps, analysis_strengths } = body as {
       resume_text: string;
       jd_text?: string;
-      style_type: string;
+      style_type?: string;
       company_name?: string;
       position_name?: string;
       company_type?: string;
@@ -31,17 +39,14 @@ export async function POST(request: NextRequest) {
       analysis_strengths?: string[];
     };
 
-    if (!resume_text || resume_text.trim().length < 5) {
-      return NextResponse.json({ error: '简历内容不能为空', code: 'VALIDATION_ERROR' }, { status: 400 });
+    if (!resume_text?.trim()) {
+      return NextResponse.json({ error: '请提供简历内容', code: 'VALIDATION_ERROR' }, { status: 400 });
     }
 
-    const hasJd = jd_text && jd_text.trim().length >= 20;
-    const hasCompany = company_name && company_name.trim().length >= 2;
+    const hasJd = !!(jd_text && jd_text.trim().length >= 20);
+    const hasCompany = !!(company_name && company_name.trim().length >= 2);
 
-    if (!hasJd && !hasCompany) {
-      return NextResponse.json({ error: '请提供JD（至少20字）或公司名称（至少2字）', code: 'VALIDATION_ERROR' }, { status: 400 });
-    }
-
+    // Relax validation: allow generation even without JD if there's a company name or style
     if (!style_type || !VALID_STYLE_TYPES.includes(style_type)) {
       return NextResponse.json({ error: 'style_type 必须是: standard, big_company, industry_tech, industry_finance, industry_internet', code: 'VALIDATION_ERROR' }, { status: 400 });
     }
@@ -65,28 +70,25 @@ export async function POST(request: NextRequest) {
     const resultText = await withTimeout(generateText(prompt, {
       model: 'sonnet',
       system: RESUME_GENERATE_SYSTEM_PROMPT,
-      maxTokens: 8192,
+      maxTokens: 16384,
     }), AI_TIMEOUT_EXTENDED_MS);
 
     // Parse JSON response
     let modifiedResume = '';
-    let changesSummary = '';
+    let changesSummary: string | Array<{ dimension: string; location: string; before: string; after: string; reason: string }> = '';
 
     try {
       const cleaned = resultText.trim().replace(/^```json?\s*\n?/i, '').replace(/\n?```\s*$/i, '');
       const parsed = JSON.parse(cleaned);
 
       // Normalize changes_summary: keep as JSON array for frontend rendering
-      // Supports both old format {dimension, change, reason} and new format {dimension, location, before, after, reason}
-      const normalizeSummary = (val: unknown): string => {
+      const normalizeSummary = (val: unknown): string | Array<{ dimension: string; location: string; before: string; after: string; reason: string }> => {
         if (typeof val === 'string') {
-          // Try to parse as JSON array, otherwise return as-is
-          try { const p = JSON.parse(val); if (Array.isArray(p)) return JSON.stringify(p); } catch { /* not JSON */ }
+          try { const p = JSON.parse(val); if (Array.isArray(p)) return p; } catch { /* not JSON */ }
           return val;
         }
         if (Array.isArray(val)) {
-          // Normalize each item: map old {change} to new {before,after} format
-          const normalized = val.map(item => {
+          return val.map(item => {
             if (typeof item === 'string') return { dimension: '', location: '', before: '', after: item, reason: '' };
             if (typeof item === 'object' && item !== null) {
               const obj = item as Record<string, string>;
@@ -100,66 +102,56 @@ export async function POST(request: NextRequest) {
             }
             return { dimension: '', location: '', before: '', after: String(item), reason: '' };
           });
-          return JSON.stringify(normalized);
         }
         return '';
       };
 
-      // Expected format: { modified_resume, changes_summary }
       if (typeof parsed.modified_resume === 'string') {
         modifiedResume = normalizeResumeMarkdown(parsed.modified_resume);
         changesSummary = normalizeSummary(parsed.changes_summary || parsed.changesSummary);
       } else if (parsed.work_experience || parsed.name) {
-        // Backward compat: if AI still returns old structured format,
-        // convert to markdown preserving structure
+        // Backward compat: old structured format
         changesSummary = normalizeSummary(parsed.changes_summary || parsed.changesSummary);
         modifiedResume = convertStructuredToMarkdown(parsed);
       } else {
-        // Fallback: use raw text
         modifiedResume = normalizeResumeMarkdown(resultText.trim());
       }
     } catch {
-      // If JSON parse fails, use raw text as the modified resume
       modifiedResume = normalizeResumeMarkdown(resultText.trim());
     }
 
+    // Post-validation: check that no entries were deleted
+    // If AI dropped bullet points or sections, patch them back from the original
+    modifiedResume = validateAndPatchResume(modifiedResume, resume_text);
+
     // Save to resume_versions table
-    const { data: version, error: insertError } = await supabase
-      .from('resume_versions')
-      .insert({
+    try {
+      const serviceSb = createServiceClient();
+      await serviceSb.from('resume_versions').insert({
         user_id: user.id,
         original_resume_text: resume_text,
         modified_resume: modifiedResume,
-        changes_summary: changesSummary,
         style_type,
-        jd_text: hasJd ? jd_text : '',
+        jd_text: hasJd ? jd_text : null,
         company_name: company_name || null,
         position_name: position_name || null,
         company_type: company_type || 'other',
         company_preference: company_preference || null,
-      })
-      .select('id')
-      .single();
-
-    if (insertError || !version) {
-      console.error('Failed to save resume version:', insertError);
-      return NextResponse.json({
-        id: null,
-        modified_resume: modifiedResume,
-        changes_summary: changesSummary,
-        resume_data: null,
+        changes_summary: typeof changesSummary === 'string' ? changesSummary : JSON.stringify(changesSummary),
       });
+    } catch (dbErr) {
+      console.error('[resume/generate] DB save error:', dbErr);
     }
 
+    // Return JSON response (compatible with both SSE and JSON frontend handlers)
     return NextResponse.json({
-      id: version.id,
       modified_resume: modifiedResume,
-      changes_summary: changesSummary,
-      resume_data: null,
+      changes_summary: typeof changesSummary === 'string' ? changesSummary : JSON.stringify(changesSummary),
     });
   } catch (error) {
     console.error('Resume generate API error:', error);
-    return NextResponse.json({ error: '服务器内部错误', code: 'INTERNAL_ERROR' }, { status: 500 });
+    const message = error instanceof Error ? error.message : '服务器内部错误';
+    return NextResponse.json({ error: message, code: 'INTERNAL_ERROR' }, { status: 500 });
   }
 }
 
@@ -221,126 +213,163 @@ function convertStructuredToMarkdown(parsed: Record<string, unknown>): string {
 }
 
 /**
- * Normalize AI-generated resume Markdown to ensure proper structure.
- * AI often forgets to use ##/### headings for sections and projects,
- * or doesn't add blank lines between blocks, causing everything to
- * render as one big paragraph.
+ * Post-validation: ensure the modified resume has at least as many entries
+ * as the original. If AI deleted bullet points or sections, patch them back.
  */
-function normalizeResumeMarkdown(md: string): string {
-  // Known section titles that should be ## headings
-  const SECTION_TITLES = [
-    '工作经历', '工作经验', '工作履历',
-    '项目经历', '项目经验', '项目履历',
-    '实习经历', '实习经验',
-    '教育经历', '教育背景', '教育',
-    '核心技能', '专业技能', '技能', '技术栈',
-    '自我评价', '个人总结',
-    '获奖经历', '荣誉奖项',
-    '证书', '资格认证',
-    '语言能力',
-  ];
+function validateAndPatchResume(modified: string, original: string): string {
+  const origStructure = parseResumeStructure(original);
+  const modStructure = parseResumeStructure(modified);
 
-  // Keywords that indicate a new sub-block inside a section
-  const BLOCK_STARTS = ['项目背景', '职责', '成果', '产品侧核心贡献', '核心贡献'];
+  const violations: string[] = [];
 
-  const lines = md.split('\n');
-  const result: string[] = [];
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const trimmed = line.trim();
-
-    // Empty line — keep it
-    if (!trimmed) {
-      result.push('');
-      continue;
-    }
-
-    // Already a ##/###/#### heading — ensure blank line before and after
-    if (/^#{1,4}\s/.test(trimmed)) {
-      if (result.length > 0 && result[result.length - 1] !== '') {
-        result.push('');
-      }
-      result.push(trimmed);
-      result.push('');
-      continue;
-    }
-
-    // Blockquote (> text) — ensure blank line before
-    if (/^>\s/.test(trimmed)) {
-      if (result.length > 0 && result[result.length - 1] !== '') {
-        result.push('');
-      }
-      result.push(trimmed);
-      continue;
-    }
-
-    // List item (- text) — keep as-is
-    if (/^[-*+]\s/.test(trimmed)) {
-      result.push(trimmed);
-      continue;
-    }
-
-    // Check: is this a section title without ## prefix?
-    // Also match **标题** (bold-wrapped) and 标题：/标题: variants
-    let matchedSection = false;
-    const strippedBold = trimmed.replace(/^\*\*(.+?)\*\*$/, '$1');
-    for (const title of SECTION_TITLES) {
-      if (strippedBold === title || strippedBold === title + '：' || strippedBold === title + ':') {
-        result.push('');
-        result.push('## ' + title);
-        result.push('');
-        matchedSection = true;
-        break;
-      }
-    }
-    if (matchedSection) continue;
-
-    // Check: is this a sub-heading (company+position+date or project+role+date)?
-    // Broader pattern: any line containing a date like "2024.7 - 2026.1" or "*2024.07 - 至今*"
-    // that isn't a list item or too long
-    const hasDateSuffix = /\d{4}[./]\d{1,2}\s*[-–—至]\s*(\d{4}[./]\d{1,2}|至今)/.test(trimmed)
-      || /\*\d{4}[./]\d{1,2}\s*[-–—至]\s*(\d{4}[./]\d{1,2}|至今)\*/.test(trimmed);
-    const looksLikeSubHeading = hasDateSuffix && trimmed.length <= 80 && !trimmed.startsWith('-');
-    if (looksLikeSubHeading) {
-      if (result.length > 0 && result[result.length - 1] !== '') {
-        result.push('');
-      }
-      result.push('### ' + trimmed);
-      result.push('');
-      continue;
-    }
-
-    // Check: short line followed by "项目背景："/"职责：" — it's a project sub-heading
-    // e.g. "政务 RAG 智能问答" followed by "项目背景：..."
-    const nextTrimmed = (lines[i + 1] || '').trim();
-    const isBlockKeywordLine = BLOCK_STARTS.some(kw => trimmed.startsWith(kw + '：') || trimmed.startsWith(kw + ':'));
-    if (!isBlockKeywordLine && trimmed.length <= 30 && !trimmed.startsWith('-')) {
-      const isProjectName = (nextTrimmed.startsWith('项目背景：') || nextTrimmed.startsWith('项目背景:') || nextTrimmed.startsWith('职责：') || nextTrimmed.startsWith('职责:'));
-      if (isProjectName) {
-        if (result.length > 0 && result[result.length - 1] !== '') {
-          result.push('');
-        }
-        result.push('### ' + trimmed);
-        result.push('');
-        continue;
-      }
-    }
-
-    // Check: line that starts with "项目背景：" etc — add blank line before for visual separation
-    if (BLOCK_STARTS.some(kw => trimmed.startsWith(kw + '：') || trimmed.startsWith(kw + ':'))) {
-      if (result.length > 0 && result[result.length - 1] !== '') {
-        result.push('');
-      }
-    }
-
-    // Regular line
-    result.push(trimmed);
+  // 1. Check section count
+  if (modStructure.sections.length < origStructure.sections.length) {
+    violations.push(`板块减少：原始${origStructure.sections.length}个，修改后${modStructure.sections.length}个`);
   }
 
-  // Join and clean up excessive blank lines (max 2 consecutive newlines)
-  return result
-    .join('\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
+  // 2. Check entry count per section (### headings = entries like companies/projects)
+  for (const origSection of origStructure.sections) {
+    const modSection = modStructure.sections.find(s =>
+      s.name === origSection.name || s.name.includes(origSection.name) || origSection.name.includes(s.name)
+    );
+    if (!modSection) {
+      violations.push(`板块"${origSection.name}"缺失`);
+    } else if (modSection.entryCount < origSection.entryCount) {
+      violations.push(`板块"${origSection.name}"条目减少：原始${origSection.entryCount}条，修改后${modSection.entryCount}条`);
+    }
+  }
+
+  // 3. Check bullet point count (- list items) per section
+  const origBulletCounts = countBulletsPerSection(original);
+  const modBulletCounts = countBulletsPerSection(modified);
+
+  for (const [section, origCount] of Object.entries(origBulletCounts)) {
+    const modCount = modBulletCounts[section] || 0;
+    if (modCount < origCount) {
+      violations.push(`板块"${section}"亮点减少：原始${origCount}条，修改后${modCount}条`);
+    }
+  }
+
+  if (violations.length > 0) {
+    console.warn('[resume/generate] Post-validation violations:', violations);
+  }
+
+  // If there are missing bullet points, append them from the original
+  // This is a safety net — the prompt already says not to delete, but AI sometimes ignores it
+  let patched = modified;
+  for (const [section, origCount] of Object.entries(origBulletCounts)) {
+    const modCount = modBulletCounts[section] || 0;
+    if (modCount < origCount && origCount - modCount <= 3) {
+      // Find the missing bullets from the original and append them
+      const origBullets = extractBulletsFromSection(original, section);
+      const modBullets = extractBulletsFromSection(modified, section);
+
+      // Find bullets in original but not in modified (by content similarity)
+      const missingBullets = origBullets.filter(ob =>
+        !modBullets.some(mb => isSimilarBullet(ob, mb))
+      );
+
+      if (missingBullets.length > 0) {
+        // Find the section in modified and append missing bullets at the end
+        const sectionHeader = findSectionHeader(modified, section);
+        if (sectionHeader) {
+          const sectionEnd = findSectionEnd(modified, sectionHeader.index);
+          const insertPos = sectionEnd !== -1 ? sectionEnd : modified.length;
+          const bulletText = missingBullets.map(b => `- ${b}`).join('\n');
+          patched = patched.slice(0, insertPos) + '\n' + bulletText + patched.slice(insertPos);
+          console.warn(`[resume/generate] Patched ${missingBullets.length} missing bullets in "${section}"`);
+        }
+      }
+    }
+  }
+
+  return patched;
+}
+
+/** Count bullet points (- list items) per ## section */
+function countBulletsPerSection(md: string): Record<string, number> {
+  const result: Record<string, number> = {};
+  const lines = md.split('\n');
+  let currentSection = '';
+
+  for (const line of lines) {
+    if (/^##\s/.test(line)) {
+      currentSection = line.replace(/^##\s+/, '').trim();
+      if (!result[currentSection]) result[currentSection] = 0;
+    } else if (currentSection && /^[-*+]\s/.test(line.trim())) {
+      result[currentSection] = (result[currentSection] || 0) + 1;
+    }
+  }
+
+  return result;
+}
+
+/** Extract bullet point text from a specific section */
+function extractBulletsFromSection(md: string, sectionName: string): string[] {
+  const lines = md.split('\n');
+  const bullets: string[] = [];
+  let inSection = false;
+
+  for (const line of lines) {
+    if (/^##\s/.test(line)) {
+      const name = line.replace(/^##\s+/, '').trim();
+      inSection = name === sectionName || name.includes(sectionName) || sectionName.includes(name);
+    } else if (inSection && /^[-*+]\s/.test(line.trim())) {
+      bullets.push(line.trim().replace(/^[-*+]\s/, ''));
+    }
+  }
+
+  return bullets;
+}
+
+/** Check if two bullets are similar (not identical, to handle AI rewording) */
+function isSimilarBullet(a: string, b: string): boolean {
+  // Normalize: remove bold markers, lowercase, strip punctuation
+  const normalize = (s: string) => s.replace(/\*\*/g, '').toLowerCase().replace(/[，。、；：]/g, '');
+  const na = normalize(a);
+  const nb = normalize(b);
+
+  // Check if one contains significant overlap with the other
+  if (na.length < 10 || nb.length < 10) return false;
+
+  // Simple overlap: check if any 8+ char substring of a appears in b
+  const minLen = Math.min(na.length, nb.length);
+  const windowSize = Math.min(8, Math.floor(minLen * 0.4));
+
+  for (let i = 0; i <= na.length - windowSize; i++) {
+    const substr = na.slice(i, i + windowSize);
+    if (nb.includes(substr)) return true;
+  }
+
+  return false;
+}
+
+/** Find the header line index for a section */
+function findSectionHeader(md: string, sectionName: string): { index: number; line: string } | null {
+  const lines = md.split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    if (/^##\s/.test(lines[i])) {
+      const name = lines[i].replace(/^##\s+/, '').trim();
+      if (name === sectionName || name.includes(sectionName) || sectionName.includes(name)) {
+        return { index: i, line: lines[i] };
+      }
+    }
+  }
+  return null;
+}
+
+/** Find the end index of a section (start of next ## or end of document) */
+function findSectionEnd(md: string, sectionStartIndex: number): number {
+  const lines = md.split('\n');
+  for (let i = sectionStartIndex + 1; i < lines.length; i++) {
+    if (/^##\s/.test(lines[i])) {
+      // Return position just before this next section header
+      // (account for blank line before it)
+      let end = i;
+      while (end > sectionStartIndex + 1 && lines[end - 1].trim() === '') end--;
+      // Convert line index to character position
+      return lines.slice(0, end).join('\n').length;
+    }
+  }
+  return md.length;
 }

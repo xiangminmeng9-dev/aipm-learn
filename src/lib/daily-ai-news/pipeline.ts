@@ -10,7 +10,8 @@ async function summarizeArticle(article: RawNewsArticle): Promise<string | null>
       { model: 'haiku', maxTokens: 80 }
     );
     return summary?.trim() || null;
-  } catch {
+  } catch (err) {
+    console.warn('[summarizeArticle] Failed for:', article.title?.slice(0, 30), err instanceof Error ? err.message : String(err));
     return null;
   }
 }
@@ -29,12 +30,14 @@ export async function refreshDailyNews(date: string): Promise<{ articles: RawNew
   // 1. Fetch articles from RSS
   const rawArticles = await fetchArticlesFromRSS();
 
-  // 2. Filter to only articles published on the target date (Asia/Shanghai)
-  const dayStart = new Date(date + 'T00:00:00+08:00');
+  // 2. Filter to articles published within a 24-hour window ending at the target date
+  // This handles the case where the cron runs at midnight — articles published "yesterday"
+  // in the RSS feed are still relevant for "today's" daily news
   const dayEnd = new Date(date + 'T23:59:59+08:00');
+  const windowStart = new Date(dayEnd.getTime() - 24 * 60 * 60 * 1000); // 24h before end of day
   const dayArticles = rawArticles.filter((a) => {
     const pub = new Date(a.published_at);
-    return pub >= dayStart && pub <= dayEnd;
+    return pub >= windowStart && pub <= dayEnd;
   });
 
   // 3. Generate per-article AI summaries (top 15, parallel)
@@ -67,8 +70,8 @@ export async function refreshDailyNews(date: string): Promise<{ articles: RawNew
 export async function refreshDailyNewsInBackground(date: string): Promise<void> {
   try {
     await refreshDailyNews(date);
-  } catch {
-    // silent — fire-and-forget
+  } catch (err) {
+    console.error('[refreshDailyNewsInBackground] Failed for', date, err instanceof Error ? err.message : String(err));
   }
 }
 

@@ -30,13 +30,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ version });
     }
 
-    // List versions with full content for expand view
+    // List versions — only summary columns (full content is loaded lazily via ?id=
+    // when a user expands a card). This avoids sending large TEXT columns
+    // (modified_resume, original_resume_text, jd_text) for every version on list load.
     const { data: versions, error } = await supabase
       .from('resume_versions')
-      .select('id, style_type, company_name, position_name, changes_summary, modified_resume, original_resume_text, jd_text, created_at')
+      .select('id, style_type, company_name, position_name, changes_summary, created_at')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
-      .limit(20);
+      .limit(200);
 
     if (error) {
       console.error('Failed to fetch resume versions:', error);

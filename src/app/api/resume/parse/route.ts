@@ -104,21 +104,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Fallback: try request.formData()
+    // Fallback: try request.formData() — only works if body hasn't been consumed
+    // Note: request.arrayBuffer() already consumed the body above, so this
+    // fallback is only reachable if we refactor to try formData first.
+    // For now, multipart parser is the primary path.
     if (!fileData) {
-      try {
-        const formData = await request.formData();
-        const file = formData.get('file') as File | null;
-        if (file) {
-          const arrayBuffer = await file.arrayBuffer();
-          fileData = { name: file.name, data: Buffer.from(arrayBuffer) };
-        }
-      } catch {
-        // formData() not available
-      }
-    }
-
-    if (!fileData) {
+      // Body already consumed by arrayBuffer() — cannot call formData()
       return NextResponse.json({ error: '请上传文件', code: 'VALIDATION_ERROR' }, { status: 400 });
     }
 

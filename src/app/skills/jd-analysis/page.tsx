@@ -25,6 +25,8 @@ export default function JdAnalysisPage() {
   const [jdText, setJdText] = useState('');
   const [jdUrl, setJdUrl] = useState('');
   const [urlFetching, setUrlFetching] = useState(false);
+  const [urlError, setUrlError] = useState<string | null>(null);
+  const [showBookmarklet, setShowBookmarklet] = useState(false);
   const [companyName, setCompanyName] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<JdAnalysis | null>(null);
@@ -50,6 +52,8 @@ export default function JdAnalysisPage() {
     if (!jdUrl.trim() || urlFetching) return;
     setUrlFetching(true);
     setError(null);
+    setUrlError(null);
+    setShowBookmarklet(false);
     try {
       const res = await apiFetch('/api/jd/fetch-url', {
         method: 'POST',
@@ -58,13 +62,16 @@ export default function JdAnalysisPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error || '链接提取失败');
+        setUrlError(data.error || '链接提取失败');
+        if (data.fallback === 'bookmarklet') {
+          setShowBookmarklet(true);
+        }
       } else if (data.text) {
         setJdText(data.text);
         setJdUrl('');
       }
     } catch {
-      setError('网络错误，请重试');
+      setUrlError('网络错误，请重试');
     } finally {
       setUrlFetching(false);
     }
@@ -87,6 +94,14 @@ export default function JdAnalysisPage() {
   // Restore from localStorage after hydration (avoids SSR mismatch)
   useEffect(() => {
     try {
+      // Handle ?jd= URL parameter (for short JD content)
+      const params = new URLSearchParams(window.location.search);
+      const jdParam = params.get('jd');
+      if (jdParam) {
+        setJdText(decodeURIComponent(jdParam));
+        window.history.replaceState({}, '', '/skills/jd-analysis');
+      }
+
       const savedJd = localStorage.getItem('jd-text');
       const savedCompany = localStorage.getItem('jd-company-name');
       const savedResume = localStorage.getItem('jd-resume-text');
@@ -574,29 +589,66 @@ export default function JdAnalysisPage() {
               className="w-full rounded-xl border-2 border-border bg-muted px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus:border-primary focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
           </div>
-          <label className="mb-2 block text-sm font-medium text-foreground">从链接提取（BOSS直聘等）</label>
-          <div className="flex gap-2">
-            <input
-              type="url"
-              value={jdUrl}
-              onChange={(e) => setJdUrl(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleFetchJdUrl(); }}
-              placeholder="粘贴招聘链接，如 https://www.zhipin.com/job_detail/..."
-              className="flex-1 rounded-xl border-2 border-border bg-muted px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus:border-primary focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/20"
-            />
-            <button
-              onClick={handleFetchJdUrl}
-              disabled={urlFetching || !jdUrl.trim()}
-              className="shrink-0 rounded-xl bg-primary/10 px-4 py-2.5 text-sm font-medium text-primary transition-all hover:bg-primary/20 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {urlFetching ? (
-                <span className="flex items-center gap-1">
-                  <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
-                  提取中
-                </span>
-              ) : '提取'}
-            </button>
+          {/* 从招聘网站提取 JD */}
+          <div className="mb-4">
+            <label className="mb-2 block text-sm font-medium text-foreground">从招聘网站提取 JD</label>
+            <div className="flex gap-2">
+              <input
+                type="url"
+                value={jdUrl}
+                onChange={(e) => setJdUrl(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleFetchJdUrl()}
+                placeholder="粘贴BOSS直聘、拉勾等岗位链接..."
+                className="flex-1 rounded-xl border-2 border-border bg-muted px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus:border-primary focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/20"
+              />
+              <button
+                onClick={handleFetchJdUrl}
+                disabled={urlFetching || !jdUrl.trim()}
+                className="shrink-0 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
+              >
+                {urlFetching ? (
+                  <span className="flex items-center gap-1.5">
+                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                    提取中...
+                  </span>
+                ) : '提取'}
+              </button>
+            </div>
+            {urlFetching && (
+              <p className="mt-1.5 text-xs text-muted-foreground">正在通过智能提取服务获取JD内容（可能需要10-30秒）...</p>
+            )}
+            {urlError && !showBookmarklet && (
+              <p className="mt-1.5 text-xs text-red-500">{urlError}</p>
+            )}
           </div>
+          {/* Bookmarklet fallback */}
+          {showBookmarklet && (
+            <div className="mb-4 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 px-4 py-3">
+              <p className="mb-2 text-sm font-medium text-foreground">自动提取失败，请使用书签小工具：</p>
+              <ol className="ml-4 list-decimal space-y-1 text-xs text-muted-foreground">
+                <li>将下方按钮<strong>拖拽到浏览器书签栏</strong></li>
+                <li>在BOSS直聘岗位详情页<strong>点击该书签</strong></li>
+                <li>JD内容会自动复制到剪贴板，回到这里粘贴即可</li>
+              </ol>
+              <div className="mt-3">
+                <a
+                  href={`javascript:void((function(){var s=document.querySelector('.job-detail-section')||document.querySelector('.job-sec-text')||document.querySelector('.job-box')||document.querySelector('.job-desc');if(!s){alert('未找到JD内容，请确保在岗位详情页');return}var t=s.innerText.trim();if(!t){alert('JD内容为空');return}navigator.clipboard.writeText(t).then(function(){alert('✅ JD已复制到剪贴板！共'+t.length+'字\\n请切换到应用页面粘贴')}).catch(function(){var ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);alert('✅ JD已复制到剪贴板！共'+t.length+'字\\n请切换到应用页面粘贴')})})())`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    alert('请将此按钮拖拽到书签栏使用 👆\n\n不要直接点击，在岗位详情页点击书签即可提取JD');
+                  }}
+                  className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 cursor-grab transition-colors"
+                  title="拖拽到书签栏，在岗位详情页点击即可提取JD"
+                >
+                  📎 提取JD
+                </a>
+                <span className="ml-2 text-xs text-muted-foreground">← 拖拽到书签栏</span>
+              </div>
+              {urlError && (
+                <p className="mt-2 text-xs text-muted-foreground">原因：{urlError}</p>
+              )}
+            </div>
+          )}
           <div className="relative my-3 flex items-center">
             <div className="flex-grow border-t border-border"></div>
             <span className="mx-3 shrink-0 text-xs text-muted-foreground">或手动粘贴</span>

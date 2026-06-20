@@ -19,8 +19,18 @@ export async function GET(request: Request) {
       getCachedDigest(date),
     ]);
 
-    // Past dates: only return cache
+    // Past dates: fetch if no cache, otherwise return cache
     if (!isToday) {
+      if (cachedArticles.length === 0) {
+        const fresh = await refreshDailyNews(date).catch(() => null);
+        if (fresh) {
+          return NextResponse.json({
+            date,
+            articles: await getCachedArticles(date),
+            digest: await getCachedDigest(date),
+          });
+        }
+      }
       return NextResponse.json({ date, articles: cachedArticles, digest: cachedDigest });
     }
 

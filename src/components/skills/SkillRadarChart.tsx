@@ -14,13 +14,6 @@ interface SkillRadarChartProps {
   interviewAvgScore?: number;
 }
 
-const LEVEL_LABELS: Record<number, string> = {
-  1: '基础入门',
-  2: '核心能力',
-  3: '进阶专项',
-  4: '实战综合',
-};
-
 export default function SkillRadarChart({ modules, interviewAvgScore }: SkillRadarChartProps) {
   const option = useMemo(() => {
     const levelScores: Record<number, number[]> = { 1: [], 2: [], 3: [], 4: [] };
